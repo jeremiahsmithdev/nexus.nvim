@@ -3,7 +3,7 @@ local M = {}
 local git_operations = require('gboard.git.operations')
 local tmux = require('gboard.tmux')
 
-function M.setup_keymaps(buf, files, config, render_callback)
+function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
   vim.api.nvim_buf_set_keymap(buf, 'n', '<CR>', '', {
     noremap = true,
     silent = true,
@@ -45,12 +45,12 @@ function M.setup_keymaps(buf, files, config, render_callback)
             tmux.send_resume_to_claude(conversations[conv_index].session_id)
           end
         end
-      -- Check if it's a git status line
-      elseif current_line and current_line:match("^  [MADRCU?][MADRCU?]? ") then
+      -- Check if it's a git status line (only in git repos)
+      elseif is_git_repo and current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
         -- This is a git status line - extract filename and open file
-        local filename = current_line:match("^  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
-                        current_line:match("^  [MADRCU?][MADRCU?]? (.-)%s+%-") or
-                        current_line:match("^  [MADRCU?][MADRCU?]? (.+)$")
+        local filename = current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
+                        current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%-") or
+                        current_line:match("%s*  [MADRCU?][MADRCU?]? (.+)$")
         if filename then
           filename = filename:gsub("%s+$", "")
         end
@@ -90,39 +90,42 @@ function M.setup_keymaps(buf, files, config, render_callback)
     end
   })
   
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'r', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      render_callback(buf)
-    end
-  })
-  
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'a', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      M.handle_git_add(buf, render_callback)
-    end
-  })
-  
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'u', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      M.handle_git_unstage(buf, render_callback)
-    end
-  })
-  
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'c', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      git_operations.create_commit_window(function()
+  -- Git-specific keymaps (only in git repositories)
+  if is_git_repo then
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'r', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
         render_callback(buf)
-      end)
-    end
-  })
+      end
+    })
+    
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'a', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        M.handle_git_add(buf, render_callback)
+      end
+    })
+    
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'u', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        M.handle_git_unstage(buf, render_callback)
+      end
+    })
+    
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'c', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        git_operations.create_commit_window(function()
+          render_callback(buf)
+        end)
+      end
+    })
+  end
 end
 
 function M.smart_quit()
@@ -153,15 +156,18 @@ function M.handle_git_add(buf, render_callback)
   local current_line = lines[line_num]
   
   -- Check if it's a git status line
-  if current_line and current_line:match("^  [MADRCU?][MADRCU?]? ") then
-    local filename = current_line:match("^  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
-                    current_line:match("^  [MADRCU?][MADRCU?]? (.-)%s+%-") or
-                    current_line:match("^  [MADRCU?][MADRCU?]? (.+)$")
+  if current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
+    local filename = current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
+                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%-") or
+                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.+)$")
     if filename then
       filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
       
       git_operations.git_add_file(filename, function()
-        render_callback(buf)
+        -- Re-parse git status after change and pass to render
+        local git_status = require('gboard.git.status')
+        local files = git_status.parse_git_status()
+        render_callback(buf, files)
       end)
     end
   end
@@ -176,15 +182,18 @@ function M.handle_git_unstage(buf, render_callback)
   local current_line = lines[line_num]
   
   -- Check if it's a git status line
-  if current_line and current_line:match("^  [MADRCU?][MADRCU?]? ") then
-    local filename = current_line:match("^  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
-                    current_line:match("^  [MADRCU?][MADRCU?]? (.-)%s+%-") or
-                    current_line:match("^  [MADRCU?][MADRCU?]? (.+)$")
+  if current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
+    local filename = current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
+                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%-") or
+                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.+)$")
     if filename then
       filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
       
       git_operations.git_unstage_file(filename, function()
-        render_callback(buf)
+        -- Re-parse git status after change and pass to render
+        local git_status = require('gboard.git.status')
+        local files = git_status.parse_git_status()
+        render_callback(buf, files)
       end)
     end
   end

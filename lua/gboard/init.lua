@@ -23,8 +23,11 @@ function M.open()
   local current_config = config.get()
   local files = render.render_git_status(buf, current_config)
   
-  keymaps.setup_keymaps(buf, files, current_config, function(buf)
-    render.render_git_status(buf, current_config)
+  local git_utils = require('gboard.git.utils')
+  local is_git_repo = git_utils.is_git_repo()
+  
+  keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(buf, cached_files)
+    render.render_git_status(buf, current_config, cached_files)
   end)
   
   -- Position cursor after logo and buttons, before commits/git status

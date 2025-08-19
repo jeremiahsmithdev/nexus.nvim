@@ -6,7 +6,7 @@ vim.g.loaded_gboard = 1
 vim.api.nvim_create_user_command('GBoard', function()
   require('gboard').open()
 end, {
-  desc = 'Open GBoard git status dashboard'
+  desc = 'Open GBoard dashboard'
 })
 
 -- Auto-open GBoard on startup if no files are opened
