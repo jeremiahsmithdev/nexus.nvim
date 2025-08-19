@@ -13,11 +13,11 @@ function M.setup(user_config)
   config.setup(user_config)
 end
 
-function M.open()
-  local buf = buffer_mod.create_gboard_buffer()
+function M.open(is_manual_open)
+  local buf = buffer_mod.create_gboard_buffer(is_manual_open)
   vim.api.nvim_buf_set_name(buf, 'GBoard')
   
-  buffer_mod.open_buffer(buf)
+  buffer_mod.open_buffer(buf, is_manual_open)
   
   -- NOW the buffer is in the window, so we can get the correct window width
   local current_config = config.get()

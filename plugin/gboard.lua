@@ -4,7 +4,7 @@ end
 vim.g.loaded_gboard = 1
 
 vim.api.nvim_create_user_command('GBoard', function()
-  require('gboard').open()
+  require('gboard').open(true)  -- Pass true to indicate manual open
 end, {
   desc = 'Open GBoard dashboard'
 })
@@ -17,7 +17,7 @@ vim.api.nvim_create_autocmd('VimEnter', {
       -- Check if we're in a git repository
       local git_check = vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null')
       if vim.v.shell_error == 0 and git_check:match('true') then
-        require('gboard').open()
+        require('gboard').open(false)  -- Pass false to indicate auto-open
       end
     end
   end,
