@@ -1,5 +1,9 @@
 local M = {}
 
+-- Store current image reference for cleanup
+M._current_image = nil
+M._current_buffer = nil
+
 function M.get_neovim_logo(config)
   if config and config.use_image_logo then
     return M.get_image_logo(config)
@@ -117,11 +121,46 @@ function M.render_image_logo(buf, config, start_line, x_offset)
   })
   
   if img then
+    -- Clean up any existing image first
+    M.cleanup_image()
+    
+    -- Store reference for cleanup and re-rendering
+    M._current_image = img
+    M._current_buffer = buf
+    
     img:render()
     return true
   end
   
   return false
+end
+
+-- Clean up the current image if it exists
+function M.cleanup_image()
+  if M._current_image then
+    -- Clear/hide the image
+    pcall(function()
+      M._current_image:clear()
+    end)
+    M._current_image = nil
+    M._current_buffer = nil
+  end
+end
+
+-- Re-render the image for the current buffer if it exists
+function M.refresh_image()
+  if M._current_image and M._current_buffer then
+    pcall(function()
+      -- Clear and re-render to handle position changes
+      M._current_image:clear()
+      M._current_image:render()
+    end)
+  end
+end
+
+-- Check if we have an active image for a specific buffer
+function M.has_image_for_buffer(buf)
+  return M._current_buffer == buf and M._current_image ~= nil
 end
 
 return M
