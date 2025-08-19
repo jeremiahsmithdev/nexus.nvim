@@ -1,6 +1,7 @@
 local M = {}
 
 local git_operations = require('gboard.git.operations')
+local git_command = require('gboard.git.command')
 local tmux = require('gboard.tmux')
 
 function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
@@ -122,6 +123,19 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
       callback = function()
         git_operations.create_commit_window(function()
           render_callback(buf)
+        end)
+      end
+    })
+    
+    vim.api.nvim_buf_set_keymap(buf, 'n', '<leader>g', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        git_command.create_git_command_window(function()
+          -- Re-parse git status after command and refresh
+          local git_status = require('gboard.git.status')
+          local files = git_status.parse_git_status()
+          render_callback(buf, files)
         end)
       end
     })
