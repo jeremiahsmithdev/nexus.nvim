@@ -28,7 +28,7 @@ function M.render_git_status(buf, config, cached_files)
   end
   
   -- Start with centered Neovim logo
-  local logo_lines = logo.get_neovim_logo()
+  local logo_lines = logo.get_neovim_logo(config)
   local lines = center.center_lines(logo_lines, width)
   
   -- Add dashboard buttons if enabled
@@ -120,6 +120,11 @@ function M.render_git_status(buf, config, cached_files)
   
   vim.api.nvim_buf_set_option(buf, 'modifiable', true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  
+  -- Render image logo if enabled (after buffer content is set)
+  if config.use_image_logo then
+    logo.render_image_logo(buf, config, 0, 0)
+  end
   
   -- Add syntax highlighting with simple pattern matching
   M.apply_highlighting(buf, lines, config, is_git_repo, files)

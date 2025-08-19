@@ -36,7 +36,7 @@ function M.open(is_manual_open)
   
   -- Position cursor after logo and buttons, before commits/git status
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  local logo_lines = logo.get_neovim_logo()
+  local logo_lines = logo.get_neovim_logo(current_config)
   local button_lines = dashboard.get_dashboard_buttons(current_config)
   local cursor_line = math.min(#logo_lines + #button_lines + 3, #lines)
   if cursor_line > 0 and cursor_line <= #lines then
