@@ -464,6 +464,17 @@ function M.create_git_command_window(refresh_callback)
       return
     end
     
+    -- Special handling for commit --amend
+    if cmd == "commit --amend" then
+      vim.api.nvim_win_close(win, true)
+      vim.cmd('stopinsert')
+      
+      -- Open commit amend window instead of executing directly
+      local operations = require('gboard.git.operations')
+      operations.create_commit_amend_window(refresh_callback)
+      return
+    end
+    
     vim.api.nvim_win_close(win, true)
     
     -- Ensure we're in normal mode when returning to GBoard
