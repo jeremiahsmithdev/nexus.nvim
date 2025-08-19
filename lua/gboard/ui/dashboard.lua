@@ -7,12 +7,12 @@ function M.get_dashboard_buttons(config)
   
   return {
     "",
-    "    󰈞  Find file                   SPC f f",
-    "    󰋚  Recently opened files       SPC f h", 
-    "    󰊄  Find word                   SPC f g",
-    "    󰈔  New file                    SPC f n",
-    "    󰃃  Bookmarks                   SPC b m",
-    "    󰁯  Restore session             SPC s s",
+    "    󰈞  Find file                   SPC f",
+    "    󰋚  Recently opened files       SPC r", 
+    "    󰊄  Find word                   SPC w",
+    "    󰈔  New file                    SPC n",
+    "    󰃃  Bookmarks                   SPC b",
+    "    󰁯  Restore session             SPC s",
     ""
   }
 end

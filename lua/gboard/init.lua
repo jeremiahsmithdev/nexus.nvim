@@ -7,10 +7,14 @@ local render = require('gboard.render')
 local keymaps = require('gboard.keymaps')
 local logo = require('gboard.ui.logo')
 local dashboard = require('gboard.ui.dashboard')
+local global_keymaps = require('gboard.global_keymaps')
 
 -- Setup function to allow user configuration
 function M.setup(user_config)
   config.setup(user_config)
+  
+  -- Set up global keymaps for dashboard shortcuts
+  global_keymaps.setup()
 end
 
 function M.open(is_manual_open)

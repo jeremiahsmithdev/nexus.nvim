@@ -3,6 +3,9 @@ if vim.g.loaded_gboard then
 end
 vim.g.loaded_gboard = 1
 
+-- Set up global keymaps for dashboard shortcuts
+require('gboard.global_keymaps').setup()
+
 vim.api.nvim_create_user_command('GBoard', function()
   require('gboard').open(true)  -- Pass true to indicate manual open
 end, {
