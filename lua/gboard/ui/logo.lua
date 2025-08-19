@@ -3,6 +3,7 @@ local M = {}
 -- Store current image reference for cleanup
 M._current_image = nil
 M._current_buffer = nil
+M._current_tmux_pane = nil
 
 function M.get_neovim_logo(config)
   if config and config.use_image_logo then
@@ -101,6 +102,12 @@ function M.render_image_logo(buf, config, start_line, x_offset)
   
   local win = vim.api.nvim_get_current_win()
   
+  -- Get current tmux pane to ensure strict binding
+  local current_tmux_pane = nil
+  if vim.env.TMUX then
+    current_tmux_pane = vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '')
+  end
+  
   -- Check if buffer has enough lines for image positioning
   local line_count = vim.api.nvim_buf_line_count(buf)
   if line_count < 3 then
@@ -131,9 +138,10 @@ function M.render_image_logo(buf, config, start_line, x_offset)
     -- Clean up any existing image first
     M.cleanup_image()
     
-    -- Store reference for cleanup and re-rendering
+    -- Store reference for cleanup and re-rendering with tmux pane binding
     M._current_image = img
     M._current_buffer = buf
+    M._current_tmux_pane = current_tmux_pane
     
     img:render()
     return true
@@ -151,12 +159,22 @@ function M.cleanup_image()
     end)
     M._current_image = nil
     M._current_buffer = nil
+    M._current_tmux_pane = nil
   end
 end
 
--- Re-render the image for the current buffer if it exists
+-- Re-render the image for the current buffer if it exists and we're in the right tmux pane
 function M.refresh_image()
   if M._current_image and M._current_buffer then
+    -- Validate we're in the correct tmux pane before re-rendering
+    if vim.env.TMUX and M._current_tmux_pane then
+      local current_pane = vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '')
+      if current_pane ~= M._current_tmux_pane then
+        -- We're in a different pane, don't re-render here
+        return
+      end
+    end
+    
     pcall(function()
       -- Clear and re-render to handle position changes
       M._current_image:clear()
@@ -165,9 +183,19 @@ function M.refresh_image()
   end
 end
 
--- Check if we have an active image for a specific buffer
+-- Check if we have an active image for a specific buffer and tmux pane
 function M.has_image_for_buffer(buf)
-  return M._current_buffer == buf and M._current_image ~= nil
+  if M._current_buffer ~= buf or M._current_image == nil then
+    return false
+  end
+  
+  -- If we're in tmux, also validate we're in the correct pane
+  if vim.env.TMUX and M._current_tmux_pane then
+    local current_pane = vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '')
+    return current_pane == M._current_tmux_pane
+  end
+  
+  return true
 end
 
 return M

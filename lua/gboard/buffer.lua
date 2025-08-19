@@ -136,46 +136,43 @@ function M.setup_image_autocommands(buf)
     end
   })
   
-  -- Additional tmux-specific handling with timer-based cleanup
+  -- Aggressive tmux monitoring - check both pane and window changes
   if vim.env.TMUX then
-    -- Set up a timer to periodically check if we're still in the right tmux context
     local timer = vim.uv.new_timer()
-    local last_tmux_pane = nil
+    local initial_pane = vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '')
+    local last_tmux_pane = initial_pane
     
-    -- Function to get current tmux pane info
+    -- Function to get current tmux context
     local function get_tmux_context()
       local pane_id = vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '')
       local window_id = vim.fn.system("tmux display-message -p '#{window_id}'"):gsub('\n', '')
       return pane_id, window_id
     end
     
-    -- Store initial context
-    local initial_pane, initial_window = get_tmux_context()
-    last_tmux_pane = initial_pane
-    
-    -- Check every 500ms for tmux context changes
-    timer:start(500, 500, vim.schedule_wrap(function()
+    -- Check every 300ms for any tmux context changes
+    timer:start(300, 300, vim.schedule_wrap(function()
       local logo = require('gboard.ui.logo')
       local current_pane, current_window = get_tmux_context()
       
-      -- If we have an image and context changed, cleanup
-      if logo.has_image_for_buffer(buf) and current_pane ~= last_tmux_pane then
+      -- If we have an image but we're not in the original pane, clean it up immediately
+      if logo.has_image_for_buffer(buf) and current_pane ~= initial_pane then
         logo.cleanup_image()
-        last_tmux_pane = current_pane
       end
       
-      -- If we don't have an image but we're viewing this GBoard buffer, re-render
+      -- If we don't have an image, we're in the original pane, and this is the current buffer, re-render
       if not logo.has_image_for_buffer(buf) and 
+         current_pane == initial_pane and 
          vim.api.nvim_get_current_buf() == buf then
         
-        -- Check if we should have an image (buffer is GBoard with image enabled)
         local current_config = require('gboard.config').get()
         if current_config.use_image_logo then
-          -- Re-render the image
-          logo.render_image_logo(buf, current_config, 0, 0)
+          vim.defer_fn(function()
+            logo.render_image_logo(buf, current_config, 0, 0)
+          end, 100)
         end
-        last_tmux_pane = current_pane
       end
+      
+      last_tmux_pane = current_pane
     end))
     
     -- Clean up timer when buffer is deleted

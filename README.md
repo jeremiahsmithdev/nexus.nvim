@@ -1,3 +1,8 @@
+- AI is like a bullet train
+- Git is like the train track with each commit representing a rung holding that rail up
+- Commit often
+- Use GBoard to keep you on task with your git commits, giving you a persistent visual reminder
+
 # GBoard.nvim
 
 A Neovim plugin that provides a git dashboard interface similar to popular dashboard plugins like alpha.nvim. It opens automatically on startup when no files are specified and displays git information in a clean, centered layout.
