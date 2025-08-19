@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
+NEVER lead with "You're absolutely right!" -> be more creative and give more meaningful information instead of trying to simply agree with the user.
+
 GBoard.nvim is a Neovim plugin that provides a git dashboard interface similar to popular dashboard plugins like alpha.nvim. It opens automatically on startup when no files are specified and displays:
 
 1. Neovim ASCII art logo (centered, inspired by alpha.nvim)
