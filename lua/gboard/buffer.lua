@@ -37,9 +37,16 @@ function M.open_buffer(buf, is_manual_open)
         -- Switch to existing GBoard buffer
         vim.api.nvim_win_set_buf(0, existing_buf)
         M.setup_window_options()
-        -- Refresh image if we have one for this buffer
-        local logo = require('gboard.ui.logo')
-        logo.refresh_image()
+        -- Ensure autocommands are set up for this buffer
+        M.setup_image_autocommands(existing_buf)
+        -- Force render image for this buffer after a small delay to ensure buffer content is ready
+        vim.defer_fn(function()
+          local logo = require('gboard.ui.logo')
+          local current_config = require('gboard.config').get()
+          if current_config.use_image_logo then
+            logo.render_image_logo(existing_buf, current_config, 0, 0)
+          end
+        end, 50)
         return
       end
     end
@@ -84,15 +91,22 @@ function M.setup_image_autocommands(buf)
     end
   })
   
-  -- Re-render image when entering the buffer
+  -- Re-render image when entering the buffer (force render every time)
   vim.api.nvim_create_autocmd('BufEnter', {
     group = group_name,
     buffer = buf,
     callback = function()
-      local logo = require('gboard.ui.logo')
-      if logo.has_image_for_buffer(buf) then
-        logo.refresh_image()
-      end
+      -- Small delay to ensure buffer content is ready
+      vim.defer_fn(function()
+        local logo = require('gboard.ui.logo')
+        local current_config = require('gboard.config').get()
+        
+        -- Always try to render if image logo is enabled
+        if current_config.use_image_logo then
+          -- Force render regardless of current state
+          logo.render_image_logo(buf, current_config, 0, 0)
+        end
+      end, 50)
     end
   })
   
@@ -150,10 +164,8 @@ function M.setup_image_autocommands(buf)
         last_tmux_pane = current_pane
       end
       
-      -- If we don't have an image but we're back in the original context,
-      -- and this is the current buffer, re-render
+      -- If we don't have an image but we're viewing this GBoard buffer, re-render
       if not logo.has_image_for_buffer(buf) and 
-         current_pane == initial_pane and 
          vim.api.nvim_get_current_buf() == buf then
         
         -- Check if we should have an image (buffer is GBoard with image enabled)

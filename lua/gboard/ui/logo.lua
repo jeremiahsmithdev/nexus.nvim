@@ -101,6 +101,13 @@ function M.render_image_logo(buf, config, start_line, x_offset)
   
   local win = vim.api.nvim_get_current_win()
   
+  -- Check if buffer has enough lines for image positioning
+  local line_count = vim.api.nvim_buf_line_count(buf)
+  if line_count < 3 then
+    -- Buffer doesn't have enough content yet, skip rendering
+    return false
+  end
+  
   -- Calculate center position based on actual display width (same as ASCII logo)
   local img_width = config.image_logo_width or 30
   local img_height = config.image_logo_height or 6
