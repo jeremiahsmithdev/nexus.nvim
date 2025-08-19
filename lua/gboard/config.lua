@@ -8,7 +8,9 @@ local default_config = {
   recent_commits_count = 3,          -- Number of recent commits to show
   show_git_status = true,            -- Show git status section
   use_image_logo = false,            -- Use image.nvim for logo (requires image.nvim plugin)
-  image_logo_path = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ':h:h:h') .. '/assets/neovim.png'
+  image_logo_path = nil,             -- Custom image path (defaults to plugin's neovim.png if nil)
+  image_logo_width = 30,             -- Width of the image in character units
+  image_logo_height = 6              -- Height of the image in line units
 }
 
 local config = vim.deepcopy(default_config)
