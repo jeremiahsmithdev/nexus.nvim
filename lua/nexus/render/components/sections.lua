@@ -2,13 +2,10 @@ local M = {}
 
 local dashboard = require('nexus.ui.dashboard')
 local shortcuts = require('nexus.ui.shortcuts')
+local git_commits = require('nexus.git.commits')
 local git_status = require('nexus.git.status')
 local folding = require('nexus.ui.folding')
 local logger = require('nexus.logger')
-
--- State management
-local git_state = require('nexus.state.git')
-local ui_state = require('nexus.state.ui')
 
 -- Build all sections based on configuration
 function M.build_sections(config, is_git_repo, files)
@@ -30,9 +27,9 @@ function M.build_sections(config, is_git_repo, files)
     end
   end
   
-  -- Recent commits section - now uses state management
+  -- Recent commits section
   if is_git_repo and config.show_recent_commits then
-    local commits = git_state.update_git_commits(config)
+    local commits = git_commits.get_git_log(config)
     if #commits > 0 then
       local commits_lines = {"Recent Commits:", ""}
       for i, commit in ipairs(commits) do

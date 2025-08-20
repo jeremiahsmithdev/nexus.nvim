@@ -124,6 +124,20 @@ function M.invalidate_cache()
   state.notify('cache', 'git_invalidated', {}, nil)
 end
 
+-- Force refresh all git data (ignores cache)
+function M.force_refresh(config)
+  M.update_git_repository_info()
+  M.update_git_status(true)  -- force_refresh = true
+  M.update_git_commits(config, true)  -- force_refresh = true
+  
+  -- Notify that git data was refreshed
+  state.notify('git', 'force_refreshed', {
+    timestamp = os.time(),
+    files = state.get('git', 'files'),
+    commits = state.get('git', 'commits')
+  }, nil)
+end
+
 -- Subscribe to git state changes
 function M.subscribe_to_git_changes(callback)
   return state.subscribe('git', callback)
