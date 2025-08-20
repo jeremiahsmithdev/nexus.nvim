@@ -1,3 +1,6 @@
+-- Buffer management for Nexus.nvim dashboard
+-- Handles creation, opening, and lifecycle management of Nexus buffers
+-- Sets up autocommands for automatic git status refresh and image rendering
 local M = {}
 local logger = require('nexus.logger')
 
@@ -97,21 +100,22 @@ function M.setup_image_autocommands(buf)
     end
   })
   
-  -- Re-render image when entering the buffer (in correct pane)
+  -- Re-render image and refresh git status when entering the buffer
   vim.api.nvim_create_autocmd('BufEnter', {
     group = group_name,
     buffer = buf,
     callback = function()
       logger.buf_enter(buf)
       vim.defer_fn(function()
+        -- Handle image rendering
         local logo = require('nexus.ui.logo')
         local current_config = require('nexus.config').get()
         local should_show = logo.should_show_image_in_current_pane()
         local has_image = logo.has_image_for_buffer(buf)
         
-        logger.image_render_attempt(buf, should_show, has_image, current_config.use_image_logo)
+        logger.image_render_attempt(buf, should_show, has_image, current_config.logo_selection == "image")
         
-        if current_config.use_image_logo and should_show then
+        if current_config.logo_selection == "image" and should_show then
           if not has_image then
             logger.debug("IMAGE", "No image for buffer, rendering new image")
             logo.render_image_logo(buf, current_config, 0, 0)
@@ -120,7 +124,15 @@ function M.setup_image_autocommands(buf)
             logo.refresh_image()
           end
         else
-          logger.debug("IMAGE", "Not rendering image: use_image_logo=" .. tostring(current_config.use_image_logo) .. ", should_show=" .. tostring(should_show))
+          logger.debug("IMAGE", "Not rendering image: logo_selection=" .. tostring(current_config.logo_selection) .. ", should_show=" .. tostring(should_show))
+        end
+        
+        -- Refresh git status if in a git repository
+        local git_utils = require('nexus.git.utils')
+        if git_utils.is_git_repo() then
+          logger.debug("GIT", "Refreshing git status on BufEnter")
+          local nexus = require('nexus')
+          nexus.refresh_buffer(buf)
         end
       end, 50)
     end
@@ -159,6 +171,85 @@ function M.setup_image_autocommands(buf)
       end
     end
   })
+  
+  -- Add git-specific autocommands for automatic refresh
+  local git_utils = require('nexus.git.utils')
+  if git_utils.is_git_repo() then
+    -- Refresh when files are written (git status might change)
+    vim.api.nvim_create_autocmd('BufWritePost', {
+      group = group_name,
+      pattern = '*',
+      callback = function()
+        -- Only refresh if the Nexus buffer is currently visible
+        local nexus_buf = nil
+        for _, win in ipairs(vim.api.nvim_list_wins()) do
+          local win_buf = vim.api.nvim_win_get_buf(win)
+          if win_buf == buf then
+            nexus_buf = buf
+            break
+          end
+        end
+        
+        if nexus_buf then
+          logger.debug("GIT", "File written, refreshing git status")
+          vim.defer_fn(function()
+            local nexus = require('nexus')
+            nexus.refresh_buffer(nexus_buf)
+          end, 100)
+        end
+      end
+    })
+    
+    -- Refresh when shell commands complete (for git operations outside nvim)
+    vim.api.nvim_create_autocmd('ShellCmdPost', {
+      group = group_name,
+      pattern = '*',
+      callback = function()
+        -- Only refresh if the Nexus buffer is currently visible
+        local nexus_buf = nil
+        for _, win in ipairs(vim.api.nvim_list_wins()) do
+          local win_buf = vim.api.nvim_win_get_buf(win)
+          if win_buf == buf then
+            nexus_buf = buf
+            break
+          end
+        end
+        
+        if nexus_buf then
+          logger.debug("GIT", "Shell command completed, refreshing git status")
+          vim.defer_fn(function()
+            local nexus = require('nexus')
+            nexus.refresh_buffer(nexus_buf)
+          end, 200)
+        end
+      end
+    })
+    
+    -- Refresh when focus is gained (might have git changes from outside)
+    vim.api.nvim_create_autocmd('FocusGained', {
+      group = group_name,
+      pattern = '*',
+      callback = function()
+        -- Only refresh if the Nexus buffer is currently visible
+        local nexus_buf = nil
+        for _, win in ipairs(vim.api.nvim_list_wins()) do
+          local win_buf = vim.api.nvim_win_get_buf(win)
+          if win_buf == buf then
+            nexus_buf = buf
+            break
+          end
+        end
+        
+        if nexus_buf then
+          logger.debug("GIT", "Focus gained, refreshing git status")
+          vim.defer_fn(function()
+            local nexus = require('nexus')
+            nexus.refresh_buffer(nexus_buf)
+          end, 300)
+        end
+      end
+    })
+  end
   
   -- Clean up when buffer is deleted
   vim.api.nvim_create_autocmd('BufDelete', {

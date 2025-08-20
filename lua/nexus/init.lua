@@ -50,4 +50,27 @@ function M.open(is_manual_open)
   end
 end
 
+-- Function to refresh an existing Nexus buffer
+function M.refresh_buffer(buf)
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    return
+  end
+  
+  -- Check if this is actually a Nexus buffer
+  local buf_name = vim.api.nvim_buf_get_name(buf)
+  if not buf_name:match('Nexus$') then
+    return
+  end
+  
+  local current_config = config.get()
+  local files = render.render_git_status(buf, current_config)
+  
+  local git_utils = require('nexus.git.utils')
+  local is_git_repo = git_utils.is_git_repo()
+  
+  keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(buf, cached_files)
+    render.render_git_status(buf, current_config, cached_files)
+  end)
+end
+
 return M
