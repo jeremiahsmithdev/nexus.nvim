@@ -6,19 +6,27 @@ local sections_component = require('nexus.render.components.sections')
 local highlighting = require('nexus.render.components.highlighting')
 local events = require('nexus.render.components.events')
 
+-- State management imports
+local git_state = require('nexus.state.git')
+local ui_state = require('nexus.state.ui')
+
 -- Legacy imports still needed
+local logo = require('nexus.ui.logo')
 local git_utils = require('nexus.git.utils')
 local git_status = require('nexus.git.status')
 local folding = require('nexus.ui.folding')
 local cursor = require('nexus.cursor')
 
 function M.render_git_status(buf, config, cached_files)
-  -- Check if we're in a git repository
-  local is_git_repo = git_utils.is_git_repo()
+  -- Update configuration in state
+  ui_state.update_config(config or {})
+  
+  -- Check if we're in a git repository using state
+  local is_git_repo = git_state.is_git_repo()
   local files = {}
   
   if is_git_repo then
-    files = cached_files or git_status.parse_git_status()
+    files = cached_files or git_state.update_git_status()
   end
   
   -- Get display width
@@ -41,10 +49,14 @@ function M.render_git_status(buf, config, cached_files)
   -- Set up folding for git status overflow
   folding.setup_git_status_folding(buf, lines, config, files)
   
+  -- Update state with section ranges and logo info
+  ui_state.update_section_ranges(section_ranges)
+  ui_state.update_logo_section(logo_section)
+  
   -- Add syntax highlighting using component
   highlighting.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
   
-  -- Update cursor module with section ranges for dynamic shortcuts
+  -- Update cursor module with section ranges for dynamic shortcuts (maintains backward compatibility)
   cursor.update_section_ranges(section_ranges)
   
   -- Set up dynamic shortcut updating on cursor movement (only if shortcuts are enabled)
