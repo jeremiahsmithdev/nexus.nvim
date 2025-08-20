@@ -40,13 +40,17 @@ function M.open(is_manual_open)
     render.render_git_status(buf, current_config, cached_files)
   end)
   
-  -- Position cursor after logo and buttons, before commits/git status
+  -- Position cursor on first actionable line (dashboard buttons)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local logo_lines = logo.get_neovim_logo(current_config)
-  local button_lines = dashboard.get_dashboard_buttons(current_config)
-  local cursor_line = math.min(#logo_lines + #button_lines + 3, #lines)
-  if cursor_line > 0 and cursor_line <= #lines then
-    vim.api.nvim_win_set_cursor(0, {cursor_line, 0})
+  local logo_end_line = #logo_lines + 1  -- Logo + one empty line
+  
+  -- Find first actionable line (should be first dashboard button)
+  for i = logo_end_line + 1, #lines do
+    if lines[i] and not lines[i]:match("^%s*$") and not lines[i]:match(":$") then
+      vim.api.nvim_win_set_cursor(0, {i, 0})
+      break
+    end
   end
 end
 

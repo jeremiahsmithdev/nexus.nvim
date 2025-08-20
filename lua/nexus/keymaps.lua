@@ -5,6 +5,30 @@ local git_operations = require('nexus.git.operations')
 local git_command = require('nexus.git.command')
 local tmux = require('nexus.tmux')
 
+-- Simple function to check if a line is actionable
+local function is_actionable_line(line, logo_end_line)
+  local line_num = vim.api.nvim_win_get_cursor(0)[1]
+  
+  -- Skip logo section entirely
+  if line_num <= logo_end_line then
+    return false
+  end
+  
+  -- Skip empty lines
+  if not line or line:match("^%s*$") then
+    return false
+  end
+  
+  -- Skip section titles
+  if line:match("^Recent Commits:$") or 
+     line:match("^Git Status:$") or 
+     line:match("^Claude Conversations:$") then
+    return false
+  end
+  
+  return true
+end
+
 function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
   vim.api.nvim_buf_set_keymap(buf, 'n', '<CR>', '', {
     noremap = true,
@@ -89,6 +113,70 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
     silent = true,
     callback = function()
       M.smart_quit()
+    end
+  })
+  
+  -- Calculate logo section end (just logo + empty line, NOT buttons)
+  local logo = require('nexus.ui.logo')
+  local logo_lines = logo.get_neovim_logo(config)
+  local logo_end_line = #logo_lines + 1  -- Logo + one empty line
+  
+  -- Custom navigation that skips non-actionable lines
+  local function move_to_next_actionable(direction)
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    local current_line = vim.api.nvim_win_get_cursor(0)[1]
+    local step = direction > 0 and 1 or -1
+    
+    for i = current_line + step, direction > 0 and #lines or 1, step do
+      if lines[i] then
+        -- Skip logo section completely
+        if i <= logo_end_line then
+          goto continue
+        end
+        
+        -- Skip empty lines
+        if lines[i]:match("^%s*$") then
+          goto continue
+        end
+        
+        -- Skip section titles (anything ending with ":")
+        if lines[i]:match(":$") then
+          goto continue
+        end
+        
+        -- This is an actionable line
+        vim.api.nvim_win_set_cursor(0, {i, 0})
+        return
+      end
+      ::continue::
+    end
+  end
+  
+  -- Override j/k to jump between actionable lines
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'j', '', {
+    noremap = true,
+    silent = true,
+    callback = function() move_to_next_actionable(1) end
+  })
+  
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'k', '', {
+    noremap = true,
+    silent = true,
+    callback = function() move_to_next_actionable(-1) end
+  })
+  
+  -- Override gg to go to first actionable line instead of top of buffer
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'gg', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      for i = logo_end_line + 1, #lines do
+        if lines[i] and not lines[i]:match("^%s*$") and not lines[i]:match(":$") then
+          vim.api.nvim_win_set_cursor(0, {i, 0})
+          return
+        end
+      end
     end
   })
   
