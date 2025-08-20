@@ -3,6 +3,8 @@
 - Commit often
 - Use GBoard to keep you on task with your git commits, giving you a persistent visual reminder
 
+This plugin is built for people who are doing fast iteration with AI pair programming in Neovim.Or indeed anyone who ever finds them self developing faster than they commit and needs a constant visual reminder to commit their changes incrementally. 
+
 # GBoard.nvim
 
 A Neovim plugin that provides a git dashboard interface similar to popular dashboard plugins like alpha.nvim. It opens automatically on startup when no files are specified and displays git information in a clean, centered layout.

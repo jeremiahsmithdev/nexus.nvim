@@ -1,10 +1,11 @@
 local M = {}
+local logger = require('gboard.logger')
 
 -- Send /resume command to Claude via tmux (similar to diffusion.nvim approach)
 function M.send_resume_to_claude(session_id)
   -- Check if we're in tmux
   if not vim.env.TMUX then
-    print("Not in tmux environment")
+    logger.warn('TMUX', 'Not in tmux environment')
     return false
   end
   
@@ -19,7 +20,7 @@ function M.send_resume_to_claude(session_id)
     return M.send_resume_to_pane(current_session, current_window, claude_pane, session_id)
   end
   
-  print("No Claude processes found in current tmux window")
+  logger.warn('TMUX', 'No Claude processes found in current tmux window')
   return false
 end
 
@@ -56,7 +57,7 @@ function M.send_resume_to_pane(session, window, pane, session_id)
   local enter_cmd = string.format("tmux send-keys -t %s Enter", target)
   vim.fn.system(enter_cmd)
   
-  print("Sent /resume " .. session_id .. " to Claude")
+  logger.info('TMUX', 'Sent /resume ' .. session_id .. ' to Claude in pane ' .. target)
   return true
 end
 

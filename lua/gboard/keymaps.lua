@@ -1,4 +1,5 @@
 local M = {}
+local logger = require('gboard.logger')
 
 local git_operations = require('gboard.git.operations')
 local git_command = require('gboard.git.command')
@@ -32,7 +33,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
         if vim.fn.filereadable('Session.vim') == 1 then
           vim.cmd('source Session.vim')
         else
-          print('No session file found')
+          logger.warn('SESSION', 'No session file found')
         end
       -- Check if it's a Claude conversation line (format: " N. ...")
       elseif config.show_claude_conversations and current_line and current_line:match("^ %d+%.") then

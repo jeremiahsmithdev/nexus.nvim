@@ -87,6 +87,8 @@ The plugin includes tmux command sending functionality for Claude Code integrati
 
 **Dependencies**: Pure Neovim Lua - no external dependencies beyond standard git commands
 
+**Debugging**: GBoard includes comprehensive logging to `/tmp/gboard-debug.log` with structured output including timestamps, PID, categories, and tmux context. Enable console output with `require('gboard.logger').set_console_output(true)` for real-time debugging.
+
 **Claude Code Conversation Format**: 
 - Conversations stored as `.jsonl` files with session metadata
 - First line contains session info including `sessionId`, `cwd`, `gitBranch`

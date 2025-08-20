@@ -1,4 +1,5 @@
 local M = {}
+local logger = require('gboard.logger')
 
 function M.create_gboard_buffer(is_manual_open)
   -- Create listed buffer for manual opens, unlisted for auto opens
@@ -78,6 +79,11 @@ function M.setup_image_autocommands(buf)
   local group_name = 'GBoardImage' .. buf
   vim.api.nvim_create_augroup(group_name, { clear = true })
   
+  -- Log buffer creation
+  local window = vim.env.TMUX and vim.fn.system("tmux display-message -p '#{window_id}'"):gsub('\n', '') or nil
+  local pane = vim.env.TMUX and vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '') or nil
+  logger.buf_created(buf, window, pane)
+  
   -- Only clean up image when buffer is actually being deleted or hidden permanently
   -- DON'T clean up on BufLeave as that triggers when navigating between tmux panes
   vim.api.nvim_create_autocmd('BufDelete', {
@@ -91,108 +97,68 @@ function M.setup_image_autocommands(buf)
     end
   })
   
-  -- Re-render image when entering the buffer, but only if we're in the correct pane
+  -- Re-render image when entering the buffer (in correct pane)
   vim.api.nvim_create_autocmd('BufEnter', {
     group = group_name,
     buffer = buf,
     callback = function()
-      -- Small delay to ensure buffer content is ready
+      logger.buf_enter(buf)
       vim.defer_fn(function()
         local logo = require('gboard.ui.logo')
         local current_config = require('gboard.config').get()
+        local should_show = logo.should_show_image_in_current_pane()
+        local has_image = logo.has_image_for_buffer(buf)
         
-        -- Only render if image logo is enabled and we should show in this pane
-        if current_config.use_image_logo and logo.should_show_image_in_current_pane() then
-          logo.render_image_logo(buf, current_config, 0, 0)
+        logger.image_render_attempt(buf, should_show, has_image, current_config.use_image_logo)
+        
+        if current_config.use_image_logo and should_show then
+          if not has_image then
+            logger.debug("IMAGE", "No image for buffer, rendering new image")
+            logo.render_image_logo(buf, current_config, 0, 0)
+          else
+            logger.debug("IMAGE", "Image exists for buffer, refreshing it")
+            logo.refresh_image()
+          end
+        else
+          logger.debug("IMAGE", "Not rendering image: use_image_logo=" .. tostring(current_config.use_image_logo) .. ", should_show=" .. tostring(should_show))
         end
       end, 50)
     end
   })
   
-  -- Focus handling is now managed by the coordinate-based monitoring system
-  -- Removed FocusLost/FocusGained autocommands as they interfere with tmux pane navigation
-  
-  -- Window-level monitoring for re-rendering after tmux window switches (not pane switches)
-  if vim.env.TMUX then
-    local timer = vim.uv.new_timer()
-    local initial_window = vim.fn.system("tmux display-message -p '#{window_id}'"):gsub('\n', '')
-    local initial_pane = vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '')
-    
-    -- Check every 300ms for window changes only
-    timer:start(300, 300, function()
-      -- Use pcall to prevent any errors from affecting rendering
-      pcall(function()
-        -- Stop timer if the buffer is no longer valid
-        if not vim.api.nvim_buf_is_valid(buf) then
-          if timer then
-            timer:stop()
-            timer:close()
-          end
-          return
-        end
-        
-        -- Stop timer if no GBoard buffers are visible anywhere
-        local has_gboard_buffer = false
-        for _, win in ipairs(vim.api.nvim_list_wins()) do
-          local win_buf = vim.api.nvim_win_get_buf(win)
-          if vim.api.nvim_buf_is_valid(win_buf) and 
-             vim.api.nvim_buf_get_option(win_buf, 'filetype') == 'gboard' then
-            has_gboard_buffer = true
-            break
-          end
-        end
-        
-        if not has_gboard_buffer then
-          if timer then
-            timer:stop()
-            timer:close()
-          end
-          return
-        end
-        
+  -- Handle tmux window focus changes
+  vim.api.nvim_create_autocmd('FocusGained', {
+    group = group_name,
+    buffer = buf,
+    callback = function()
+      logger.info("BUFFER", "FocusGained for buffer " .. buf .. ", checking if image needs re-render")
+      vim.defer_fn(function()
         local logo = require('gboard.ui.logo')
-        local current_window = vim.fn.system("tmux display-message -p '#{window_id}'"):gsub('\n', '')
-        local current_pane = vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '')
-        local current_buf = vim.api.nvim_get_current_buf()
+        local current_config = require('gboard.config').get()
         
-        -- Only re-render if:
-        -- 1. We're back in the original window AND original pane
-        -- 2. We're viewing the GBoard buffer
-        -- 3. We don't have an active image (it was cleaned up by window switch)
-        -- 4. The buffer is valid and has content
-        if current_window == initial_window and 
-           current_pane == initial_pane and
-           current_buf == buf and
-           vim.api.nvim_buf_is_valid(buf) and
-           vim.api.nvim_buf_line_count(buf) > 2 and
-           not logo.has_image_for_buffer(buf) then
-          
-          local current_config = require('gboard.config').get()
-          if current_config.use_image_logo then
-            -- Small delay to ensure buffer is ready
-            vim.defer_fn(function()
-              pcall(function()
-                logo.render_image_logo(buf, current_config, 0, 0)
-              end)
-            end, 100)
+        if current_config.use_image_logo then
+          local should_show = logo.should_show_image_in_current_pane()
+          if should_show then
+            logger.info("IMAGE", "Re-rendering image after focus gained")
+            logo.render_image_logo(buf, current_config, 0, 0)
           end
         end
-      end)
-    end)
-    
-    -- Clean up timer when buffer is deleted
-    vim.api.nvim_create_autocmd('BufDelete', {
-      group = group_name,
-      buffer = buf,
-      once = true,
-      callback = function()
-        if timer then
-          timer:stop()
-          timer:close()
-        end
+      end, 100) -- Longer delay for focus events
+    end
+  })
+  
+  -- Simple cleanup on focus lost
+  vim.api.nvim_create_autocmd('FocusLost', {
+    group = group_name,
+    buffer = buf,
+    callback = function()
+      logger.info("BUFFER", "FocusLost for buffer " .. buf)
+      local logo = require('gboard.ui.logo')
+      if logo.has_image_for_buffer(buf) then
+        logo.cleanup_image()
       end
-    })
-  end
+    end
+  })
   
   -- Clean up when buffer is deleted
   vim.api.nvim_create_autocmd('BufDelete', {

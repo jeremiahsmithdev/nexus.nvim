@@ -1,15 +1,16 @@
 local M = {}
+local logger = require('gboard.logger')
 
 function M.git_add_file(filename, refresh_callback)
   local result = vim.fn.system('git add "' .. filename .. '"')
   if vim.v.shell_error == 0 then
-    print('Added: ' .. filename)
+    logger.info('GIT', 'Added: ' .. filename)
     if refresh_callback then
       refresh_callback()
     end
     return true
   else
-    print('Failed to add: ' .. filename .. ' - ' .. result)
+    logger.error('GIT', 'Failed to add: ' .. filename .. ' - ' .. result)
     return false
   end
 end
@@ -17,13 +18,13 @@ end
 function M.git_unstage_file(filename, refresh_callback)
   local result = vim.fn.system('git reset HEAD "' .. filename .. '"')
   if vim.v.shell_error == 0 then
-    print('Unstaged: ' .. filename)
+    logger.info('GIT', 'Unstaged: ' .. filename)
     if refresh_callback then
       refresh_callback()
     end
     return true
   else
-    print('Failed to unstage: ' .. filename .. ' - ' .. result)
+    logger.error('GIT', 'Failed to unstage: ' .. filename .. ' - ' .. result)
     return false
   end
 end
@@ -31,13 +32,13 @@ end
 function M.git_commit(message, refresh_callback)
   local result = vim.fn.system('git commit -m "' .. message .. '"')
   if vim.v.shell_error == 0 then
-    print('Committed: ' .. message:sub(1, 50) .. (message:len() > 50 and "..." or ""))
+    logger.info('GIT', 'Committed: ' .. message:sub(1, 50) .. (message:len() > 50 and "..." or ""))
     if refresh_callback then
       refresh_callback()
     end
     return true
   else
-    print('Commit failed: ' .. result)
+    logger.error('GIT', 'Commit failed: ' .. result)
     return false
   end
 end
@@ -118,7 +119,7 @@ function M.create_commit_window(refresh_callback)
       
       M.git_commit(commit_msg, refresh_callback)
     else
-      print('No commit message provided')
+      logger.warn('GIT', 'No commit message provided')
     end
   end
   
@@ -261,15 +262,15 @@ function M.create_commit_amend_window(refresh_callback)
       -- Execute git commit --amend
       local result = vim.fn.system('git commit --amend -m "' .. commit_msg .. '"')
       if vim.v.shell_error == 0 then
-        print('Commit amended: ' .. commit_msg:sub(1, 50) .. (commit_msg:len() > 50 and "..." or ""))
+        logger.info('GIT', 'Commit amended: ' .. commit_msg:sub(1, 50) .. (commit_msg:len() > 50 and "..." or ""))
         if refresh_callback then
           refresh_callback()
         end
       else
-        print('Commit amend failed: ' .. result)
+        logger.error('GIT', 'Commit amend failed: ' .. result)
       end
     else
-      print('No commit message provided')
+      logger.warn('GIT', 'No commit message provided')
     end
   end
   

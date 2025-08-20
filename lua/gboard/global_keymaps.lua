@@ -1,4 +1,5 @@
 local M = {}
+local logger = require('gboard.logger')
 
 -- Set up global keymaps for the dashboard shortcuts
 function M.setup()
@@ -52,7 +53,7 @@ function M.setup()
     if vim.fn.filereadable('Session.vim') == 1 then
       vim.cmd('source Session.vim')
     else
-      print('No session file found')
+      logger.warn('SESSION', 'No session file found')
     end
   end, { desc = 'Restore session' })
 end

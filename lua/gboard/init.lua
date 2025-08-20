@@ -2,6 +2,7 @@ local M = {}
 
 -- Load modular components
 local config = require('gboard.config')
+local logger = require('gboard.logger')
 local buffer_mod = require('gboard.buffer')
 local render = require('gboard.render')
 local keymaps = require('gboard.keymaps')
@@ -11,6 +12,9 @@ local global_keymaps = require('gboard.global_keymaps')
 
 -- Setup function to allow user configuration
 function M.setup(user_config)
+  -- Initialize logger first
+  logger.init()
+  
   config.setup(user_config)
   
   -- Set up global keymaps for dashboard shortcuts
@@ -18,6 +22,8 @@ function M.setup(user_config)
 end
 
 function M.open(is_manual_open)
+  logger.info('GBOARD', 'Opening GBoard dashboard, manual=' .. tostring(is_manual_open))
+  
   local buf = buffer_mod.create_gboard_buffer(is_manual_open)
   vim.api.nvim_buf_set_name(buf, 'GBoard')
   
