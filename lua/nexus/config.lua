@@ -4,12 +4,14 @@ local M = {}
 local default_config = {
   show_claude_conversations = false, -- Disabled by default
   show_dashboard_buttons = true,     -- Show dashboard-style buttons
+  show_keyboard_shortcuts = true,    -- Show keyboard shortcuts section
   show_recent_commits = true,        -- Show git commits section
   recent_commits_count = 3,          -- Number of recent commits to show
   show_git_status = true,            -- Show git status section
   git_status_count = nil,            -- Limit git status files (nil = no limit)
   section_order = {                  -- Order of sections after logo
     "dashboard_buttons",
+    "keyboard_shortcuts",
     "recent_commits", 
     "git_status",
     "claude_conversations"
@@ -62,6 +64,7 @@ function M.setup(user_config)
       -- Validate that all sections are strings and known
       local known_sections = {
         dashboard_buttons = true,
+        keyboard_shortcuts = true,
         recent_commits = true,
         git_status = true,
         claude_conversations = true

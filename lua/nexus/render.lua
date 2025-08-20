@@ -2,12 +2,14 @@ local M = {}
 
 local logo = require('nexus.ui.logo')
 local dashboard = require('nexus.ui.dashboard')
+local shortcuts = require('nexus.ui.shortcuts')
 local center = require('nexus.ui.center')
 local git_utils = require('nexus.git.utils')
 local git_status = require('nexus.git.status')
 local git_commits = require('nexus.git.commits')
 local folding = require('nexus.ui.folding')
 local logger = require('nexus.logger')
+local cursor = require('nexus.cursor')
 
 function M.render_git_status(buf, config, cached_files)
   -- Check if we're in a git repository
@@ -45,6 +47,9 @@ function M.render_git_status(buf, config, cached_files)
     end_line = #centered_logo
   }
   
+  -- Track section line ranges for highlighting
+  local section_ranges = {}
+  
   -- Build sections based on configuration order
   local sections = M.build_sections(config, is_git_repo, files)
   
@@ -55,8 +60,8 @@ function M.render_git_status(buf, config, cached_files)
   for _, section_name in ipairs(config.section_order) do
     local section_data = sections[section_name]
     if section_data and #section_data > 0 then
-      if section_name == "dashboard_buttons" then
-        table.insert(button_sections, section_data)
+      if section_name == "dashboard_buttons" or section_name == "keyboard_shortcuts" then
+        table.insert(button_sections, {data = section_data, name = section_name})
       else
         table.insert(git_sections_data, section_data)
       end
@@ -64,11 +69,27 @@ function M.render_git_status(buf, config, cached_files)
   end
   
   -- Add button sections with center alignment
-  for _, section_data in ipairs(button_sections) do
-    local centered_section = center.center_lines(section_data, width)
+  for _, section_info in ipairs(button_sections) do
+    local centered_section
+    if section_info.name == "keyboard_shortcuts" then
+      -- Use individual centering for keyboard shortcuts (each line centered independently)
+      centered_section = center.center_lines_individually(section_info.data, width)
+    else
+      -- Use block centering for other sections (like dashboard buttons)
+      centered_section = center.center_lines(section_info.data, width)
+    end
+    
+    local section_start = #lines + 1
     for _, line in ipairs(centered_section) do
       table.insert(lines, line)
     end
+    local section_end = #lines
+    
+    -- Store section ranges for navigation
+    section_ranges[section_info.name] = {
+      start_line = section_start,
+      end_line = section_end
+    }
   end
   
   -- Find the longest line across all git sections to calculate common alignment
@@ -101,12 +122,20 @@ function M.render_git_status(buf, config, cached_files)
   -- Set up folding for git status overflow
   folding.setup_git_status_folding(buf, lines, config, files)
   
-  -- Add syntax highlighting with logo section info
-  M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section)
+  -- Add syntax highlighting with section info
+  M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
+  
+  -- Update cursor module with section ranges for dynamic shortcuts
+  cursor.update_section_ranges(section_ranges)
+  
+  -- Set up dynamic shortcut updating on cursor movement (only if shortcuts are enabled)
+  if config.show_keyboard_shortcuts then
+    M.setup_dynamic_shortcuts(buf, config, is_git_repo, section_ranges)
+  end
   
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
   
-  return files
+  return files, section_ranges
 end
 
 -- Build all sections based on configuration
@@ -118,6 +147,14 @@ function M.build_sections(config, is_git_repo, files)
     local button_lines = dashboard.get_dashboard_buttons(config)
     if #button_lines > 0 then
       sections.dashboard_buttons = button_lines
+    end
+  end
+  
+  -- Keyboard shortcuts section
+  if config.show_keyboard_shortcuts then
+    local shortcut_lines = shortcuts.get_keyboard_shortcuts(config, is_git_repo)
+    if #shortcut_lines > 0 then
+      sections.keyboard_shortcuts = shortcut_lines
     end
   end
   
@@ -191,7 +228,7 @@ function M.build_sections(config, is_git_repo, files)
 end
 
 
-function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section)
+function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
   vim.api.nvim_buf_clear_namespace(buf, 0, 0, -1)
   
   -- 1. Logo highlighting - highlight entire logo section
@@ -253,6 +290,9 @@ function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_secti
   
   -- 4. Git status highlighting  
   M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
+  
+  -- 5. Keyboard shortcuts highlighting
+  M.apply_shortcuts_highlighting(buf, lines, config, section_ranges)
 end
 
 -- Separate function for git status highlighting that works with processed data
@@ -314,6 +354,55 @@ function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
       end
     end
   end
+end
+
+-- Function to highlight keyboard shortcuts section in Comment color
+function M.apply_shortcuts_highlighting(buf, lines, config, section_ranges)
+  if not config.show_keyboard_shortcuts or not section_ranges or not section_ranges.keyboard_shortcuts then
+    return
+  end
+  
+  local shortcuts_ns = vim.api.nvim_create_namespace('nexus_shortcuts')
+  local shortcuts_section = section_ranges.keyboard_shortcuts
+  
+  -- Highlight entire keyboard shortcuts section
+  for i = shortcuts_section.start_line, shortcuts_section.end_line do
+    local line_content = lines[i]
+    if line_content and #line_content > 0 then -- Only highlight non-empty lines
+      vim.api.nvim_buf_add_highlight(buf, shortcuts_ns, 'Comment', i - 1, 0, -1)
+    end
+  end
+end
+
+-- Set up dynamic shortcut updating on cursor movement
+function M.setup_dynamic_shortcuts(buf, config, is_git_repo, section_ranges)
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    return
+  end
+  
+  -- Clear any existing autocommands for this buffer
+  vim.api.nvim_clear_autocmds({
+    group = vim.api.nvim_create_augroup("nexus_dynamic_shortcuts_" .. buf, { clear = true }),
+    buffer = buf,
+  })
+  
+  -- Set up autocommand to update shortcuts on cursor movement
+  vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
+    group = vim.api.nvim_create_augroup("nexus_dynamic_shortcuts_" .. buf, { clear = false }),
+    buffer = buf,
+    callback = function()
+      -- Only update if we're still in the correct buffer
+      if vim.api.nvim_get_current_buf() == buf then
+        shortcuts.update_contextual_shortcuts(buf, config, is_git_repo, section_ranges)
+        
+        -- Re-apply highlighting to the updated line
+        M.apply_shortcuts_highlighting(buf, vim.api.nvim_buf_get_lines(buf, 0, -1, false), config, section_ranges)
+      end
+    end,
+  })
+  
+  -- Initial update of contextual shortcuts
+  shortcuts.update_contextual_shortcuts(buf, config, is_git_repo, section_ranges)
 end
 
 return M

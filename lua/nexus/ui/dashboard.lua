@@ -6,7 +6,6 @@ function M.get_dashboard_buttons(config)
   end
   
   return {
-    "",
     "󰈞  Find file                   SPC f",
     "󰋚  Recently opened files       SPC r", 
     "󰊄  Find word                   SPC w",

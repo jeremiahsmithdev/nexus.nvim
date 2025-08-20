@@ -5,31 +5,8 @@ local git_operations = require('nexus.git.operations')
 local git_command = require('nexus.git.command')
 local tmux = require('nexus.tmux')
 
--- Simple function to check if a line is actionable
-local function is_actionable_line(line, logo_end_line)
-  local line_num = vim.api.nvim_win_get_cursor(0)[1]
-  
-  -- Skip logo section entirely
-  if line_num <= logo_end_line then
-    return false
-  end
-  
-  -- Skip empty lines
-  if not line or line:match("^%s*$") then
-    return false
-  end
-  
-  -- Skip section titles
-  if line:match("^Recent Commits:$") or 
-     line:match("^Git Status:$") or 
-     line:match("^Claude Conversations:$") then
-    return false
-  end
-  
-  return true
-end
 
-function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
+function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, section_ranges)
   vim.api.nvim_buf_set_keymap(buf, 'n', '<CR>', '', {
     noremap = true,
     silent = true,
@@ -116,10 +93,10 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
     end
   })
   
-  -- Calculate logo section end (just logo + empty line, NOT buttons)
+  -- Calculate logo section end (just logo, NOT buttons)
   local logo = require('nexus.ui.logo')
   local logo_lines = logo.get_neovim_logo(config)
-  local logo_end_line = #logo_lines + 1  -- Logo + one empty line
+  local logo_end_line = #logo_lines  -- Logo only
   
   -- Custom navigation that skips non-actionable lines
   local function move_to_next_actionable(direction)
@@ -134,12 +111,20 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
           goto continue
         end
         
+        -- Skip keyboard shortcuts section completely
+        if section_ranges and section_ranges.keyboard_shortcuts then
+          local shortcuts_range = section_ranges.keyboard_shortcuts
+          if i >= shortcuts_range.start_line and i <= shortcuts_range.end_line then
+            goto continue
+          end
+        end
+        
         -- Skip empty lines
         if lines[i]:match("^%s*$") then
           goto continue
         end
         
-        -- Skip section titles (anything ending with ":")
+        -- Skip section titles (lines ending with colon)
         if lines[i]:match(":$") then
           goto continue
         end
@@ -172,10 +157,30 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
     callback = function()
       local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
       for i = logo_end_line + 1, #lines do
-        if lines[i] and not lines[i]:match("^%s*$") and not lines[i]:match(":$") then
+        if lines[i] then
+          -- Skip keyboard shortcuts section
+          if section_ranges and section_ranges.keyboard_shortcuts then
+            local shortcuts_range = section_ranges.keyboard_shortcuts
+            if i >= shortcuts_range.start_line and i <= shortcuts_range.end_line then
+              goto continue
+            end
+          end
+          
+          -- Skip empty lines
+          if lines[i]:match("^%s*$") then
+            goto continue
+          end
+          
+          -- Skip section titles (lines ending with colon)
+          if lines[i]:match(":$") then
+            goto continue
+          end
+          
+          -- This is an actionable line
           vim.api.nvim_win_set_cursor(0, {i, 0})
           return
         end
+        ::continue::
       end
     end
   })

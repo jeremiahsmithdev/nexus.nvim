@@ -31,26 +31,46 @@ function M.open(is_manual_open)
   
   -- NOW the buffer is in the window, so we can get the correct window width
   local current_config = config.get()
-  local files = render.render_git_status(buf, current_config)
+  local files, section_ranges = render.render_git_status(buf, current_config)
   
   local git_utils = require('nexus.git.utils')
   local is_git_repo = git_utils.is_git_repo()
   
   keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(buf, cached_files)
     render.render_git_status(buf, current_config, cached_files)
-  end)
+  end, section_ranges)
   
   -- Position cursor on first actionable line (dashboard buttons)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local logo_lines = logo.get_neovim_logo(current_config)
-  local logo_end_line = #logo_lines + 1  -- Logo + one empty line
+  local logo_end_line = #logo_lines  -- Logo only
   
   -- Find first actionable line (should be first dashboard button)
   for i = logo_end_line + 1, #lines do
-    if lines[i] and not lines[i]:match("^%s*$") and not lines[i]:match(":$") then
+    if lines[i] then
+      -- Skip keyboard shortcuts section
+      if section_ranges and section_ranges.keyboard_shortcuts then
+        local shortcuts_range = section_ranges.keyboard_shortcuts
+        if i >= shortcuts_range.start_line and i <= shortcuts_range.end_line then
+          goto continue
+        end
+      end
+      
+      -- Skip empty lines
+      if lines[i]:match("^%s*$") then
+        goto continue
+      end
+      
+      -- Skip section titles (lines ending with colon)
+      if lines[i]:match(":$") then
+        goto continue
+      end
+      
+      -- This is an actionable line
       vim.api.nvim_win_set_cursor(0, {i, 0})
       break
     end
+    ::continue::
   end
 end
 
@@ -67,14 +87,14 @@ function M.refresh_buffer(buf)
   end
   
   local current_config = config.get()
-  local files = render.render_git_status(buf, current_config)
+  local files, section_ranges = render.render_git_status(buf, current_config)
   
   local git_utils = require('nexus.git.utils')
   local is_git_repo = git_utils.is_git_repo()
   
   keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(buf, cached_files)
     render.render_git_status(buf, current_config, cached_files)
-  end)
+  end, section_ranges)
 end
 
 return M

@@ -24,4 +24,17 @@ function M.center_lines(lines, width)
   return centered
 end
 
+-- Center each line individually (for paragraph-style centering)
+function M.center_lines_individually(lines, width)
+  local centered = {}
+  for _, line in ipairs(lines) do
+    local display_width = vim.fn.strdisplaywidth and vim.fn.strdisplaywidth(line) or #line
+    local left = math.floor((width - display_width) / 2)
+    left = math.max(0, left)
+    local padding = string.rep(" ", left)
+    table.insert(centered, padding .. line)
+  end
+  return centered
+end
+
 return M
