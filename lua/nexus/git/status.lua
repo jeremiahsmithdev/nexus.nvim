@@ -56,6 +56,8 @@ function M.format_status_icon(status)
   
   if first == '?' and second == '?' then
     return '??'
+  elseif first == 'M' and second == 'M' then
+    return 'MM'  -- Show both M's when staged AND unstaged
   elseif first == 'M' or second == 'M' then
     return 'M '
   elseif first == 'A' or second == 'A' then

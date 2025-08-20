@@ -8,7 +8,8 @@ local GitHubProvider = setmetatable({}, { __index = Provider })
 ---@param config table Provider configuration
 ---@return GitHubProvider
 function GitHubProvider:new(name, config)
-  local instance = Provider.new(self, name or "github", config or {})
+  local instance = Provider:new(name or "github", config or {})
+  setmetatable(instance, { __index = self })
   
   -- GitHub-specific configuration
   instance.api_url = config.api_url or "https://api.github.com"

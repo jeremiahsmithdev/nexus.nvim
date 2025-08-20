@@ -8,7 +8,8 @@ local LinearProvider = setmetatable({}, { __index = Provider })
 ---@param config table Provider configuration
 ---@return LinearProvider
 function LinearProvider:new(name, config)
-  local instance = Provider.new(self, name or "linear", config or {})
+  local instance = Provider:new(name or "linear", config or {})
+  setmetatable(instance, { __index = self })
   
   -- Linear-specific configuration
   instance.api_url = config.api_url or "https://api.linear.app/graphql"

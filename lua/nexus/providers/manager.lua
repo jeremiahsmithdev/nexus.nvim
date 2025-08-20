@@ -34,10 +34,12 @@ function M.register_provider(name, provider_module, config)
   -- Create provider instance
   local provider_instance = provider_module:new(name, config or {})
   
-  -- Validate implementation
-  local valid, missing_methods = provider_instance:validate_implementation()
-  if not valid then
-    return false, "Provider missing required methods: " .. table.concat(missing_methods, ", ")
+  -- Validate implementation (skip if validation method not available)
+  if type(provider_instance.validate_implementation) == "function" then
+    local valid, missing_methods = provider_instance:validate_implementation()
+    if not valid then
+      return false, "Provider missing required methods: " .. table.concat(missing_methods, ", ")
+    end
   end
   
   providers[name] = {

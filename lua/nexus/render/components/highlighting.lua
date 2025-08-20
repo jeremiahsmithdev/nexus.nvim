@@ -134,8 +134,14 @@ function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
       -- Find the status characters in the line
       local status_start = line_content:find('[MADRCU?]')
       if status_start then
-        local color_group = git_status.get_status_color(data.item.status)
-        vim.api.nvim_buf_add_highlight(buf, git_ns, color_group, line_num - 1, status_start - 1, status_start + 1)
+        -- Special case for MM (staged + unstaged): first M green, second M red
+        if data.item.status == 'MM' then
+          vim.api.nvim_buf_add_highlight(buf, git_ns, 'DiagnosticOk', line_num - 1, status_start - 1, status_start)  -- First M green
+          vim.api.nvim_buf_add_highlight(buf, git_ns, 'DiagnosticError', line_num - 1, status_start, status_start + 1)  -- Second M red
+        else
+          local color_group = git_status.get_status_color(data.item.status)
+          vim.api.nvim_buf_add_highlight(buf, git_ns, color_group, line_num - 1, status_start - 1, status_start + 1)
+        end
       end
       
       -- Highlight diff stats (+ and - chars)

@@ -150,7 +150,7 @@ describe('nexus.git.status', function()
     it('should format modified files', function()
       assert.equals('M ', git_status.format_status_icon(' M'))
       assert.equals('M ', git_status.format_status_icon('M '))
-      assert.equals('M ', git_status.format_status_icon('MM'))
+      assert.equals('MM', git_status.format_status_icon('MM'))
     end)
     
     it('should format added files', function()
