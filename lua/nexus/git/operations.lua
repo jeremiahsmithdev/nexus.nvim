@@ -30,8 +30,25 @@ function M.git_unstage_file(filename, refresh_callback)
 end
 
 function M.git_commit(message, refresh_callback)
-  local result = vim.fn.system('git commit -m "' .. message .. '"')
-  if vim.v.shell_error == 0 then
+  -- Use a different approach to preserve newlines in commit messages
+  -- Create a temporary file with the commit message
+  local tempfile = vim.fn.tempname()
+  local file = io.open(tempfile, 'w')
+  if not file then
+    logger.error('GIT', 'Could not create temporary file for commit message')
+    return false
+  end
+  
+  file:write(message)
+  file:close()
+  
+  local result = vim.fn.system('git commit --file="' .. tempfile .. '"')
+  local exit_code = vim.v.shell_error
+  
+  -- Clean up the temporary file
+  vim.fn.delete(tempfile)
+  
+  if exit_code == 0 then
     logger.info('GIT', 'Committed: ' .. message:sub(1, 50) .. (message:len() > 50 and "..." or ""))
     if refresh_callback then
       refresh_callback()
@@ -103,8 +120,9 @@ function M.create_commit_window(refresh_callback)
     local commit_msg = ""
     
     -- Get commit message (everything before comment lines)
+    -- Preserve empty lines as they're important for commit message formatting
     for _, line in ipairs(lines) do
-      if not line:match("^#") and line ~= "" then
+      if not line:match("^#") then
         commit_msg = commit_msg .. line .. "\n"
       end
     end
@@ -245,8 +263,9 @@ function M.create_commit_amend_window(refresh_callback)
     local commit_msg = ""
     
     -- Get commit message (everything before comment lines)
+    -- Preserve empty lines as they're important for commit message formatting
     for _, line in ipairs(lines) do
-      if not line:match("^#") and line ~= "" then
+      if not line:match("^#") then
         commit_msg = commit_msg .. line .. "\n"
       end
     end
@@ -259,9 +278,24 @@ function M.create_commit_amend_window(refresh_callback)
       -- Ensure we're in normal mode when returning to Nexus
       vim.cmd('stopinsert')
       
-      -- Execute git commit --amend
-      local result = vim.fn.system('git commit --amend -m "' .. commit_msg .. '"')
-      if vim.v.shell_error == 0 then
+      -- Execute git commit --amend with proper newline handling
+      local tempfile = vim.fn.tempname()
+      local file = io.open(tempfile, 'w')
+      if not file then
+        logger.error('GIT', 'Could not create temporary file for commit message')
+        return
+      end
+      
+      file:write(commit_msg)
+      file:close()
+      
+      local result = vim.fn.system('git commit --amend --file="' .. tempfile .. '"')
+      local exit_code = vim.v.shell_error
+      
+      -- Clean up the temporary file
+      vim.fn.delete(tempfile)
+      
+      if exit_code == 0 then
         logger.info('GIT', 'Commit amended: ' .. commit_msg:sub(1, 50) .. (commit_msg:len() > 50 and "..." or ""))
         if refresh_callback then
           refresh_callback()
