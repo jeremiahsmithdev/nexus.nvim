@@ -426,10 +426,30 @@ function M.show_commit_details(commit_line)
   vim.api.nvim_win_set_option(popup_win, 'relativenumber', false)
   vim.api.nvim_win_set_option(popup_win, 'cursorline', true)
   
+  -- Add virtual text hint in top right corner
+  local hint_ns = vim.api.nvim_create_namespace('nexus_commit_hint')
+  local hint_text = 'Ctrl-O -> open'
+  local hint_col = actual_width - #hint_text
+  vim.api.nvim_buf_set_extmark(popup_buf, hint_ns, 0, 0, {
+    virt_text = {{ hint_text, 'Comment' }},
+    virt_text_pos = 'overlay',
+    virt_text_win_col = hint_col,
+    hl_mode = 'combine'
+  })
+  
   -- Set up keymaps to close popup
   vim.api.nvim_buf_set_keymap(popup_buf, 'n', 'q', '<cmd>close<CR>', {noremap = true, silent = true})
   vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<Esc>', '<cmd>close<CR>', {noremap = true, silent = true})
   vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<CR>', '<cmd>close<CR>', {noremap = true, silent = true})
+  
+  -- Add keybinding to open commit in browser with gh
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<C-o>', '', {
+    noremap = true, 
+    silent = true,
+    callback = function()
+      M.open_commit_in_browser(commit_hash)
+    end
+  })
   
   logger.info('COMMIT', 'Showing details for commit: ' .. commit_hash)
 end
@@ -519,6 +539,56 @@ function M.handle_dashboard_action(config, command)
   -- When keep_open_after_startup = true, Nexus buffer is created as persistent
   -- When keep_open_after_startup = false, Nexus buffer gets wiped when replaced
   vim.cmd(command)
+end
+
+function M.open_commit_in_browser(commit_hash)
+  if not commit_hash then
+    logger.error('COMMIT', 'No commit hash provided for browser opening')
+    return
+  end
+  
+  -- Get the full commit hash first since gh browse needs the full hash
+  local full_hash_cmd = string.format('git rev-parse %s', commit_hash)
+  local full_hash = vim.fn.systemlist(full_hash_cmd)[1]
+  
+  if vim.v.shell_error ~= 0 or not full_hash then
+    logger.error('COMMIT', 'Failed to get full commit hash for: ' .. commit_hash)
+    vim.schedule(function()
+      vim.notify('Failed to resolve commit hash: ' .. commit_hash, vim.log.levels.ERROR)
+    end)
+    return
+  end
+  
+  -- Use gh CLI to open commit in browser with full hash
+  local gh_cmd = string.format('gh browse %s', full_hash)
+  
+  -- Run command asynchronously
+  vim.fn.jobstart(gh_cmd, {
+    on_stderr = function(_, data)
+      if data and #data > 0 then
+        local error_msg = table.concat(data, '\n'):gsub('\n$', '')
+        if error_msg and #error_msg > 0 then
+          logger.error('COMMIT', 'Failed to open commit in browser: ' .. error_msg)
+          vim.schedule(function()
+            vim.notify('Failed to open commit: ' .. error_msg, vim.log.levels.ERROR)
+          end)
+        end
+      end
+    end,
+    on_exit = function(_, exit_code)
+      if exit_code == 0 then
+        logger.info('COMMIT', 'Opened commit in browser: ' .. full_hash)
+        vim.schedule(function()
+          vim.notify('Opened commit ' .. commit_hash .. ' in browser', vim.log.levels.INFO)
+        end)
+      else
+        logger.error('COMMIT', 'gh command failed with exit code: ' .. exit_code)
+        vim.schedule(function()
+          vim.notify('Failed to open commit. Make sure gh CLI is installed and repository has remote.', vim.log.levels.ERROR)
+        end)
+      end
+    end
+  })
 end
 
 return M
