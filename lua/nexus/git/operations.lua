@@ -1,5 +1,5 @@
 local M = {}
-local logger = require('gboard.logger')
+local logger = require('nexus.logger')
 
 function M.git_add_file(filename, refresh_callback)
   local result = vim.fn.system('git add "' .. filename .. '"')
@@ -114,7 +114,7 @@ function M.create_commit_window(refresh_callback)
     if commit_msg ~= "" then
       vim.api.nvim_win_close(win, true)
       
-      -- Ensure we're in normal mode when returning to GBoard
+      -- Ensure we're in normal mode when returning to Nexus
       vim.cmd('stopinsert')
       
       M.git_commit(commit_msg, refresh_callback)
@@ -256,7 +256,7 @@ function M.create_commit_amend_window(refresh_callback)
     if commit_msg ~= "" then
       vim.api.nvim_win_close(win, true)
       
-      -- Ensure we're in normal mode when returning to GBoard
+      -- Ensure we're in normal mode when returning to Nexus
       vim.cmd('stopinsert')
       
       -- Execute git commit --amend

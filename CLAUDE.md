@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 NEVER lead with "You're absolutely right!" -> be more creative and give more meaningful information instead of trying to simply agree with the user.
 
-GBoard.nvim is a Neovim plugin that provides a git dashboard interface similar to popular dashboard plugins like alpha.nvim. It opens automatically on startup when no files are specified and displays:
+Nexus.nvim is a Neovim plugin that provides a git dashboard interface similar to popular dashboard plugins like alpha.nvim. It opens automatically on startup when no files are specified and displays:
 
 1. Neovim ASCII art logo (centered, inspired by alpha.nvim)
 2. Dashboard buttons for common actions (optional, configurable)
@@ -17,12 +17,12 @@ GBoard.nvim is a Neovim plugin that provides a git dashboard interface similar t
 
 ### Core Components
 
-**Plugin Entry Point** (`plugin/gboard.lua`):
-- Registers the `:GBoard` user command
+**Plugin Entry Point** (`plugin/nexus.lua`):
+- Registers the `:Nexus` user command
 - Sets up auto-open behavior on `VimEnter` (only in git repositories when no files specified)
-- Uses standard Neovim plugin loading patterns with `vim.g.loaded_gboard` guard
+- Uses standard Neovim plugin loading patterns with `vim.g.loaded_nexus` guard
 
-**Main Module** (`lua/gboard/init.lua`):
+**Main Module** (`lua/nexus/init.lua`):
 - Single-file module with all dashboard functionality
 - Key functions:
   - `M.open()`: Main entry point that creates and displays the dashboard
@@ -57,13 +57,13 @@ GBoard.nvim is a Neovim plugin that provides a git dashboard interface similar t
 - Status symbols: `??` (untracked), `M` (modified), `A` (added), etc.
 
 **Buffer Management**:
-- Creates scratch buffer (`buftype=nofile`) named "GBoard"
+- Creates scratch buffer (`buftype=nofile`) named "Nexus"
 - Smart startup behavior: replaces empty startup buffer or opens in new tab
-- Quit behavior: `q`/`<Esc>` exits Neovim if GBoard is the only buffer, otherwise just closes the buffer
+- Quit behavior: `q`/`<Esc>` exits Neovim if Nexus is the only buffer, otherwise just closes the buffer
 
 ### Navigation and Keymaps
 
-**In GBoard buffer**:
+**In Nexus buffer**:
 - `<Enter>`: 
   - On conversation lines (format ` N. ...`): Sends `/resume <session_id>` to Claude via tmux
   - On git status lines: Opens the file in editor with proper path resolution
@@ -87,7 +87,7 @@ The plugin includes tmux command sending functionality for Claude Code integrati
 
 **Dependencies**: Pure Neovim Lua - no external dependencies beyond standard git commands
 
-**Debugging**: GBoard includes comprehensive logging to `/tmp/gboard-debug.log` with structured output including timestamps, PID, categories, and tmux context. Enable console output with `require('gboard.logger').set_console_output(true)` for real-time debugging.
+**Debugging**: Nexus includes comprehensive logging to `/tmp/nexus-debug.log` with structured output including timestamps, PID, categories, and tmux context. Enable console output with `require('nexus.logger').set_console_output(true)` for real-time debugging.
 
 **Claude Code Conversation Format**: 
 - Conversations stored as `.jsonl` files with session metadata

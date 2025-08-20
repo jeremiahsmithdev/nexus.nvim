@@ -470,14 +470,14 @@ function M.create_git_command_window(refresh_callback)
       vim.cmd('stopinsert')
       
       -- Open commit amend window instead of executing directly
-      local operations = require('gboard.git.operations')
+      local operations = require('nexus.git.operations')
       operations.create_commit_amend_window(refresh_callback)
       return
     end
     
     vim.api.nvim_win_close(win, true)
     
-    -- Ensure we're in normal mode when returning to GBoard
+    -- Ensure we're in normal mode when returning to Nexus
     vim.cmd('stopinsert')
     
     -- Execute git command
@@ -497,7 +497,7 @@ function M.create_git_command_window(refresh_callback)
       show_output_window(" Git Error ", "Command: " .. full_cmd .. "\n\nError:\n" .. clean_result, true)
     end
     
-    -- Refresh GBoard if callback provided
+    -- Refresh Nexus if callback provided
     if refresh_callback then
       refresh_callback()
     end

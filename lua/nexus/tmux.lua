@@ -1,5 +1,5 @@
 local M = {}
-local logger = require('gboard.logger')
+local logger = require('nexus.logger')
 
 -- Send /resume command to Claude via tmux (similar to diffusion.nvim approach)
 function M.send_resume_to_claude(session_id)

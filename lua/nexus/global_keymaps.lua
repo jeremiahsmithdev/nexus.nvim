@@ -1,5 +1,5 @@
 local M = {}
-local logger = require('gboard.logger')
+local logger = require('nexus.logger')
 
 -- Set up global keymaps for the dashboard shortcuts
 function M.setup()

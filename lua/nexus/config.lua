@@ -24,7 +24,7 @@ local config = vim.deepcopy(default_config)
 
 -- Setup function to allow user configuration
 function M.setup(user_config)
-  local logger = require('gboard.logger')
+  local logger = require('nexus.logger')
   config = vim.tbl_deep_extend('force', default_config, user_config or {})
   
   -- Validate git_status_count

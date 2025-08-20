@@ -1,6 +1,6 @@
 local M = {}
 
-local logger = require('gboard.logger')
+local logger = require('nexus.logger')
 
 -- Helper function to categorize hidden files
 local function categorize_hidden_files(hidden_files)
@@ -38,7 +38,7 @@ end
 
 -- Process git files with optional limit, returns processed data in single pass
 function M.process_git_files(files, limit)
-  local git_status = require('gboard.git.status')
+  local git_status = require('nexus.git.status')
   local visible_files = {}
   local hidden_files = {}
   local all_file_data = {}
@@ -150,7 +150,7 @@ function M.setup_git_status_folding(buf, lines, config, files)
         
         -- Set up buffer folding options
         vim.api.nvim_buf_set_option(buf, 'foldmethod', 'manual')
-        vim.api.nvim_buf_set_option(buf, 'foldtext', 'v:lua.require("gboard.ui.folding").get_fold_text(' .. fold_start_line .. ', "' .. fold_text .. '")')
+        vim.api.nvim_buf_set_option(buf, 'foldtext', 'v:lua.require("nexus.ui.folding").get_fold_text(' .. fold_start_line .. ', "' .. fold_text .. '")')
         
         -- Create the fold (vim uses 1-based line numbers)
         local cmd = string.format('%d,%dfold', fold_start_line, fold_end_line)

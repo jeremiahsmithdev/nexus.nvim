@@ -1,10 +1,10 @@
 local M = {}
-local logger = require('gboard.logger')
+local logger = require('nexus.logger')
 
-function M.create_gboard_buffer(is_manual_open)
+function M.create_nexus_buffer(is_manual_open)
   -- Create listed buffer for manual opens, unlisted for auto opens
   local buf = vim.api.nvim_create_buf(is_manual_open, not is_manual_open)
-  vim.api.nvim_buf_set_option(buf, 'filetype', 'gboard')
+  vim.api.nvim_buf_set_option(buf, 'filetype', 'nexus')
   vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
   vim.api.nvim_buf_set_option(buf, 'swapfile', false)
   
@@ -30,20 +30,20 @@ function M.setup_window_options()
 end
 
 function M.open_buffer(buf, is_manual_open)
-  -- Check if GBoard buffer already exists and is persistent
+  -- Check if Nexus buffer already exists and is persistent
   if is_manual_open then
-    -- Look for existing GBoard buffer
+    -- Look for existing Nexus buffer
     for _, existing_buf in ipairs(vim.api.nvim_list_bufs()) do
-      if vim.api.nvim_buf_is_valid(existing_buf) and vim.api.nvim_buf_get_name(existing_buf):match('GBoard$') then
-        -- Switch to existing GBoard buffer
+      if vim.api.nvim_buf_is_valid(existing_buf) and vim.api.nvim_buf_get_name(existing_buf):match('Nexus$') then
+        -- Switch to existing Nexus buffer
         vim.api.nvim_win_set_buf(0, existing_buf)
         M.setup_window_options()
         -- Ensure autocommands are set up for this buffer
         M.setup_image_autocommands(existing_buf)
         -- Force render image for this buffer after a small delay to ensure buffer content is ready
         vim.defer_fn(function()
-          local logo = require('gboard.ui.logo')
-          local current_config = require('gboard.config').get()
+          local logo = require('nexus.ui.logo')
+          local current_config = require('nexus.config').get()
           if current_config.use_image_logo then
             logo.render_image_logo(existing_buf, current_config, 0, 0)
           end
@@ -76,7 +76,7 @@ end
 
 function M.setup_image_autocommands(buf)
   -- Create autocmd group for this buffer
-  local group_name = 'GBoardImage' .. buf
+  local group_name = 'NexusImage' .. buf
   vim.api.nvim_create_augroup(group_name, { clear = true })
   
   -- Log buffer creation
@@ -90,7 +90,7 @@ function M.setup_image_autocommands(buf)
     group = group_name,
     buffer = buf,
     callback = function()
-      local logo = require('gboard.ui.logo')
+      local logo = require('nexus.ui.logo')
       if logo.has_image_for_buffer(buf) then
         logo.cleanup_image()
       end
@@ -104,8 +104,8 @@ function M.setup_image_autocommands(buf)
     callback = function()
       logger.buf_enter(buf)
       vim.defer_fn(function()
-        local logo = require('gboard.ui.logo')
-        local current_config = require('gboard.config').get()
+        local logo = require('nexus.ui.logo')
+        local current_config = require('nexus.config').get()
         local should_show = logo.should_show_image_in_current_pane()
         local has_image = logo.has_image_for_buffer(buf)
         
@@ -133,8 +133,8 @@ function M.setup_image_autocommands(buf)
     callback = function()
       logger.info("BUFFER", "FocusGained for buffer " .. buf .. ", checking if image needs re-render")
       vim.defer_fn(function()
-        local logo = require('gboard.ui.logo')
-        local current_config = require('gboard.config').get()
+        local logo = require('nexus.ui.logo')
+        local current_config = require('nexus.config').get()
         
         if current_config.use_image_logo then
           local should_show = logo.should_show_image_in_current_pane()
@@ -153,7 +153,7 @@ function M.setup_image_autocommands(buf)
     buffer = buf,
     callback = function()
       logger.info("BUFFER", "FocusLost for buffer " .. buf)
-      local logo = require('gboard.ui.logo')
+      local logo = require('nexus.ui.logo')
       if logo.has_image_for_buffer(buf) then
         logo.cleanup_image()
       end
@@ -165,7 +165,7 @@ function M.setup_image_autocommands(buf)
     group = group_name,
     buffer = buf,
     callback = function()
-      local logo = require('gboard.ui.logo')
+      local logo = require('nexus.ui.logo')
       logo.cleanup_image()
       -- Clean up the autocmd group
       pcall(vim.api.nvim_del_augroup_by_name, group_name)

@@ -1,11 +1,11 @@
 - AI is like a bullet train
 - Git is like the train track with each commit representing a rung holding that rail up
 - Commit often
-- Use GBoard to keep you on task with your git commits, giving you a persistent visual reminder
+- Use Nexus to keep you on task with your git commits, giving you a persistent visual reminder
 
 This plugin is built for people who are doing fast iteration with AI pair programming in Neovim.Or indeed anyone who ever finds them self developing faster than they commit and needs a constant visual reminder to commit their changes incrementally. 
 
-# GBoard.nvim
+# Nexus.nvim
 
 A Neovim plugin that provides a git dashboard interface similar to popular dashboard plugins like alpha.nvim. It opens automatically on startup when no files are specified and displays git information in a clean, centered layout.
 
@@ -26,9 +26,9 @@ A Neovim plugin that provides a git dashboard interface similar to popular dashb
 
 ```lua
 {
-  "yourusername/GBoard.nvim",
+  "yourusername/Nexus.nvim",
   config = function()
-    require("gboard").setup({
+    require("nexus").setup({
       -- Configuration options (all optional)
     })
   end,
@@ -39,19 +39,19 @@ A Neovim plugin that provides a git dashboard interface similar to popular dashb
 
 ```lua
 use {
-  "yourusername/GBoard.nvim",
+  "yourusername/Nexus.nvim",
   config = function()
-    require("gboard").setup()
+    require("nexus").setup()
   end
 }
 ```
 
 ## Configuration
 
-GBoard.nvim works out of the box with sensible defaults. All configuration options are optional:
+Nexus.nvim works out of the box with sensible defaults. All configuration options are optional:
 
 ```lua
-require("gboard").setup({
+require("nexus").setup({
   -- Dashboard sections
   show_dashboard_buttons = true,  -- Show dashboard-style buttons with icons
   show_recent_commits = true,     -- Show git commits section
@@ -71,7 +71,7 @@ require("gboard").setup({
 
 ## Image Logo Support
 
-GBoard.nvim supports displaying images as logos using the [image.nvim](https://github.com/3rd/image.nvim) plugin.
+Nexus.nvim supports displaying images as logos using the [image.nvim](https://github.com/3rd/image.nvim) plugin.
 
 ### Prerequisites
 
@@ -82,18 +82,18 @@ GBoard.nvim supports displaying images as logos using the [image.nvim](https://g
 
 ```lua
 -- Use default included Neovim logo image
-require("gboard").setup({
+require("nexus").setup({
   use_image_logo = true
 })
 
 -- Use custom image with default size
-require("gboard").setup({
+require("nexus").setup({
   use_image_logo = true,
   image_logo_path = vim.fn.expand("~/.config/nvim/my-logo.png")
 })
 
 -- Use custom image with custom size
-require("gboard").setup({
+require("nexus").setup({
   use_image_logo = true,
   image_logo_path = "/path/to/your/logo.png",
   image_logo_width = 40,    -- Wider image
@@ -119,7 +119,7 @@ The plugin will automatically fall back to the ASCII logo if image rendering fai
 
 ## Keybindings
 
-### In GBoard Buffer
+### In Nexus Buffer
 
 | Key | Action |
 |-----|--------|
@@ -144,12 +144,12 @@ The plugin will automatically fall back to the ASCII logo if image rendering fai
 
 ## Auto-open Behavior
 
-GBoard automatically opens when:
+Nexus automatically opens when:
 - Neovim is started without file arguments
 - Current directory is a git repository
 - No other buffers are loaded
 
-You can also manually open GBoard with `:GBoard`
+You can also manually open Nexus with `:Nexus`
 
 ## Git Integration
 
@@ -172,10 +172,10 @@ You can also manually open GBoard with `:GBoard`
 
 ## Claude Code Integration
 
-GBoard includes optional integration with Claude Code for conversation management:
+Nexus includes optional integration with Claude Code for conversation management:
 
 ```lua
-require("gboard").setup({
+require("nexus").setup({
   show_claude_conversations = true  -- Enable Claude Code integration
 })
 ```
@@ -184,7 +184,7 @@ This feature allows resuming Claude Code conversations directly from the dashboa
 
 ## Architecture
 
-GBoard.nvim is built with a modular architecture:
+Nexus.nvim is built with a modular architecture:
 
 - **Clean separation**: Each component (logo, dashboard, git operations) is a separate module
 - **Configurable rendering**: All visual elements can be enabled/disabled independently  

@@ -1,13 +1,13 @@
 local M = {}
 
-local logo = require('gboard.ui.logo')
-local dashboard = require('gboard.ui.dashboard')
-local center = require('gboard.ui.center')
-local git_utils = require('gboard.git.utils')
-local git_status = require('gboard.git.status')
-local git_commits = require('gboard.git.commits')
-local folding = require('gboard.ui.folding')
-local logger = require('gboard.logger')
+local logo = require('nexus.ui.logo')
+local dashboard = require('nexus.ui.dashboard')
+local center = require('nexus.ui.center')
+local git_utils = require('nexus.git.utils')
+local git_status = require('nexus.git.status')
+local git_commits = require('nexus.git.commits')
+local folding = require('nexus.ui.folding')
+local logger = require('nexus.logger')
 
 function M.render_git_status(buf, config, cached_files)
   -- Check if we're in a git repository
@@ -183,7 +183,7 @@ function M.apply_highlighting(buf, lines, config, is_git_repo, files)
   vim.api.nvim_buf_clear_namespace(buf, 0, 0, -1)
   
   -- 1. Logo highlighting - find logo lines (they contain ASCII art characters)
-  local logo_ns = vim.api.nvim_create_namespace('gboard_logo')
+  local logo_ns = vim.api.nvim_create_namespace('nexus_logo')
   for i, line in ipairs(lines) do
     if line:match('[_/\\`\'"]') and line:match('__') then -- Logo contains these ASCII art patterns
       vim.api.nvim_buf_add_highlight(buf, logo_ns, 'Type', i - 1, 0, -1)
@@ -192,7 +192,7 @@ function M.apply_highlighting(buf, lines, config, is_git_repo, files)
   
   -- 2. Button highlighting - find button lines
   if config.show_dashboard_buttons then
-    local button_ns = vim.api.nvim_create_namespace('gboard_buttons')
+    local button_ns = vim.api.nvim_create_namespace('nexus_buttons')
     for i, line in ipairs(lines) do
       if line:match('Find file') or line:match('Recently opened') or line:match('Find word') or 
          line:match('New file') or line:match('Bookmarks') or line:match('Restore session') then
@@ -210,7 +210,7 @@ function M.apply_highlighting(buf, lines, config, is_git_repo, files)
   
   -- 3. Commits highlighting
   if is_git_repo and config.show_recent_commits then
-    local commits_ns = vim.api.nvim_create_namespace('gboard_commits')
+    local commits_ns = vim.api.nvim_create_namespace('nexus_commits')
     for i, line in ipairs(lines) do
       -- Look for commit hash pattern (7+ hex chars after spaces)
       local hash_start, hash_end = line:find('%s+([a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+)')
@@ -245,7 +245,7 @@ function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
     return
   end
 
-  local git_ns = vim.api.nvim_create_namespace('gboard_git_status')
+  local git_ns = vim.api.nvim_create_namespace('nexus_git_status')
   local git_status_start = nil
   
   -- Find Git Status section

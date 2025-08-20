@@ -1,7 +1,7 @@
 local M = {}
 
 -- Logger configuration
-local LOG_FILE = "/tmp/gboard-debug.log"
+local LOG_FILE = "/tmp/nexus-debug.log"
 local LOG_ENABLED = true
 local CONSOLE_OUTPUT = false  -- Set to true for console output during debugging
 
@@ -49,7 +49,7 @@ local function log(level, category, message, extra_data)
   
   -- Optionally print to console for immediate feedback (disabled by default for performance)
   if CONSOLE_OUTPUT then
-    print("[GBOARD] " .. message)
+    print("[NEXUS] " .. message)
   end
 end
 
@@ -164,7 +164,7 @@ end
 -- Initialize logger
 function M.init()
   M.clear_log()
-  M.info("SYSTEM", "GBoard logger initialized")
+  M.info("SYSTEM", "Nexus logger initialized")
 end
 
 return M

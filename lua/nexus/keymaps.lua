@@ -1,9 +1,9 @@
 local M = {}
-local logger = require('gboard.logger')
+local logger = require('nexus.logger')
 
-local git_operations = require('gboard.git.operations')
-local git_command = require('gboard.git.command')
-local tmux = require('gboard.tmux')
+local git_operations = require('nexus.git.operations')
+local git_command = require('nexus.git.command')
+local tmux = require('nexus.tmux')
 
 function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
   vim.api.nvim_buf_set_keymap(buf, 'n', '<CR>', '', {
@@ -38,7 +38,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
       -- Check if it's a Claude conversation line (format: " N. ...")
       elseif config.show_claude_conversations and current_line and current_line:match("^ %d+%.") then
         -- Extract session ID and send /resume command
-        local claude = require('gboard.claude')
+        local claude = require('nexus.claude')
         local conversations = claude.get_claude_conversations(config)
         local line_index = current_line:match("^ (%d+)%.")
         if line_index then
@@ -134,7 +134,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback)
       callback = function()
         git_command.create_git_command_window(function()
           -- Re-parse git status after command and refresh
-          local git_status = require('gboard.git.status')
+          local git_status = require('nexus.git.status')
           local files = git_status.parse_git_status()
           render_callback(buf, files)
         end)
@@ -180,7 +180,7 @@ function M.handle_git_add(buf, render_callback)
       
       git_operations.git_add_file(filename, function()
         -- Re-parse git status after change and pass to render
-        local git_status = require('gboard.git.status')
+        local git_status = require('nexus.git.status')
         local files = git_status.parse_git_status()
         render_callback(buf, files)
       end)
@@ -206,7 +206,7 @@ function M.handle_git_unstage(buf, render_callback)
       
       git_operations.git_unstage_file(filename, function()
         -- Re-parse git status after change and pass to render
-        local git_status = require('gboard.git.status')
+        local git_status = require('nexus.git.status')
         local files = git_status.parse_git_status()
         render_callback(buf, files)
       end)

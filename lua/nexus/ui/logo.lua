@@ -1,5 +1,5 @@
 local M = {}
-local logger = require('gboard.logger')
+local logger = require('nexus.logger')
 
 -- Store current image reference for cleanup
 M._current_image = nil
@@ -41,7 +41,7 @@ function M.get_image_logo(config)
   if not image_path then
     -- Default to plugin's included neovim.png
     local current_file = debug.getinfo(1).source:sub(2)  -- Remove '@' prefix
-    local plugin_root = vim.fn.fnamemodify(current_file, ':h:h:h:h')  -- Go up 4 levels from lua/gboard/ui/logo.lua
+    local plugin_root = vim.fn.fnamemodify(current_file, ':h:h:h:h')  -- Go up 4 levels from lua/nexus/ui/logo.lua
     image_path = plugin_root .. '/assets/neovim.png'
   end
   
