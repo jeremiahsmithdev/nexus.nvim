@@ -232,8 +232,9 @@ function M.create_commit_amend_window(refresh_callback)
   -- Set buffer content with current commit message
   local lines = {}
   if current_msg ~= "" then
-    -- Split current message into lines
-    for line in current_msg:gmatch('[^\n]+') do
+    -- Split current message into lines, preserving empty lines
+    local msg_lines = vim.split(current_msg, '\n', { plain = true })
+    for _, line in ipairs(msg_lines) do
       table.insert(lines, line)
     end
   end
