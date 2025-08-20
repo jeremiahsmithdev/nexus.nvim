@@ -10,7 +10,7 @@ NC := \033[0m # No Color
 # Test configuration
 TEST_INIT := tests/minimal_init.lua
 TEST_RUNNER := tests/test_runner.lua
-NVIM_CMD := nvim --headless --noplugin -u $(TEST_INIT)
+NVIM_CMD := nvim --headless --noplugin -u $(TEST_INIT) -i NONE
 
 # Default target
 .PHONY: all

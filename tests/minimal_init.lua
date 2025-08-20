@@ -1,6 +1,10 @@
 -- Minimal init file for testing
 -- This sets up the minimal environment needed to test Nexus.nvim
 
+-- Clear runtimepath and only add essential paths
+vim.opt.rtp:remove(vim.fn.expand('~/.config/nvim'))
+vim.opt.rtp:remove(vim.fn.expand('~/dotfiles/nvim'))
+
 -- Add current directory to runtimepath for testing
 vim.opt.rtp:prepend(vim.fn.expand('%:p:h:h'))
 

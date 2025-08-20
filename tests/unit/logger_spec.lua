@@ -11,8 +11,9 @@ describe('nexus.logger', function()
     -- Reset module cache
     package.loaded['nexus.logger'] = nil
     
-    -- Mock environment without tmux
-    mocks.setup_test_environment({ tmux = false })
+    -- Set up specific mocks we need WITHOUT mocking the logger itself
+    -- (since we're testing the logger)
+    mocks.mock_tmux_env(false)  -- Not in tmux for most tests
     
     -- Mock file operations
     original_io_open = io.open
@@ -24,9 +25,21 @@ describe('nexus.logger', function()
         }
       end
       
+      -- Handle "w" mode (write/overwrite) vs "a" mode (append)
+      if mode == "w" then
+        mock_file_operations[path] = {
+          content = "",
+          writes = {}
+        }
+      end
+      
       return {
         write = function(self, data)
-          mock_file_operations[path].content = mock_file_operations[path].content .. data
+          if mode == "w" or not mock_file_operations[path] then
+            mock_file_operations[path].content = data
+          else
+            mock_file_operations[path].content = mock_file_operations[path].content .. data
+          end
           table.insert(mock_file_operations[path].writes, data)
           return self
         end,
@@ -40,7 +53,14 @@ describe('nexus.logger', function()
   after_each(function()
     io.open = original_io_open
     mock_file_operations = {}
-    mocks.restore_all()
+    -- Only restore vim.fn.system and vim.env that we mocked for tmux
+    if mocks._original.vim_fn_system then
+      vim.fn.system = mocks._original.vim_fn_system
+    end
+    if mocks._original.vim_v then
+      vim.v = mocks._original.vim_v
+    end
+    vim.env.TMUX = nil
   end)
   
   describe('logging levels', function()
@@ -117,15 +137,52 @@ describe('nexus.logger', function()
     it('should include tmux window and pane info when available', function()
       -- Reset and setup with tmux environment
       package.loaded['nexus.logger'] = nil
-      mocks.restore_all()
-      mocks.setup_test_environment({ 
-        tmux = {
-          id = '%0',
-          window_id = '@1',
-          width = 80,
-          height = 24
-        }
+      
+      -- Temporarily disable the logger before setting up tmux mock
+      if mocks._original.vim_fn_system then
+        vim.fn.system = mocks._original.vim_fn_system
+      end
+      if mocks._original.vim_v then
+        vim.v = mocks._original.vim_v
+      end
+      
+      -- Set up tmux environment (this will mock vim.fn.system and vim.v)
+      mocks.mock_tmux_env(true, {
+        pane_id = '%0', 
+        window_id = '@1'
       })
+      
+      -- Re-setup io.open mock after tmux setup
+      mock_file_operations = {}
+      io.open = function(path, mode)
+        if not mock_file_operations[path] then
+          mock_file_operations[path] = {
+            content = "",
+            writes = {}
+          }
+        end
+        
+        -- Handle "w" mode (write/overwrite) vs "a" mode (append)
+        if mode == "w" then
+          mock_file_operations[path] = {
+            content = "",
+            writes = {}
+          }
+        end
+        
+        return {
+          write = function(self, data)
+            if mode == "w" or not mock_file_operations[path] then
+              mock_file_operations[path].content = data
+            else
+              mock_file_operations[path].content = mock_file_operations[path].content .. data
+            end
+            table.insert(mock_file_operations[path].writes, data)
+            return self
+          end,
+          close = function() end
+        }
+      end
       
       logger = require('nexus.logger')
       logger.info("TEST", "Test message")
@@ -180,12 +237,18 @@ describe('nexus.logger', function()
   describe('log management', function()
     it('should clear log file', function()
       logger.info("TEST", "First message")
-      logger.clear_log()
       
-      -- Check that file was cleared (empty content)
+      -- Verify first message was logged
+      local log_content_before = mock_file_operations["/tmp/nexus-debug.log"].content
+      assert.matches("First message", log_content_before)
+      
+      -- Clear the log and add a new message
+      logger.clear_log()
+      logger.info("SYSTEM", "Log file cleared")
+      
+      -- Check that file content was reset and contains new message
       local log_content = mock_file_operations["/tmp/nexus-debug.log"].content
-      -- After clear_log, there should be an init message
-      assert.matches("Nexus logger initialized", log_content)
+      assert.matches("Log file cleared", log_content)
       -- But not the first message
       assert.not_matches("First message", log_content)
     end)

@@ -14,7 +14,8 @@ M._state = {
   tmux_env = false,
   tmux_panes = {},
   filesystem = {},
-  system_commands = {}
+  system_commands = {},
+  mock_shell_error = 0
 }
 
 -- Mock helpers
@@ -41,32 +42,125 @@ function M.mock_git_repo(is_repo)
     M._original.vim_fn_system = vim.fn.system
   end
   
+  -- Mock io.popen for git commands (used by parse_git_status)
+  if not M._original.io_popen then
+    M._original.io_popen = io.popen
+  end
+  
+  -- Mock vim.v for shell_error
+  if not M._original.vim_v then
+    M._original.vim_v = vim.v
+    vim.v = setmetatable({}, {
+      __index = function(t, k)
+        if k == 'shell_error' then
+          return M._state.mock_shell_error or 0
+        end
+        return M._original.vim_v[k]
+      end,
+      __newindex = function(t, k, v)
+        if k == 'shell_error' then
+          M._state.mock_shell_error = v
+        else
+          M._original.vim_v[k] = v
+        end
+      end
+    })
+  end
+  
+  -- Mock io.popen to return git status output
+  io.popen = function(cmd)
+    if cmd:match('git status %-%-porcelain=v1') then
+      local status_lines = {}
+      for _, file in ipairs(M._state.git_status) do
+        table.insert(status_lines, file.status .. ' ' .. file.file)
+      end
+      local output = table.concat(status_lines, '\n')
+      if #status_lines > 0 then
+        output = output .. '\n'
+      end
+      
+      return {
+        read = function(format)
+          if format == '*a' then
+            return output
+          end
+          return output
+        end,
+        close = function() end
+      }
+    elseif cmd:match('git diff %-%-numstat') then
+      -- Check for specific mocks first
+      for pattern, mock_response in pairs(M._state.system_commands) do
+        if cmd:match(pattern) then
+          local response = mock_response
+          if type(response) == 'function' then
+            response = response(cmd)
+          end
+          return {
+            read = function(format)
+              return response
+            end,
+            close = function() end
+          }
+        end
+      end
+      
+      -- Default mock
+      return {
+        read = function(format)
+          return "5\t2\ttest.lua\n"
+        end,
+        close = function() end
+      }
+    end
+    
+    -- Fall back to original for other commands
+    if M._original.io_popen then
+      return M._original.io_popen(cmd)
+    end
+    return nil
+  end
+  
   vim.fn.system = function(cmd)
+    -- First check if there's a specific mock for this command
+    for pattern, mock_response in pairs(M._state.system_commands) do
+      if cmd:match(pattern) then
+        -- Don't override shell_error here - let the mock function set it
+        if type(mock_response) == 'function' then
+          return mock_response(cmd)
+        else
+          M._state.mock_shell_error = 0  -- Only set to 0 for static responses
+          return mock_response
+        end
+      end
+    end
+    
+    -- Fall back to default git command mocks
     if cmd:match('git rev%-parse %-%-is%-inside%-work%-tree') then
       if M._state.git_repo then
-        vim.v.shell_error = 0
+        M._state.mock_shell_error = 0
         return 'true\n'
       else
-        vim.v.shell_error = 1
+        M._state.mock_shell_error = 1
         return 'fatal: not a git repository\n'
       end
     elseif cmd:match('git rev%-parse %-%-show%-toplevel') then
       if M._state.git_repo then
-        vim.v.shell_error = 0
+        M._state.mock_shell_error = 0
         return '/mock/repo/path\n'
       else
-        vim.v.shell_error = 1
+        M._state.mock_shell_error = 1
         return 'fatal: not a git repository\n'
       end
     elseif cmd:match('git status %-%-porcelain=v1') then
-      vim.v.shell_error = 0
+      M._state.mock_shell_error = 0
       local status_lines = {}
       for _, file in ipairs(M._state.git_status) do
         table.insert(status_lines, file.status .. ' ' .. file.file)
       end
       return table.concat(status_lines, '\n') .. '\n'
     elseif cmd:match('git log %-%-oneline') then
-      vim.v.shell_error = 0
+      M._state.mock_shell_error = 0
       local commit_lines = {}
       for _, commit in ipairs(M._state.git_commits) do
         local line = commit.hash
@@ -78,12 +172,28 @@ function M.mock_git_repo(is_repo)
       end
       return table.concat(commit_lines, '\n') .. '\n'
     elseif cmd:match('git diff %-%-numstat') then
-      vim.v.shell_error = 0
-      return "5\t2\ttest.lua\n"  -- Mock diff stats
+      M._state.mock_shell_error = 0
+      return "5\t2\ttest.lua\n"  -- Default mock diff stats
+    elseif cmd:match('tmux display%-message %-p') then
+      M._state.mock_shell_error = 0
+      -- Mock tmux display-message commands
+      if cmd:match('#{window_id}') then
+        return M._state.tmux_env and (M._state.tmux_panes.window_id or '@1') .. '\n' or 'NOT_IN_TMUX\n'
+      elseif cmd:match('#{pane_id}') then
+        return M._state.tmux_env and (M._state.tmux_panes.pane_id or '%1') .. '\n' or 'NOT_IN_TMUX\n'
+      else
+        return M._state.tmux_env and 'mock_tmux_output\n' or 'NOT_IN_TMUX\n'
+      end
     end
     
-    -- Call original for other commands
-    return M._original.vim_fn_system(cmd)
+    -- Call original for other commands (with error handling)
+    if M._original.vim_fn_system then
+      return M._original.vim_fn_system(cmd)
+    else
+      -- Fallback for commands we don't mock
+      M._state.mock_shell_error = 0
+      return ""
+    end
   end
 end
 
@@ -110,7 +220,7 @@ function M.mock_tmux_env(enabled, pane_info)
   -- Mock tmux commands
   vim.fn.system = function(cmd)
     if cmd:match("tmux display%-message %-p") then
-      vim.v.shell_error = 0
+      M._state.mock_shell_error = 0
       if cmd:match("#{pane_id}") then
         return M._state.tmux_panes.id or '%0\n'
       elseif cmd:match("#{pane_width}") then
@@ -121,10 +231,10 @@ function M.mock_tmux_env(enabled, pane_info)
         return M._state.tmux_panes.window_id or '@1\n'
       end
     elseif cmd:match("tmux list%-panes") then
-      vim.v.shell_error = 0
+      M._state.mock_shell_error = 0
       return "0 claude\n1 bash\n"  -- Mock pane list
     elseif cmd:match("tmux send%-keys") then
-      vim.v.shell_error = 0
+      M._state.mock_shell_error = 0
       return ""  -- Mock successful command sending
     end
     
@@ -301,6 +411,16 @@ function M.restore_all()
     vim.fn.system = M._original.vim_fn_system
   end
   
+  -- Restore io.popen
+  if M._original.io_popen then
+    io.popen = M._original.io_popen
+  end
+  
+  -- Restore vim.v
+  if M._original.vim_v then
+    vim.v = M._original.vim_v
+  end
+  
   if M._original.vim_fn_filereadable then
     vim.fn.filereadable = M._original.vim_fn_filereadable
   end
@@ -404,6 +524,61 @@ function M.setup_test_environment(options)
   if options.config then
     M.mock_config(options.config)
   end
+end
+
+-- Cleanup function to restore all original functions
+function M.cleanup()
+  -- Restore vim.fn functions
+  if M._original.vim_fn_system then
+    vim.fn.system = M._original.vim_fn_system
+    M._original.vim_fn_system = nil
+  end
+  
+  if M._original.vim_fn_systemlist then
+    vim.fn.systemlist = M._original.vim_fn_systemlist
+    M._original.vim_fn_systemlist = nil
+  end
+  
+  -- Restore vim.v
+  if M._original.vim_v then
+    vim.v = M._original.vim_v
+    M._original.vim_v = nil
+  end
+  
+  -- Restore buffer API functions
+  if M._original.nvim_create_buf then
+    vim.api.nvim_create_buf = M._original.nvim_create_buf
+    M._original.nvim_create_buf = nil
+  end
+  
+  if M._original.nvim_buf_set_lines then
+    vim.api.nvim_buf_set_lines = M._original.nvim_buf_set_lines
+    M._original.nvim_buf_set_lines = nil
+  end
+  
+  if M._original.nvim_buf_get_lines then
+    vim.api.nvim_buf_get_lines = M._original.nvim_buf_get_lines
+    M._original.nvim_buf_get_lines = nil
+  end
+  
+  if M._original.nvim_buf_is_valid then
+    vim.api.nvim_buf_is_valid = M._original.nvim_buf_is_valid
+    M._original.nvim_buf_is_valid = nil
+  end
+  
+  -- Clear state
+  M._state = {
+    git_status = {},
+    git_commits = {},
+    git_repo = true,
+    tmux_env = false,
+    tmux_panes = {},
+    filesystem = {},
+    system_commands = {},
+    mock_shell_error = 0
+  }
+  
+  M._mock_buffers = {}
 end
 
 return M
