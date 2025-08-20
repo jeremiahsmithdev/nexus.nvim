@@ -24,7 +24,11 @@ end
 function M.open(is_manual_open)
   logger.info('NEXUS', 'Opening Nexus dashboard, manual=' .. tostring(is_manual_open))
   
-  local buf = buffer_mod.create_nexus_buffer(is_manual_open)
+  -- Check if we should treat auto-open as persistent due to keep_open_after_startup
+  local current_config = config.get()
+  local should_be_persistent = is_manual_open or current_config.keep_open_after_startup
+  
+  local buf = buffer_mod.create_nexus_buffer(should_be_persistent)
   vim.api.nvim_buf_set_name(buf, 'Nexus')
   
   buffer_mod.open_buffer(buf, is_manual_open)

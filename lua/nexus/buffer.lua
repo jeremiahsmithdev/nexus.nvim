@@ -106,35 +106,25 @@ function M.setup_image_autocommands(buf)
     buffer = buf,
     callback = function()
       logger.buf_enter(buf)
-      vim.defer_fn(function()
-        -- Handle image rendering
-        local logo = require('nexus.ui.logo')
-        local current_config = require('nexus.config').get()
+      -- Only handle image rendering without delay for better performance
+      local logo = require('nexus.ui.logo')
+      local current_config = require('nexus.config').get()
+      
+      if current_config.logo_selection == "image" then
         local should_show = logo.should_show_image_in_current_pane()
         local has_image = logo.has_image_for_buffer(buf)
         
-        logger.image_render_attempt(buf, should_show, has_image, current_config.logo_selection == "image")
-        
-        if current_config.logo_selection == "image" and should_show then
+        if should_show then
           if not has_image then
-            logger.debug("IMAGE", "No image for buffer, rendering new image")
             logo.render_image_logo(buf, current_config, 0, 0)
           else
-            logger.debug("IMAGE", "Image exists for buffer, refreshing it")
             logo.refresh_image()
           end
-        else
-          logger.debug("IMAGE", "Not rendering image: logo_selection=" .. tostring(current_config.logo_selection) .. ", should_show=" .. tostring(should_show))
         end
-        
-        -- Refresh git status if in a git repository
-        local git_utils = require('nexus.git.utils')
-        if git_utils.is_git_repo() then
-          logger.debug("GIT", "Refreshing git status on BufEnter")
-          local nexus = require('nexus')
-          nexus.refresh_buffer(buf)
-        end
-      end, 50)
+      end
+      
+      -- Skip automatic git refresh on BufEnter to improve performance
+      -- Users can manually refresh with 'r' if needed
     end
   })
   
@@ -190,13 +180,8 @@ function M.setup_image_autocommands(buf)
           end
         end
         
-        if nexus_buf then
-          logger.debug("GIT", "File written, refreshing git status")
-          vim.defer_fn(function()
-            local nexus = require('nexus')
-            nexus.refresh_buffer(nexus_buf)
-          end, 100)
-        end
+        -- Skip auto-refresh on file write for better performance
+        -- Users can manually refresh with 'r' if needed
       end
     })
     
@@ -215,13 +200,8 @@ function M.setup_image_autocommands(buf)
           end
         end
         
-        if nexus_buf then
-          logger.debug("GIT", "Shell command completed, refreshing git status")
-          vim.defer_fn(function()
-            local nexus = require('nexus')
-            nexus.refresh_buffer(nexus_buf)
-          end, 200)
-        end
+        -- Skip auto-refresh on shell command for better performance
+        -- Users can manually refresh with 'r' if needed
       end
     })
     
@@ -240,13 +220,8 @@ function M.setup_image_autocommands(buf)
           end
         end
         
-        if nexus_buf then
-          logger.debug("GIT", "Focus gained, refreshing git status")
-          vim.defer_fn(function()
-            local nexus = require('nexus')
-            nexus.refresh_buffer(nexus_buf)
-          end, 300)
-        end
+        -- Skip auto-refresh on focus for better performance
+        -- Users can manually refresh with 'r' if needed
       end
     })
   end

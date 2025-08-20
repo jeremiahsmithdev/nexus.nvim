@@ -73,8 +73,22 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
     end
   })
   
-  -- Set up dynamic quit keymaps that only work when Nexus is the only buffer
-  M.setup_dynamic_quit_keymaps(buf)
+  -- Set up async quit keymaps
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'q', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      M.async_quit()
+    end
+  })
+  
+  vim.api.nvim_buf_set_keymap(buf, 'n', '<Esc>', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      M.async_esc()
+    end
+  })
   
   -- Calculate logo section end (just logo, NOT buttons)
   local logo = require('nexus.ui.logo')
@@ -219,92 +233,80 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
   end
 end
 
--- Check if Nexus is the only real buffer open
-function M.is_nexus_only_buffer()
-  local real_bufs = 0
-  local current_buf = vim.api.nvim_get_current_buf()
-  
-  for _, b in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.api.nvim_buf_is_loaded(b) and vim.api.nvim_buf_get_option(b, 'buflisted') then
-      local name = vim.api.nvim_buf_get_name(b)
-      local buftype = vim.api.nvim_buf_get_option(b, 'buftype')
-      
-      -- Skip the current Nexus buffer
-      if b == current_buf then
-        goto continue
+-- Async quit function - only quits when Nexus is the only real buffer
+function M.async_quit()
+  -- Run buffer check asynchronously to avoid blocking
+  vim.schedule(function()
+    local current_buf = vim.api.nvim_get_current_buf()
+    local real_bufs = 0
+    
+    -- Quick count of other real buffers
+    for _, b in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_loaded(b) and vim.api.nvim_buf_get_option(b, 'buflisted') then
+        -- Skip current Nexus buffer
+        if b == current_buf then
+          goto continue
+        end
+        
+        -- Skip scratch buffers and count real ones
+        local buftype = vim.api.nvim_buf_get_option(b, 'buftype')
+        if buftype == '' then
+          local name = vim.api.nvim_buf_get_name(b)
+          if name ~= '' or vim.api.nvim_buf_get_option(b, 'modified') then
+            real_bufs = real_bufs + 1
+            break -- Early exit once we find any other real buffer
+          end
+        end
       end
-      
-      -- Skip scratch buffers (buftype = nofile, help, quickfix, etc.)
-      if buftype ~= '' then
-        goto continue
-      end
-      
-      -- Count buffers that have a file name or are modified
-      if name ~= '' or vim.api.nvim_buf_get_option(b, 'modified') then
-        real_bufs = real_bufs + 1
-      end
-    end
-    ::continue::
-  end
-  
-  return real_bufs == 0
-end
-
--- Set up or remove quit keymaps based on buffer state
-function M.setup_dynamic_quit_keymaps(buf)
-  -- Clear any existing autocommands for this buffer
-  vim.api.nvim_clear_autocmds({
-    group = vim.api.nvim_create_augroup("nexus_quit_keymaps_" .. buf, { clear = true }),
-    buffer = buf,
-  })
-  
-  -- Function to update keymaps based on buffer state
-  local function update_quit_keymaps()
-    if not vim.api.nvim_buf_is_valid(buf) then
-      return
+      ::continue::
     end
     
-    if M.is_nexus_only_buffer() then
-      -- Nexus is the only buffer - enable quit keymaps
-      pcall(vim.api.nvim_buf_set_keymap, buf, 'n', 'q', '', {
-        noremap = true,
-        silent = true,
-        callback = function()
-          vim.cmd('qa!')
-        end
-      })
-      pcall(vim.api.nvim_buf_set_keymap, buf, 'n', '<Esc>', '', {
-        noremap = true,
-        silent = true,
-        callback = function()
-          vim.cmd('qa!')
-        end
-      })
+    -- Only quit if Nexus is the only buffer
+    if real_bufs == 0 then
+      vim.cmd('qa!')
     else
-      -- Other buffers exist - remove quit keymaps to allow default behavior
-      pcall(vim.api.nvim_buf_del_keymap, buf, 'n', 'q')
-      pcall(vim.api.nvim_buf_del_keymap, buf, 'n', '<Esc>')
+      -- Fallback to default q behavior - simulate default keymap
+      vim.cmd('normal! \\<C-\\>\\<C-N>q')
     end
-  end
-  
-  -- Set up initial keymaps
-  update_quit_keymaps()
-  
-  -- Update keymaps when buffers change
-  vim.api.nvim_create_autocmd({"BufNew", "BufDelete", "BufWipeout"}, {
-    group = vim.api.nvim_create_augroup("nexus_quit_keymaps_" .. buf, { clear = false }),
-    callback = function()
-      -- Use a small delay to ensure buffer list is updated
-      vim.defer_fn(update_quit_keymaps, 10)
-    end,
-  })
-  
-  -- Also update when entering this buffer (in case things changed)
-  vim.api.nvim_create_autocmd("BufEnter", {
-    group = vim.api.nvim_create_augroup("nexus_quit_keymaps_" .. buf, { clear = false }),
-    buffer = buf,
-    callback = update_quit_keymaps,
-  })
+  end)
+end
+
+-- Async esc function
+function M.async_esc()
+  -- Run buffer check asynchronously 
+  vim.schedule(function()
+    local current_buf = vim.api.nvim_get_current_buf()
+    local real_bufs = 0
+    
+    -- Quick count of other real buffers
+    for _, b in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_loaded(b) and vim.api.nvim_buf_get_option(b, 'buflisted') then
+        -- Skip current Nexus buffer
+        if b == current_buf then
+          goto continue
+        end
+        
+        -- Skip scratch buffers and count real ones  
+        local buftype = vim.api.nvim_buf_get_option(b, 'buftype')
+        if buftype == '' then
+          local name = vim.api.nvim_buf_get_name(b)
+          if name ~= '' or vim.api.nvim_buf_get_option(b, 'modified') then
+            real_bufs = real_bufs + 1
+            break -- Early exit once we find any other real buffer
+          end
+        end
+      end
+      ::continue::
+    end
+    
+    -- Only quit if Nexus is the only buffer
+    if real_bufs == 0 then
+      vim.cmd('qa!')
+    else
+      -- Fallback to default Esc behavior - usually does nothing in normal mode
+      vim.cmd('normal! \\<Esc>')
+    end
+  end)
 end
 
 function M.handle_git_add(buf, render_callback)
@@ -429,15 +431,10 @@ function M.show_commit_details(commit_line)
 end
 
 function M.handle_dashboard_action(config, command)
-  -- Check if we should keep Nexus open after startup actions
-  if config.keep_open_after_startup then
-    -- Open in a new window/tab, keeping Nexus buffer visible
-    vim.cmd('tabnew')
-    vim.cmd(command)
-  else
-    -- Default behavior - execute command in current buffer (replacing Nexus)
-    vim.cmd(command)
-  end
+  -- The key difference is handled in buffer creation (persistent vs non-persistent)
+  -- When keep_open_after_startup = true, Nexus buffer is created as persistent
+  -- When keep_open_after_startup = false, Nexus buffer gets wiped when replaced
+  vim.cmd(command)
 end
 
 return M
