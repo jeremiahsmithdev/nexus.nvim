@@ -48,6 +48,9 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
             tmux.send_resume_to_claude(conversations[conv_index].session_id)
           end
         end
+      -- Check if it's a commit line (recent commits section)
+      elseif is_git_repo and current_line and current_line:match("%s+[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+") then
+        M.show_commit_details(current_line)
       -- Check if it's a git status line (only in git repos)
       elseif is_git_repo and current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
         -- This is a git status line - extract filename and open file
@@ -305,6 +308,75 @@ function M.handle_git_unstage(buf, render_callback)
       end)
     end
   end
+end
+
+function M.show_commit_details(commit_line)
+  -- Extract commit hash from line like "  a1b2c3d (HEAD -> main) commit message"
+  local commit_hash = commit_line:match("%s+([a-f0-9]+)")
+  
+  if not commit_hash then
+    logger.warn('COMMIT', 'Could not extract commit hash from line: ' .. commit_line)
+    return
+  end
+  
+  -- Get commit details using git show
+  local git_show_cmd = "git show --stat --pretty=format:'%C(yellow)%h%Creset %C(blue)%an%Creset %C(green)%ar%Creset%n%C(white)%s%Creset%n%n%b' " .. commit_hash
+  local commit_details = vim.fn.systemlist(git_show_cmd)
+  
+  if vim.v.shell_error ~= 0 then
+    logger.error('COMMIT', 'Failed to get commit details for: ' .. commit_hash)
+    return
+  end
+  
+  -- Create a new buffer for the popup
+  local popup_buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_option(popup_buf, 'buftype', 'nofile')
+  vim.api.nvim_buf_set_option(popup_buf, 'swapfile', false)
+  vim.api.nvim_buf_set_option(popup_buf, 'modifiable', true)
+  
+  -- Set buffer content
+  vim.api.nvim_buf_set_lines(popup_buf, 0, -1, false, commit_details)
+  vim.api.nvim_buf_set_option(popup_buf, 'modifiable', false)
+  
+  -- Calculate popup size
+  local max_width = 100
+  local max_height = 30
+  local actual_width = math.min(max_width, math.max(50, #commit_details > 0 and math.max(unpack(vim.tbl_map(function(line) return #line end, commit_details))) or 50))
+  local actual_height = math.min(max_height, math.max(10, #commit_details))
+  
+  -- Calculate popup position (center of screen)
+  local screen_width = vim.api.nvim_get_option('columns')
+  local screen_height = vim.api.nvim_get_option('lines')
+  local col = math.floor((screen_width - actual_width) / 2)
+  local row = math.floor((screen_height - actual_height) / 2)
+  
+  -- Create popup window
+  local popup_opts = {
+    relative = 'editor',
+    width = actual_width,
+    height = actual_height,
+    col = col,
+    row = row,
+    style = 'minimal',
+    border = 'rounded',
+    title = ' Commit Details: ' .. commit_hash .. ' ',
+    title_pos = 'center'
+  }
+  
+  local popup_win = vim.api.nvim_open_win(popup_buf, true, popup_opts)
+  
+  -- Set popup window options
+  vim.api.nvim_win_set_option(popup_win, 'wrap', false)
+  vim.api.nvim_win_set_option(popup_win, 'number', false)
+  vim.api.nvim_win_set_option(popup_win, 'relativenumber', false)
+  vim.api.nvim_win_set_option(popup_win, 'cursorline', true)
+  
+  -- Set up keymaps to close popup
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', 'q', '<cmd>close<CR>', {noremap = true, silent = true})
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<Esc>', '<cmd>close<CR>', {noremap = true, silent = true})
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<CR>', '<cmd>close<CR>', {noremap = true, silent = true})
+  
+  logger.info('COMMIT', 'Showing details for commit: ' .. commit_hash)
 end
 
 return M
