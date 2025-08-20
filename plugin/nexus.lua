@@ -12,11 +12,14 @@ end, {
   desc = 'Open Nexus dashboard'
 })
 
--- Auto-open Nexus on startup if no files are opened
+-- Auto-open Nexus on startup if configured and no files are opened
 vim.api.nvim_create_autocmd('VimEnter', {
   callback = function()
-    -- Only open if no files were passed as arguments
-    if vim.fn.argc() == 0 then
+    -- Get config to check if startup is enabled
+    local config = require('nexus.config').get()
+    
+    -- Only open if startup is enabled and no files were passed as arguments
+    if config.open_on_startup and vim.fn.argc() == 0 then
       -- Check if we're in a git repository
       local git_check = vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null')
       if vim.v.shell_error == 0 and git_check:match('true') then
@@ -24,5 +27,5 @@ vim.api.nvim_create_autocmd('VimEnter', {
       end
     end
   end,
-  desc = 'Open Nexus on startup if no files specified and in git repo'
+  desc = 'Open Nexus on startup if configured and no files specified and in git repo'
 })

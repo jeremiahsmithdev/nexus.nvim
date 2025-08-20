@@ -20,19 +20,19 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       
       -- Check if it's a dashboard button line
       if config.show_dashboard_buttons and current_line and current_line:match("Find file") then
-        vim.cmd('Telescope find_files')
+        M.handle_dashboard_action(config, 'Telescope find_files')
       elseif config.show_dashboard_buttons and current_line and current_line:match("Recently opened files") then
-        vim.cmd('Telescope oldfiles')
+        M.handle_dashboard_action(config, 'Telescope oldfiles')
       elseif config.show_dashboard_buttons and current_line and current_line:match("Find word") then
-        vim.cmd('Telescope live_grep')
+        M.handle_dashboard_action(config, 'Telescope live_grep')
       elseif config.show_dashboard_buttons and current_line and current_line:match("New file") then
-        vim.cmd('enew')
+        M.handle_dashboard_action(config, 'enew')
       elseif config.show_dashboard_buttons and current_line and current_line:match("Bookmarks") then
-        vim.cmd('Telescope marks')
+        M.handle_dashboard_action(config, 'Telescope marks')
       elseif config.show_dashboard_buttons and current_line and current_line:match("Restore session") then
         -- Basic session restore - could be enhanced with session manager
         if vim.fn.filereadable('Session.vim') == 1 then
-          vim.cmd('source Session.vim')
+          M.handle_dashboard_action(config, 'source Session.vim')
         else
           logger.warn('SESSION', 'No session file found')
         end
@@ -65,36 +65,16 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
           filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
           
           local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
-          if git_root then
-            local full_path = git_root .. '/' .. filename
-            vim.cmd('edit ' .. vim.fn.fnameescape(full_path))
-            vim.cmd('set number')
-            vim.cmd('set signcolumn=yes')
-          else
-            vim.cmd('edit ' .. vim.fn.fnameescape(filename))
-            vim.cmd('set number')
-            vim.cmd('set signcolumn=yes')
-          end
+          local full_path = git_root and (git_root .. '/' .. filename) or filename
+          local edit_cmd = 'edit ' .. vim.fn.fnameescape(full_path) .. ' | set number | set signcolumn=yes'
+          M.handle_dashboard_action(config, edit_cmd)
         end
       end
     end
   })
   
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'q', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      M.smart_quit()
-    end
-  })
-  
-  vim.api.nvim_buf_set_keymap(buf, 'n', '<Esc>', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      M.smart_quit()
-    end
-  })
+  -- Set up dynamic quit keymaps that only work when Nexus is the only buffer
+  M.setup_dynamic_quit_keymaps(buf)
   
   -- Calculate logo section end (just logo, NOT buttons)
   local logo = require('nexus.ui.logo')
@@ -239,23 +219,92 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
   end
 end
 
-function M.smart_quit()
-  -- Count non-empty, listed buffers
-  local listed_bufs = 0
+-- Check if Nexus is the only real buffer open
+function M.is_nexus_only_buffer()
+  local real_bufs = 0
+  local current_buf = vim.api.nvim_get_current_buf()
+  
   for _, b in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_loaded(b) and vim.api.nvim_buf_get_option(b, 'buflisted') then
       local name = vim.api.nvim_buf_get_name(b)
-      if name ~= '' or vim.api.nvim_buf_get_option(b, 'modified') then
-        listed_bufs = listed_bufs + 1
+      local buftype = vim.api.nvim_buf_get_option(b, 'buftype')
+      
+      -- Skip the current Nexus buffer
+      if b == current_buf then
+        goto continue
       end
+      
+      -- Skip scratch buffers (buftype = nofile, help, quickfix, etc.)
+      if buftype ~= '' then
+        goto continue
+      end
+      
+      -- Count buffers that have a file name or are modified
+      if name ~= '' or vim.api.nvim_buf_get_option(b, 'modified') then
+        real_bufs = real_bufs + 1
+      end
+    end
+    ::continue::
+  end
+  
+  return real_bufs == 0
+end
+
+-- Set up or remove quit keymaps based on buffer state
+function M.setup_dynamic_quit_keymaps(buf)
+  -- Clear any existing autocommands for this buffer
+  vim.api.nvim_clear_autocmds({
+    group = vim.api.nvim_create_augroup("nexus_quit_keymaps_" .. buf, { clear = true }),
+    buffer = buf,
+  })
+  
+  -- Function to update keymaps based on buffer state
+  local function update_quit_keymaps()
+    if not vim.api.nvim_buf_is_valid(buf) then
+      return
+    end
+    
+    if M.is_nexus_only_buffer() then
+      -- Nexus is the only buffer - enable quit keymaps
+      pcall(vim.api.nvim_buf_set_keymap, buf, 'n', 'q', '', {
+        noremap = true,
+        silent = true,
+        callback = function()
+          vim.cmd('qa!')
+        end
+      })
+      pcall(vim.api.nvim_buf_set_keymap, buf, 'n', '<Esc>', '', {
+        noremap = true,
+        silent = true,
+        callback = function()
+          vim.cmd('qa!')
+        end
+      })
+    else
+      -- Other buffers exist - remove quit keymaps to allow default behavior
+      pcall(vim.api.nvim_buf_del_keymap, buf, 'n', 'q')
+      pcall(vim.api.nvim_buf_del_keymap, buf, 'n', '<Esc>')
     end
   end
   
-  if listed_bufs <= 1 then
-    vim.cmd('qa!')
-  else
-    vim.cmd('q')
-  end
+  -- Set up initial keymaps
+  update_quit_keymaps()
+  
+  -- Update keymaps when buffers change
+  vim.api.nvim_create_autocmd({"BufNew", "BufDelete", "BufWipeout"}, {
+    group = vim.api.nvim_create_augroup("nexus_quit_keymaps_" .. buf, { clear = false }),
+    callback = function()
+      -- Use a small delay to ensure buffer list is updated
+      vim.defer_fn(update_quit_keymaps, 10)
+    end,
+  })
+  
+  -- Also update when entering this buffer (in case things changed)
+  vim.api.nvim_create_autocmd("BufEnter", {
+    group = vim.api.nvim_create_augroup("nexus_quit_keymaps_" .. buf, { clear = false }),
+    buffer = buf,
+    callback = update_quit_keymaps,
+  })
 end
 
 function M.handle_git_add(buf, render_callback)
@@ -377,6 +426,18 @@ function M.show_commit_details(commit_line)
   vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<CR>', '<cmd>close<CR>', {noremap = true, silent = true})
   
   logger.info('COMMIT', 'Showing details for commit: ' .. commit_hash)
+end
+
+function M.handle_dashboard_action(config, command)
+  -- Check if we should keep Nexus open after startup actions
+  if config.keep_open_after_startup then
+    -- Open in a new window/tab, keeping Nexus buffer visible
+    vim.cmd('tabnew')
+    vim.cmd(command)
+  else
+    -- Default behavior - execute command in current buffer (replacing Nexus)
+    vim.cmd(command)
+  end
 end
 
 return M

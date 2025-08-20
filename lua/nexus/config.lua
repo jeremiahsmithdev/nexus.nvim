@@ -2,6 +2,11 @@ local M = {}
 
 -- Default configuration
 local default_config = {
+  -- Startup behavior
+  open_on_startup = true,            -- Open Nexus automatically on startup (when no files specified)
+  keep_open_after_startup = false,   -- Keep Nexus buffer open after opening other files from dashboard
+  
+  -- Section visibility
   show_claude_conversations = false, -- Disabled by default
   show_dashboard_buttons = true,     -- Show dashboard-style buttons
   show_keyboard_shortcuts = true,    -- Show keyboard shortcuts section
@@ -16,6 +21,8 @@ local default_config = {
     "git_status",
     "claude_conversations"
   },
+  
+  -- Logo configuration
   logo_selection = "nexus",          -- Logo selection: "neovim", "nexus", or "image" (requires image.nvim plugin)
   logo_color = "String",             -- Highlight group for logo (default: String for green)
   image_logo_path = nil,             -- Custom image path (defaults to plugin's neovim.png if nil)
@@ -152,6 +159,27 @@ function M.setup(user_config)
     elseif #config.logo_color == 0 then
       logger.warn("CONFIG", "logo_color cannot be empty, using default 'String'")
       config.logo_color = "String"
+    end
+  end
+  
+  -- Validate startup options
+  if config.open_on_startup ~= nil then
+    if type(config.open_on_startup) ~= "boolean" then
+      logger.warn("CONFIG", "open_on_startup must be a boolean, using default true", {
+        provided_value = config.open_on_startup,
+        provided_type = type(config.open_on_startup)
+      })
+      config.open_on_startup = true
+    end
+  end
+  
+  if config.keep_open_after_startup ~= nil then
+    if type(config.keep_open_after_startup) ~= "boolean" then
+      logger.warn("CONFIG", "keep_open_after_startup must be a boolean, using default false", {
+        provided_value = config.keep_open_after_startup,
+        provided_type = type(config.keep_open_after_startup)
+      })
+      config.keep_open_after_startup = false
     end
   end
 end

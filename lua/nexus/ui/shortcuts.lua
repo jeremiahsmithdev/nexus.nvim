@@ -8,11 +8,12 @@ function M.get_keyboard_shortcuts(config, is_git_repo)
     return {}
   end
   
-  local global_line = "r -> refresh, q/esc -> quit" .. (is_git_repo and ", c -> commit" or "")
+  local global_line = "r -> refresh" .. (is_git_repo and ", c -> commit" or "")
   
   return {
     global_line,
-    "" -- This will be populated dynamically based on cursor position
+    "", -- This will be populated dynamically based on cursor position
+    ""  -- Empty line for spacing after shortcuts section
   }
 end
 
