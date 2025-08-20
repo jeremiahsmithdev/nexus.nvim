@@ -29,9 +29,21 @@ function M.render_git_status(buf, config, cached_files)
     end
   end
   
-  -- Start with centered Neovim logo
+  -- Start with centered logo
   local logo_lines = logo.get_neovim_logo(config)
-  local lines = center.center_lines(logo_lines, width)
+  local centered_logo = center.center_lines(logo_lines, width)
+  local lines = {}
+  
+  -- Add centered logo lines to buffer
+  for _, line in ipairs(centered_logo) do
+    table.insert(lines, line)
+  end
+  
+  -- Store logo section info for highlighting
+  local logo_section = {
+    start_line = 1,
+    end_line = #centered_logo
+  }
   
   -- Build sections based on configuration order
   local sections = M.build_sections(config, is_git_repo, files)
@@ -82,15 +94,15 @@ function M.render_git_status(buf, config, cached_files)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   
   -- Render image logo if enabled (after buffer content is set)
-  if config.use_image_logo then
+  if config.logo_selection == "image" then
     logo.render_image_logo(buf, config, 0, 0)
   end
   
   -- Set up folding for git status overflow
   folding.setup_git_status_folding(buf, lines, config, files)
   
-  -- Add syntax highlighting with simple pattern matching
-  M.apply_highlighting(buf, lines, config, is_git_repo, files)
+  -- Add syntax highlighting with logo section info
+  M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section)
   
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
   
@@ -179,14 +191,18 @@ function M.build_sections(config, is_git_repo, files)
 end
 
 
-function M.apply_highlighting(buf, lines, config, is_git_repo, files)
+function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section)
   vim.api.nvim_buf_clear_namespace(buf, 0, 0, -1)
   
-  -- 1. Logo highlighting - find logo lines (they contain ASCII art characters)
+  -- 1. Logo highlighting - highlight entire logo section
   local logo_ns = vim.api.nvim_create_namespace('nexus_logo')
-  for i, line in ipairs(lines) do
-    if line:match('[_/\\`\'"]') and line:match('__') then -- Logo contains these ASCII art patterns
-      vim.api.nvim_buf_add_highlight(buf, logo_ns, 'Type', i - 1, 0, -1)
+  local logo_color = config.logo_color or "String"
+  if logo_section then
+    for i = logo_section.start_line, logo_section.end_line do
+      local line_content = lines[i]
+      if line_content and #line_content > 0 then -- Only highlight non-empty lines
+        vim.api.nvim_buf_add_highlight(buf, logo_ns, logo_color, i - 1, 0, -1)
+      end
     end
   end
   

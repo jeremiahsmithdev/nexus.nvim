@@ -7,21 +7,53 @@ M._current_buffer = nil
 M._current_tmux_pane = nil
 
 function M.get_neovim_logo(config)
-  if config and config.use_image_logo then
+  local logo_selection = config and config.logo_selection or "nexus"
+  
+  -- Handle backward compatibility
+  if not config.logo_selection and config.use_image_logo then
+    if config.use_image_logo == true then
+      logo_selection = "image"
+    elseif config.use_image_logo == false then
+      logo_selection = "neovim"
+    elseif type(config.use_image_logo) == "string" then
+      logo_selection = config.use_image_logo
+    end
+  end
+  
+  if logo_selection == "image" then
     return M.get_image_logo(config)
-  else
+  elseif logo_selection == "nexus" then
+    return M.get_nexus_ascii_logo()
+  elseif logo_selection == "neovim" then
     return M.get_ascii_logo()
+  else
+    -- Default to nexus ASCII logo
+    return M.get_nexus_ascii_logo()
   end
 end
 
 function M.get_ascii_logo()
   return {
-    [[                                  __]],
-    [[     ___     ___    ___   __  __ /\_\    ___ ___]],
-    [[    / _ `\  / __`\ / __`\/\ \/\ \\/\ \  / __` __`\]],
-    [[   /\ \/\ \/\  __//\ \_\ \ \ \_/ |\ \ \/\ \/\ \/\ \]],
-    [[   \ \_\ \_\ \____\ \____/\ \___/  \ \_\ \_\ \_\ \_\]],
-    [[    \/_/\/_/\/____/\/___/  \/__/    \/_/\/_/\/_/\/_/]],
+    [[                                  __                   ]],
+    [[     ___     ___    ___   __  __ /\_\    ___ ___       ]],
+    [[    / _ `\  / __`\ / __`\/\ \/\ \\/\ \  / __` __`\     ]],
+    [[   /\ \/\ \/\  __//\ \_\ \ \ \_/ |\ \ \/\ \/\ \/\ \    ]],
+    [[   \ \_\ \_\ \____\ \____/\ \___/  \ \_\ \_\ \_\ \_\   ]],
+    [[    \/_/\/_/\/____/\/___/  \/__/    \/_/\/_/\/_/\/_/   ]],
+    ""
+  }
+end
+
+function M.get_nexus_ascii_logo()
+  return {
+    [[███╗   ██╗███████╗██╗  ██╗██╗   ██╗███████╗]],
+    [[████╗  ██║██╔════╝╚██╗██╔╝██║   ██║██╔════╝]],
+    [[██╔██╗ ██║█████╗   ╚███╔╝ ██║   ██║███████╗]],
+    [[██║╚██╗██║██╔══╝   ██╔██╗ ██║   ██║╚════██║]],
+    [[██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║]],
+    [[╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝]],
+    "",
+    "[ The Developer's Mission Control Center ]",
     ""
   }
 end
@@ -32,7 +64,7 @@ function M.get_image_logo(config)
   logger.debug("IMAGE", "image.nvim detection: has_image=" .. tostring(has_image))
   if not has_image then
     -- Fallback to ASCII if image.nvim not available
-    logger.warn("IMAGE", "image.nvim not found, falling back to ASCII logo", {error = image})
+    logger.warn("IMAGE", "image.nvim not found, falling back to ASCII logo", {error = tostring(image)})
     return M.get_ascii_logo()
   end
   
@@ -115,7 +147,18 @@ end
 
 -- Function to render the actual image using image.nvim with proper tmux isolation
 function M.render_image_logo(buf, config, start_line, x_offset)
-  if not config.use_image_logo then
+  local logo_selection = config and config.logo_selection or "nexus"
+  
+  -- Handle backward compatibility
+  if not config.logo_selection and config.use_image_logo then
+    if config.use_image_logo == true then
+      logo_selection = "image"
+    elseif type(config.use_image_logo) == "string" then
+      logo_selection = config.use_image_logo
+    end
+  end
+  
+  if logo_selection ~= "image" then
     return false
   end
   

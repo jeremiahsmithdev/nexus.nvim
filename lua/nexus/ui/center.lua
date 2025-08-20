@@ -3,7 +3,9 @@ local M = {}
 function M.longest_line(lines)
   local longest = 0
   for _, line in ipairs(lines) do
-    longest = math.max(longest, #line)
+    -- Use vim.fn.strdisplaywidth for proper Unicode width calculation
+    local display_width = vim.fn.strdisplaywidth and vim.fn.strdisplaywidth(line) or #line
+    longest = math.max(longest, display_width)
   end
   return longest
 end

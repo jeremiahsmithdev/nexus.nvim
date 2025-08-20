@@ -14,7 +14,8 @@ local default_config = {
     "git_status",
     "claude_conversations"
   },
-  use_image_logo = false,            -- Use image.nvim for logo (requires image.nvim plugin)
+  logo_selection = "nexus",          -- Logo selection: "neovim", "nexus", or "image" (requires image.nvim plugin)
+  logo_color = "String",             -- Highlight group for logo (default: String for green)
   image_logo_path = nil,             -- Custom image path (defaults to plugin's neovim.png if nil)
   image_logo_width = 30,             -- Width of the image in character units
   image_logo_height = 6              -- Height of the image in line units
@@ -85,6 +86,69 @@ function M.setup(user_config)
       else
         config.section_order = valid_order
       end
+    end
+  end
+  
+  -- Handle backward compatibility for use_image_logo and validate logo_selection
+  local valid_logo_types = {
+    neovim = true,
+    nexus = true,
+    image = true
+  }
+  
+  -- Handle backward compatibility: if use_image_logo exists, convert to logo_selection
+  if config.use_image_logo ~= nil then
+    logger.info("CONFIG", "Converting deprecated use_image_logo to logo_selection for backward compatibility")
+    
+    if type(config.use_image_logo) == "boolean" then
+      if config.use_image_logo == true then
+        config.logo_selection = "image"
+      else
+        config.logo_selection = "neovim"
+      end
+    elseif type(config.use_image_logo) == "string" and valid_logo_types[config.use_image_logo] then
+      config.logo_selection = config.use_image_logo
+    else
+      logger.warn("CONFIG", "Invalid use_image_logo value, defaulting to 'nexus'", {
+        provided_value = config.use_image_logo
+      })
+      config.logo_selection = "nexus"
+    end
+    
+    -- Remove the old config key
+    config.use_image_logo = nil
+  end
+  
+  -- Validate logo_selection
+  if config.logo_selection ~= nil then
+    if type(config.logo_selection) == "string" then
+      if not valid_logo_types[config.logo_selection] then
+        logger.warn("CONFIG", "Invalid logo_selection, using default 'nexus'", {
+          provided_value = config.logo_selection,
+          valid_options = {"neovim", "nexus", "image"}
+        })
+        config.logo_selection = "nexus"
+      end
+    else
+      logger.warn("CONFIG", "logo_selection must be a string, using default 'nexus'", {
+        provided_value = config.logo_selection,
+        provided_type = type(config.logo_selection)
+      })
+      config.logo_selection = "nexus"
+    end
+  end
+  
+  -- Validate logo_color
+  if config.logo_color ~= nil then
+    if type(config.logo_color) ~= "string" then
+      logger.warn("CONFIG", "logo_color must be a string, using default 'String'", {
+        provided_value = config.logo_color,
+        provided_type = type(config.logo_color)
+      })
+      config.logo_color = "String"
+    elseif #config.logo_color == 0 then
+      logger.warn("CONFIG", "logo_color cannot be empty, using default 'String'")
+      config.logo_color = "String"
     end
   end
 end
