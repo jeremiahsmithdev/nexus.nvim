@@ -6,6 +6,8 @@ local center = require('gboard.ui.center')
 local git_utils = require('gboard.git.utils')
 local git_status = require('gboard.git.status')
 local git_commits = require('gboard.git.commits')
+local folding = require('gboard.ui.folding')
+local logger = require('gboard.logger')
 
 function M.render_git_status(buf, config, cached_files)
   -- Check if we're in a git repository
@@ -70,29 +72,33 @@ function M.render_git_status(buf, config, cached_files)
     else
       local git_status_lines = {"Git Status:", ""}
       
-      -- Calculate max filename width for alignment
-      local max_filename_width = 0
-      local file_data = {}
-      for i, item in ipairs(files) do
-        local added, deleted = git_status.get_diff_stats(item.file, item.status)
-        local status_icon = git_status.format_status_icon(item.status)
-        local full_name = status_icon .. " " .. item.file
-        max_filename_width = math.max(max_filename_width, #full_name)
-        table.insert(file_data, {
-          item = item,
-          added = added,
-          deleted = deleted,
-          status_icon = status_icon,
-          full_name = full_name
-        })
-      end
+      -- Process files with optional limit
+      local processed = folding.process_git_files(files, config.git_status_count)
       
-      for i, data in ipairs(file_data) do
-        local padding = string.rep(" ", max_filename_width - #data.full_name)
+      -- Render visible files
+      for i, data in ipairs(processed.visible) do
+        local padding = string.rep(" ", processed.max_filename_width - #data.full_name)
         local diff_stat = git_status.create_diff_stat(data.added, data.deleted, 40)
         
         local line = string.format("  %s%s%s", data.full_name, padding, diff_stat)
         table.insert(git_status_lines, line)
+      end
+      
+      -- Add folded overflow content if files were hidden
+      if #processed.hidden > 0 then
+        logger.debug("GIT_STATUS", "Adding fold for hidden files", {
+          total_files = #files,
+          visible_count = #processed.visible,
+          hidden_count = #processed.hidden
+        })
+        
+        -- Add the hidden files directly (they will be folded with custom fold text)
+        for i, data in ipairs(processed.hidden) do
+          local padding = string.rep(" ", processed.max_filename_width - #data.full_name)
+          local diff_stat = git_status.create_diff_stat(data.added, data.deleted, 40)
+          local line = string.format("  %s%s%s", data.full_name, padding, diff_stat)
+          table.insert(git_status_lines, line)
+        end
       end
       
       table.insert(git_sections_data, git_status_lines)
@@ -126,6 +132,9 @@ function M.render_git_status(buf, config, cached_files)
     logo.render_image_logo(buf, config, 0, 0)
   end
   
+  -- Set up folding for git status overflow
+  folding.setup_git_status_folding(buf, lines, config, files)
+  
   -- Add syntax highlighting with simple pattern matching
   M.apply_highlighting(buf, lines, config, is_git_repo, files)
   
@@ -133,6 +142,7 @@ function M.render_git_status(buf, config, cached_files)
   
   return files
 end
+
 
 function M.apply_highlighting(buf, lines, config, is_git_repo, files)
   vim.api.nvim_buf_clear_namespace(buf, 0, 0, -1)
@@ -191,38 +201,64 @@ function M.apply_highlighting(buf, lines, config, is_git_repo, files)
   end
   
   -- 4. Git status highlighting  
-  if is_git_repo and config.show_git_status and files then
-    local git_ns = vim.api.nvim_create_namespace('gboard_git_status')
-    local git_status_line = nil
-    for i, line in ipairs(lines) do
-      if line:match('Git Status:') then
-        git_status_line = i
-        break
-      end
+  M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
+end
+
+-- Separate function for git status highlighting that works with processed data
+function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
+  if not is_git_repo or not config.show_git_status or not files or #files == 0 then
+    return
+  end
+
+  local git_ns = vim.api.nvim_create_namespace('gboard_git_status')
+  local git_status_start = nil
+  
+  -- Find Git Status section
+  for i, line in ipairs(lines) do
+    if line:match('Git Status:') then
+      git_status_start = i
+      break
     end
+  end
+  
+  if not git_status_start then
+    return
+  end
+  
+  -- Process files to understand display order
+  local processed = folding.process_git_files(files, config.git_status_count)
+  local display_files = {}
+  
+  -- Add visible files first
+  for _, data in ipairs(processed.visible) do
+    table.insert(display_files, data)
+  end
+  
+  -- Add hidden files (they are in the buffer even if folded)
+  for _, data in ipairs(processed.hidden) do
+    table.insert(display_files, data)
+  end
+  
+  -- Apply highlighting to displayed files in correct order
+  for display_index, data in ipairs(display_files) do
+    local line_num = git_status_start + 1 + display_index -- +1 for empty line after "Git Status:"
+    local line_content = lines[line_num]
     
-    if git_status_line then
-      for i, file_item in ipairs(files) do
-        local line_num = git_status_line + 1 + i -- +1 for empty line after "Git Status:", +i for file index
-        local line_content = lines[line_num]
-        
-        if line_content then
-          -- Find the status characters in the line
-          local status_start = line_content:find('[MADRCU?]')
-          if status_start then
-            local color_group = git_status.get_status_color(file_item.status)
-            vim.api.nvim_buf_add_highlight(buf, git_ns, color_group, line_num - 1, status_start - 1, status_start + 1)
-          end
-          
-          -- Highlight diff stats (+ and - chars)
-          for j = 1, #line_content do
-            local char = line_content:sub(j, j)
-            if char == '+' then
-              vim.api.nvim_buf_add_highlight(buf, git_ns, 'DiagnosticOk', line_num - 1, j - 1, j)
-            elseif char == '-' then
-              vim.api.nvim_buf_add_highlight(buf, git_ns, 'DiagnosticError', line_num - 1, j - 1, j)
-            end
-          end
+    if line_content then
+      -- Find the status characters in the line
+      local status_start = line_content:find('[MADRCU?]')
+      if status_start then
+        local color_group = git_status.get_status_color(data.item.status)
+        vim.api.nvim_buf_add_highlight(buf, git_ns, color_group, line_num - 1, status_start - 1, status_start + 1)
+      end
+      
+      -- Highlight diff stats (+ and - chars)
+      for j = 1, #line_content do
+        local char = line_content:sub(j, j)
+        if char == '+' then
+          vim.api.nvim_buf_add_highlight(buf, git_ns, 'DiagnosticOk', line_num - 1, j - 1, j)
+        elseif char == '-' then
+          vim.api.nvim_buf_add_highlight(buf, git_ns, 'DiagnosticError', line_num - 1, j - 1, j)
         end
       end
     end
