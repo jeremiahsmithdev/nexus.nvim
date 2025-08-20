@@ -21,12 +21,12 @@ function M.render_git_status(buf, config, cached_files)
   -- Update configuration in state
   ui_state.update_config(config or {})
   
-  -- Check if we're in a git repository using state
-  local is_git_repo = git_state.is_git_repo()
+  -- Check if we're in a git repository  
+  local is_git_repo = git_utils.is_git_repo()
   local files = {}
   
   if is_git_repo then
-    files = cached_files or git_state.update_git_status()
+    files = cached_files or git_status.parse_git_status()
   end
   
   -- Get display width
