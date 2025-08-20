@@ -9,6 +9,7 @@ local keymaps = require('nexus.keymaps')
 local logo = require('nexus.ui.logo')
 local dashboard = require('nexus.ui.dashboard')
 local global_keymaps = require('nexus.global_keymaps')
+local commands = require('nexus.commands')
 
 -- Setup function to allow user configuration
 function M.setup(user_config)
@@ -17,11 +18,19 @@ function M.setup(user_config)
   
   config.setup(user_config)
   
+  -- Initialize command system
+  commands.init()
+  
   -- Set up global keymaps for dashboard shortcuts
   global_keymaps.setup()
 end
 
 function M.open(is_manual_open)
+  -- Initialize command system if not already done
+  if not commands.manager or vim.tbl_isempty(commands.manager:list_commands()) then
+    commands.init()
+  end
+  
   logger.info('NEXUS', 'Opening Nexus dashboard, manual=' .. tostring(is_manual_open))
   
   -- Check if we should treat auto-open as persistent due to keep_open_after_startup

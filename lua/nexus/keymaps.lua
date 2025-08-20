@@ -212,6 +212,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       noremap = true,
       silent = true,
       callback = function()
+        -- Use git operations directly for commit window (UI operation, not a simple command)
         git_operations.create_commit_window(function()
           render_callback(buf)
         end)
@@ -317,6 +318,8 @@ function M.handle_git_add(buf, render_callback)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local current_line = lines[line_num]
   
+  logger.debug('GIT_ADD', string.format('Cursor at line %d: "%s"', line_num, current_line or 'nil'))
+  
   -- Check if it's a git status line
   if current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
     local filename = current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
@@ -325,7 +328,9 @@ function M.handle_git_add(buf, render_callback)
     if filename then
       filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
       
-      git_operations.git_add_file(filename, function()
+      -- Use command system with lazy loading to avoid circular dependency
+      local commands = require('nexus.commands')
+      commands.git_add(filename, function()
         -- Re-parse git status after change and pass to render
         local git_status = require('nexus.git.status')
         local files = git_status.parse_git_status()
@@ -343,6 +348,8 @@ function M.handle_git_unstage(buf, render_callback)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local current_line = lines[line_num]
   
+  logger.debug('GIT_UNSTAGE', string.format('Cursor at line %d: "%s"', line_num, current_line or 'nil'))
+  
   -- Check if it's a git status line
   if current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
     local filename = current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
@@ -351,7 +358,9 @@ function M.handle_git_unstage(buf, render_callback)
     if filename then
       filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
       
-      git_operations.git_unstage_file(filename, function()
+      -- Use command system with lazy loading to avoid circular dependency
+      local commands = require('nexus.commands')
+      commands.git_unstage(filename, function()
         -- Re-parse git status after change and pass to render
         local git_status = require('nexus.git.status')
         local files = git_status.parse_git_status()
@@ -447,7 +456,9 @@ function M.show_commit_details(commit_line)
     noremap = true, 
     silent = true,
     callback = function()
-      M.open_commit_in_browser(commit_hash)
+      -- Use command system with lazy loading to avoid circular dependency
+      local commands = require('nexus.commands')
+      commands.open_commit(commit_hash)
     end
   })
   
