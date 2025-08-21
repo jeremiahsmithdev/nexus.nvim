@@ -28,13 +28,26 @@ function M.setup(user_config)
 end
 
 function M.open(is_manual_open)
+  -- Check if Nexus buffer already exists and is loaded
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_is_loaded(buf) then
+      local name = vim.api.nvim_buf_get_name(buf)
+      if name:match('Nexus$') then
+        -- Found existing loaded Nexus buffer, just switch to it
+        logger.info('NEXUS', 'Switching to existing Nexus buffer')
+        buffer_mod.open_buffer(buf, is_manual_open)
+        return
+      end
+    end
+  end
+  
   -- Lazy-load actions system if needed
   local actions = require('nexus.actions')
   if vim.tbl_isempty(actions.list_actions()) then
     actions.init()
   end
   
-  logger.info('NEXUS', 'Opening Nexus dashboard, manual=' .. tostring(is_manual_open))
+  logger.info('NEXUS', 'Opening new Nexus dashboard, manual=' .. tostring(is_manual_open))
   
   -- Check if we should treat auto-open as persistent due to keep_open_after_startup
   local current_config = config.get()
