@@ -2,6 +2,7 @@ local M = {}
 local logger = require('nexus.logger')
 
 local actions = require('nexus.actions')
+local git_command = require('nexus.git.command')
 local tmux = require('nexus.tmux')
 local linear_state = require('nexus.state.linear')
 local linear_component = require('nexus.render.components.linear')
@@ -278,7 +279,42 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       noremap = true,
       silent = true,
       callback = function()
-        -- Use actions system for commit window
+        -- Check if we're in Linear section first (if Linear is enabled)
+        if config.linear and config.linear.enabled then
+          local cursor = vim.api.nvim_win_get_cursor(0)
+          local line_num = cursor[1]
+          local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+          local current_line = lines[line_num]
+          
+          if current_line then
+            local in_linear_section = false
+            
+            if current_line:match("Linear Issues:") then
+              in_linear_section = true
+            else
+              local linear_component = require('nexus.render.components.linear')
+              local is_issue, _ = linear_component.is_linear_issue_line(current_line)
+              if is_issue then
+                in_linear_section = true
+              else
+                if current_line:match("Loading issues") or 
+                   current_line:match("No issues found") or 
+                   current_line:match("No API key") or 
+                   current_line:match("Invalid API key") then
+                  in_linear_section = true
+                end
+              end
+            end
+            
+            if in_linear_section then
+              -- Handle Linear create issue
+              M.handle_linear_create_issue(buf, render_callback, config)
+              return
+            end
+          end
+        end
+        
+        -- Default: Use actions system for git commit window
         actions.execute('git.commit', {
           interactive = true,
           refresh_callback = function()
@@ -309,14 +345,6 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       silent = true,
       callback = function()
         M.handle_linear_status_update(buf, render_callback, config)
-      end
-    })
-    
-    vim.api.nvim_buf_set_keymap(buf, 'n', 'c', '', {
-      noremap = true,
-      silent = true,
-      callback = function()
-        M.handle_linear_create_issue(buf, render_callback, config)
       end
     })
   end
@@ -590,7 +618,7 @@ function M.show_linear_issue_details(issue, config)
   else
     table.insert(issue_details, "Description:")
     description_start_line = #issue_details + 1
-    table.insert(issue_details, "  (No description - press 'e' to add one)")
+    -- table.insert(issue_details, "  (No description - press 'e' to add one)")
     description_end_line = #issue_details
     table.insert(issue_details, "")
   end
@@ -1148,44 +1176,6 @@ end
 
 -- Handle Linear issue creation
 function M.handle_linear_create_issue(buf, render_callback, config)
-  -- Check if we're in the Linear section by looking at the current line
-  local cursor = vim.api.nvim_win_get_cursor(0)
-  local line_num = cursor[1]
-  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  local current_line = lines[line_num]
-  
-  -- Check if we're in Linear section (on Linear Issues header or any Linear line)
-  if not current_line then
-    return
-  end
-  
-  local in_linear_section = false
-  
-  -- Check if it's the Linear Issues header
-  if current_line:match("Linear Issues:") then
-    in_linear_section = true
-  else
-    -- Check if it's a Linear issue line
-    local linear_component = require('nexus.render.components.linear')
-    local is_issue, _ = linear_component.is_linear_issue_line(current_line)
-    if is_issue then
-      in_linear_section = true
-    else
-      -- Check if it's a Linear error/loading line
-      if current_line:match("Loading issues") or 
-         current_line:match("No issues found") or 
-         current_line:match("No API key") or 
-         current_line:match("Invalid API key") then
-        in_linear_section = true
-      end
-    end
-  end
-  
-  if not in_linear_section then
-    vim.notify("'c' key is only active in the Linear Issues section", vim.log.levels.WARN)
-    return
-  end
-  
   logger.info('LINEAR', 'Starting issue creation')
   
   -- Prompt for issue title
