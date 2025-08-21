@@ -195,7 +195,16 @@ function M.create_commit_window(refresh_callback)
     commit_msg = commit_msg:gsub("^%s*", ""):gsub("%s*$", "") -- trim
     
     if commit_msg ~= "" then
+      -- Clean up the commit buffer completely
+      pcall(vim.api.nvim_buf_set_name, bufnr, '')
+      pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')
+      
       vim.api.nvim_win_close(win, true)
+      
+      -- Schedule buffer deletion to avoid issues
+      vim.schedule(function()
+        pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+      end)
       
       -- Ensure we're in normal mode when returning to Nexus
       vim.cmd('stopinsert')
@@ -207,9 +216,33 @@ function M.create_commit_window(refresh_callback)
   end
   
   -- Set up keymaps for the commit window
-  vim.api.nvim_buf_set_keymap(bufnr, 'n', '<C-c>', '<cmd>q<CR>', { noremap = true, silent = true })
-  vim.api.nvim_buf_set_keymap(bufnr, 'i', '<C-c>', '<Esc><cmd>q<CR>', { noremap = true, silent = true })
-  vim.api.nvim_buf_set_keymap(bufnr, 'n', 'q', '<cmd>q<CR>', { noremap = true, silent = true })
+  local function cleanup_and_quit()
+    pcall(vim.api.nvim_buf_set_name, bufnr, '')
+    pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')
+    vim.cmd('q')
+    vim.schedule(function()
+      pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+    end)
+  end
+  
+  vim.api.nvim_buf_set_keymap(bufnr, 'n', '<C-c>', '', { 
+    noremap = true, 
+    silent = true, 
+    callback = cleanup_and_quit 
+  })
+  vim.api.nvim_buf_set_keymap(bufnr, 'i', '<C-c>', '', { 
+    noremap = true, 
+    silent = true, 
+    callback = function()
+      vim.cmd('stopinsert')
+      cleanup_and_quit()
+    end
+  })
+  vim.api.nvim_buf_set_keymap(bufnr, 'n', 'q', '', { 
+    noremap = true, 
+    silent = true, 
+    callback = cleanup_and_quit 
+  })
   
   vim.api.nvim_buf_set_keymap(bufnr, 'n', '<Esc>', '', {
     noremap = true,
@@ -226,7 +259,7 @@ function M.create_commit_window(refresh_callback)
       end
       
       if not has_content then
-        vim.cmd('q')
+        cleanup_and_quit()
       end
     end
   })
@@ -347,7 +380,16 @@ function M.create_commit_amend_window(refresh_callback)
     commit_msg = commit_msg:gsub("^%s*", ""):gsub("%s*$", "") -- trim
     
     if commit_msg ~= "" then
+      -- Clean up the commit buffer completely
+      pcall(vim.api.nvim_buf_set_name, bufnr, '')
+      pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')
+      
       vim.api.nvim_win_close(win, true)
+      
+      -- Schedule buffer deletion to avoid issues
+      vim.schedule(function()
+        pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+      end)
       
       -- Ensure we're in normal mode when returning to Nexus
       vim.cmd('stopinsert')
@@ -447,10 +489,38 @@ function M.create_commit_amend_window(refresh_callback)
   end
   
   -- Set up keymaps for the commit amend window
-  vim.api.nvim_buf_set_keymap(bufnr, 'n', '<C-c>', '<cmd>q<CR>', { noremap = true, silent = true })
-  vim.api.nvim_buf_set_keymap(bufnr, 'i', '<C-c>', '<Esc><cmd>q<CR>', { noremap = true, silent = true })
-  vim.api.nvim_buf_set_keymap(bufnr, 'n', 'q', '<cmd>q<CR>', { noremap = true, silent = true })
-  vim.api.nvim_buf_set_keymap(bufnr, 'n', '<Esc>', '<cmd>q<CR>', { noremap = true, silent = true })
+  local function cleanup_amend_and_quit()
+    pcall(vim.api.nvim_buf_set_name, bufnr, '')
+    pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')
+    vim.cmd('q')
+    vim.schedule(function()
+      pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+    end)
+  end
+  
+  vim.api.nvim_buf_set_keymap(bufnr, 'n', '<C-c>', '', { 
+    noremap = true, 
+    silent = true, 
+    callback = cleanup_amend_and_quit 
+  })
+  vim.api.nvim_buf_set_keymap(bufnr, 'i', '<C-c>', '', { 
+    noremap = true, 
+    silent = true, 
+    callback = function()
+      vim.cmd('stopinsert')
+      cleanup_amend_and_quit()
+    end
+  })
+  vim.api.nvim_buf_set_keymap(bufnr, 'n', 'q', '', { 
+    noremap = true, 
+    silent = true, 
+    callback = cleanup_amend_and_quit 
+  })
+  vim.api.nvim_buf_set_keymap(bufnr, 'n', '<Esc>', '', { 
+    noremap = true, 
+    silent = true, 
+    callback = cleanup_amend_and_quit 
+  })
   
   vim.api.nvim_buf_set_keymap(bufnr, 'n', '<CR>', '', {
     noremap = true,
