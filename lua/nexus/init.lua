@@ -18,6 +18,10 @@ function M.setup(user_config)
   
   config.setup(user_config)
   
+  -- Initialize state management
+  local git_state = require('nexus.state.git')
+  git_state.init()
+  
   -- Initialize action system
   actions.init()
   
@@ -46,8 +50,8 @@ function M.open(is_manual_open)
   local current_config = config.get()
   local files, section_ranges = render.render_git_status(buf, current_config)
   
-  local git_utils = require('nexus.git.utils')
-  local is_git_repo = git_utils.is_git_repo()
+  local git_state = require('nexus.state.git')
+  local is_git_repo = git_state.is_git_repo()
   
   keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(buf, cached_files)
     render.render_git_status(buf, current_config, cached_files)
@@ -102,8 +106,8 @@ function M.refresh_buffer(buf)
   local current_config = config.get()
   local files, section_ranges = render.render_git_status(buf, current_config)
   
-  local git_utils = require('nexus.git.utils')
-  local is_git_repo = git_utils.is_git_repo()
+  local git_state = require('nexus.state.git')
+  local is_git_repo = git_state.is_git_repo()
   
   keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(buf, cached_files)
     render.render_git_status(buf, current_config, cached_files)

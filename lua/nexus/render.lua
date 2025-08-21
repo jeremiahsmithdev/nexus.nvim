@@ -12,8 +12,6 @@ local ui_state = require('nexus.state.ui')
 
 -- Legacy imports still needed
 local logo = require('nexus.ui.logo')
-local git_utils = require('nexus.git.utils')
-local git_status = require('nexus.git.status')
 local folding = require('nexus.ui.folding')
 local cursor = require('nexus.cursor')
 
@@ -21,13 +19,11 @@ function M.render_git_status(buf, config, cached_files)
   -- Update configuration in state
   ui_state.update_config(config or {})
   
-  -- Check if we're in a git repository  
-  local is_git_repo = git_utils.is_git_repo()
-  local files = {}
-  
-  if is_git_repo then
-    files = cached_files or git_status.parse_git_status()
-  end
+  -- Check if we're in a git repository and update state
+  local git_state = require('nexus.state.git')
+  git_state.force_refresh(config) -- Ensure git data is current
+  local is_git_repo = git_state.is_git_repo()
+  local files = cached_files or git_state.get_git_status()
   
   -- Get display width
   local width = layout.get_display_width()

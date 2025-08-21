@@ -1,6 +1,7 @@
 local M = {}
 local logger = require('nexus.logger')
 
+local actions = require('nexus.actions')
 local git_operations = require('nexus.git.operations')
 local git_command = require('nexus.git.command')
 local tmux = require('nexus.tmux')
@@ -228,7 +229,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       callback = function()
         -- Use actions system for commit window
         actions.execute('git.commit', {
-          mode = 'window',
+          interactive = true,
           refresh_callback = function()
             render_callback(buf)
           end
@@ -241,9 +242,10 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       silent = true,
       callback = function()
         git_command.create_git_command_window(function()
-          -- Re-parse git status after command and refresh
-          local git_status = require('nexus.git.status')
-          local files = git_status.parse_git_status()
+          -- Update git status through state system and refresh
+          local git_state = require('nexus.state.git')
+          git_state.update_git_status(true) -- force refresh
+          local files = git_state.get_git_status()
           render_callback(buf, files)
         end)
       end
@@ -350,9 +352,10 @@ function M.handle_git_add(buf, render_callback)
       actions.execute('git.add', {
         filename = filename,
         refresh_callback = function()
-          -- Re-parse git status after change and pass to render
-          local git_status = require('nexus.git.status')
-          local files = git_status.parse_git_status()
+          -- Update git status through state system and refresh
+          local git_state = require('nexus.state.git')
+          git_state.update_git_status(true) -- force refresh
+          local files = git_state.get_git_status()
           render_callback(buf, files)
         end
       })
@@ -383,9 +386,10 @@ function M.handle_git_unstage(buf, render_callback)
       actions.execute('git.unstage', {
         filename = filename,
         refresh_callback = function()
-          -- Re-parse git status after change and pass to render
-          local git_status = require('nexus.git.status')
-          local files = git_status.parse_git_status()
+          -- Update git status through state system and refresh
+          local git_state = require('nexus.state.git')
+          git_state.update_git_status(true) -- force refresh
+          local files = git_state.get_git_status()
           render_callback(buf, files)
         end
       })
