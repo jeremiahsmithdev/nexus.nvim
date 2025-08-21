@@ -151,9 +151,10 @@ function M.create_commit_window(refresh_callback)
   local win = vim.api.nvim_open_win(bufnr, true, opts)
   
   -- Set buffer options
-  vim.api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
+  vim.api.nvim_buf_set_option(bufnr, 'buftype', 'acwrite') -- Allow custom write behavior
   vim.api.nvim_buf_set_option(bufnr, 'swapfile', false)
   vim.api.nvim_buf_set_option(bufnr, 'filetype', 'gitcommit')
+  vim.api.nvim_buf_set_name(bufnr, 'git-commit-' .. os.time())
   
   -- Disable completions
   vim.api.nvim_buf_set_option(bufnr, 'omnifunc', '')
@@ -168,7 +169,7 @@ function M.create_commit_window(refresh_callback)
   
   -- Add shortcuts as virtual text at the bottom, centered
   local ns_id = vim.api.nvim_create_namespace('gboard_commit')
-  local help_text = "<Enter>/<C-s>: commit  <C-c>: cancel"
+  local help_text = "<Enter>/<C-s>/:w: commit  <C-c>: cancel"
   local padding = math.floor((width - #help_text) / 2)
   vim.api.nvim_buf_set_extmark(bufnr, ns_id, height - 1, 0, {
     virt_text = {{string.rep(" ", padding) .. help_text, "Comment"}},
@@ -248,6 +249,13 @@ function M.create_commit_window(refresh_callback)
     callback = do_commit
   })
   
+  -- Add :w command support for git commit
+  vim.api.nvim_create_autocmd('BufWriteCmd', {
+    buffer = bufnr,
+    callback = do_commit,
+    desc = 'Save git commit with :w'
+  })
+  
   vim.cmd('startinsert')
 end
 
@@ -285,9 +293,10 @@ function M.create_commit_amend_window(refresh_callback)
   local win = vim.api.nvim_open_win(bufnr, true, opts)
   
   -- Set buffer options
-  vim.api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
+  vim.api.nvim_buf_set_option(bufnr, 'buftype', 'acwrite') -- Allow custom write behavior
   vim.api.nvim_buf_set_option(bufnr, 'swapfile', false)
   vim.api.nvim_buf_set_option(bufnr, 'filetype', 'gitcommit')
+  vim.api.nvim_buf_set_name(bufnr, 'git-commit-amend-' .. os.time())
   
   -- Disable completions
   vim.api.nvim_buf_set_option(bufnr, 'omnifunc', '')
@@ -312,7 +321,7 @@ function M.create_commit_amend_window(refresh_callback)
   
   -- Add shortcuts as virtual text at the bottom, centered
   local ns_id = vim.api.nvim_create_namespace('gboard_commit_amend')
-  local help_text = "<Enter>/<C-s>: amend commit  <C-c>: cancel"
+  local help_text = "<Enter>/<C-s>/:w: amend commit  <C-c>: cancel"
   local padding = math.floor((width - #help_text) / 2)
   vim.api.nvim_buf_set_extmark(bufnr, ns_id, height - 1, 0, {
     virt_text = {{string.rep(" ", padding) .. help_text, "Comment"}},
@@ -459,6 +468,13 @@ function M.create_commit_amend_window(refresh_callback)
     noremap = true,
     silent = true,
     callback = do_commit_amend
+  })
+  
+  -- Add :w command support for git commit amend
+  vim.api.nvim_create_autocmd('BufWriteCmd', {
+    buffer = bufnr,
+    callback = do_commit_amend,
+    desc = 'Save git commit amend with :w'
   })
   
   vim.cmd('startinsert')
