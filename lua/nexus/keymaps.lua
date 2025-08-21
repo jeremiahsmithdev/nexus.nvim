@@ -618,7 +618,7 @@ function M.show_linear_issue_details(issue, config)
   else
     table.insert(issue_details, "Description:")
     description_start_line = #issue_details + 1
-    -- table.insert(issue_details, "  (No description - press 'e' to add one)")
+    table.insert(issue_details, "  ") -- Add empty line for editing
     description_end_line = #issue_details
     table.insert(issue_details, "")
   end
@@ -771,18 +771,52 @@ end
 function M.edit_linear_issue_description(popup_buf, issue, description_start_line, description_end_line, config)
   logger.info('LINEAR', 'Editing description for issue: ' .. issue.identifier)
   
-  -- Make buffer modifiable for editing
+  -- Make buffer modifiable for editing and set up for :w to work
   vim.api.nvim_buf_set_option(popup_buf, 'modifiable', true)
+  vim.api.nvim_buf_set_option(popup_buf, 'buftype', 'acwrite') -- Allow custom write behavior
   
-  -- Move cursor to description section
-  vim.api.nvim_win_set_cursor(0, {description_start_line, 2})
+  -- Clear any existing buffer with this name first
+  local buffer_name = 'linear-desc-' .. issue.identifier
+  pcall(function()
+    local existing_buf = vim.fn.bufnr('^' .. buffer_name .. '$')
+    if existing_buf ~= -1 and existing_buf ~= popup_buf then
+      vim.api.nvim_buf_delete(existing_buf, { force = true })
+    end
+  end)
+  
+  vim.api.nvim_buf_set_name(popup_buf, buffer_name)
+  
+  -- Find the Description: line and position cursor appropriately
+  local all_lines = vim.api.nvim_buf_get_lines(popup_buf, 0, -1, false)
+  local desc_line_num = nil
+  
+  for i, line in ipairs(all_lines) do
+    if line:match("^Description:") then
+      desc_line_num = i
+      break
+    end
+  end
+  
+  if desc_line_num then
+    -- Always position cursor on the line AFTER Description: (where content should go)
+    if desc_line_num < #all_lines and all_lines[desc_line_num + 1] then
+      -- Move to next line if it exists
+      vim.api.nvim_win_set_cursor(0, {desc_line_num + 1, 2})
+    else
+      -- Fallback to original positioning
+      vim.api.nvim_win_set_cursor(0, {description_start_line, 2})
+    end
+  else
+    -- Fallback to original positioning
+    vim.api.nvim_win_set_cursor(0, {description_start_line, 2})
+  end
   
   -- Clear existing keymaps that would close the buffer
   pcall(vim.api.nvim_buf_del_keymap, popup_buf, 'n', 'q')
   pcall(vim.api.nvim_buf_del_keymap, popup_buf, 'n', '<Esc>')
   pcall(vim.api.nvim_buf_del_keymap, popup_buf, 'n', '<CR>')
   
-  -- Add editing keymaps
+  -- Add editing keymaps to the popup buffer
   vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<C-s>', '', {
     noremap = true,
     silent = true,
@@ -800,22 +834,88 @@ function M.edit_linear_issue_description(popup_buf, issue, description_start_lin
     end
   })
   
-  -- Update hint text
-  local hint_ns = vim.api.nvim_create_namespace('nexus_linear_hint')
-  vim.api.nvim_buf_clear_namespace(popup_buf, hint_ns, 0, -1)
-  local actual_width = vim.api.nvim_win_get_width(0)
-  local hint_text = 'Ctrl-S -> save | Esc -> cancel'
-  local hint_col = actual_width - #hint_text
-  vim.api.nvim_buf_set_extmark(popup_buf, hint_ns, 0, 0, {
-    virt_text = {{ hint_text, 'Comment' }},
-    virt_text_pos = 'overlay',
-    virt_text_win_col = hint_col,
-    hl_mode = 'combine'
+  -- Add :w command support by intercepting the write command
+  vim.api.nvim_create_autocmd('BufWriteCmd', {
+    buffer = popup_buf,
+    callback = function()
+      M.save_linear_issue_description(popup_buf, issue, description_start_line, description_end_line, config)
+    end,
+    desc = 'Save Linear issue description with :w'
   })
   
-  -- Enter insert mode in description area
+  
+  -- Much simpler approach: just create a new buffer with only the description content
+  -- This avoids all the complexity of trying to protect other lines
+  
+  -- Extract current description content
+  local desc_content = ""
+  local found_desc = false
+  
+  for _, line in ipairs(all_lines) do
+    if line:match("^Description:") then
+      found_desc = true
+      -- Check if there's content on same line
+      local same_line_content = line:match("^Description:%s*(.+)")
+      if same_line_content and same_line_content:gsub("%s", "") ~= "" then
+        desc_content = desc_content .. same_line_content .. "\n"
+      end
+    elseif found_desc and line:match("^[%w%s]+:") then
+      break -- Stop at next field
+    elseif found_desc then
+      -- Remove indentation and add to content - preserve empty lines
+      local clean_line = line:gsub("^  ", "")
+      desc_content = desc_content .. clean_line .. "\n"
+    end
+  end
+  
+  -- Remove trailing newline
+  desc_content = desc_content:gsub("\n$", "")
+  
+  -- Instead of creating a new buffer, just replace the content of the current buffer
+  -- This is simpler and avoids buffer reference issues
+  
+  -- Set the description content (split by lines) 
+  local desc_lines = desc_content ~= "" and vim.split(desc_content, '\n') or {""}
+  vim.api.nvim_buf_set_lines(popup_buf, 0, -1, false, desc_lines)
+  
+  -- Change the window title to indicate editing mode
+  vim.api.nvim_win_set_config(0, {
+    title = " New Description: " .. issue.identifier .. " ",
+    title_pos = "center"
+  })
+  
+  -- Add save hint using a different approach - create an autocmd to maintain it
   vim.schedule(function()
-    vim.cmd('startinsert')
+    local hint_ns = vim.api.nvim_create_namespace('nexus_linear_edit_hint')
+    
+    local function add_hint()
+      vim.api.nvim_buf_clear_namespace(popup_buf, hint_ns, 0, -1)
+      
+      -- Always add to line 0, even if it's empty
+      local actual_width = vim.api.nvim_win_get_width(0)
+      local hint_text = 'Ctrl-S -> save'
+      local hint_col = actual_width - #hint_text - 2
+      
+      -- Use virt_text_pos = 'right_align' to keep it at the right edge
+      vim.api.nvim_buf_set_extmark(popup_buf, hint_ns, 0, 0, {
+        virt_text = {{hint_text, 'Comment'}},
+        virt_text_pos = 'right_align',
+        hl_mode = 'combine'
+      })
+    end
+    
+    -- Add initially
+    add_hint()
+    
+    -- Re-add after any text changes
+    vim.api.nvim_create_autocmd({'TextChanged', 'TextChangedI', 'BufEnter'}, {
+      buffer = popup_buf,
+      callback = add_hint,
+      once = false
+    })
+    
+    -- Position cursor at start of first line in normal mode
+    vim.api.nvim_win_set_cursor(0, {1, 0})
   end)
   
   vim.notify("Edit description - Ctrl-S to save, Esc to cancel", vim.log.levels.INFO)
@@ -825,21 +925,11 @@ end
 function M.save_linear_issue_description(popup_buf, issue, description_start_line, description_end_line, config)
   logger.info('LINEAR', 'Saving description for issue: ' .. issue.identifier)
   
-  -- Extract description text from buffer
-  local lines = vim.api.nvim_buf_get_lines(popup_buf, description_start_line - 1, description_end_line, false)
-  local description_text = ""
-  
-  for _, line in ipairs(lines) do
-    -- Remove leading indentation (2 spaces)
-    local clean_line = line:gsub("^  ", "")
-    description_text = description_text .. clean_line .. "\n"
-  end
-  
-  -- Remove trailing newline and any placeholder text
-  description_text = description_text:gsub("\n$", "")
-  if description_text:match("%(No description") then
-    description_text = ""
-  end
+  -- Get all lines from the edit buffer and preserve empty lines
+  local all_lines = vim.api.nvim_buf_get_lines(popup_buf, 0, -1, false)
+  local description_text = table.concat(all_lines, '\n')
+  -- Only trim whitespace from the very beginning and end, preserve internal empty lines
+  description_text = description_text:gsub("^%s*", ""):gsub("%s*$", "")
   
   -- Get cached provider
   local provider = linear_state.get_cached_provider(config)
@@ -862,6 +952,9 @@ function M.save_linear_issue_description(popup_buf, issue, description_start_lin
     })
     
     vim.notify("✅ Description saved successfully!", vim.log.levels.INFO)
+    
+    -- Clear the buffer name to avoid conflicts on next edit
+    pcall(vim.api.nvim_buf_set_name, popup_buf, '')
     
     -- Refresh Linear data
     linear_state.refresh_data(config)
