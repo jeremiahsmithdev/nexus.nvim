@@ -226,10 +226,13 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       noremap = true,
       silent = true,
       callback = function()
-        -- Use git operations directly for commit window (UI operation, not a simple command)
-        git_operations.create_commit_window(function()
-          render_callback(buf)
-        end)
+        -- Use actions system for commit window
+        actions.execute('git.commit', {
+          mode = 'window',
+          refresh_callback = function()
+            render_callback(buf)
+          end
+        })
       end
     })
     
@@ -476,9 +479,9 @@ function M.show_commit_details(commit_line)
     noremap = true, 
     silent = true,
     callback = function()
-      -- Use command system with lazy loading to avoid circular dependency
-      local commands = require('nexus.commands')
-      commands.open_commit(commit_hash)
+      -- Use action system with lazy loading to avoid circular dependency
+      local actions = require('nexus.actions')
+      actions.execute('open_commit', { commit_hash = commit_hash })
     end
   })
   
@@ -578,47 +581,9 @@ function M.open_commit_in_browser(commit_hash)
     return
   end
   
-  -- Get the full commit hash first since gh browse needs the full hash
-  local full_hash_cmd = string.format('git rev-parse %s', commit_hash)
-  local full_hash = vim.fn.systemlist(full_hash_cmd)[1]
-  
-  if vim.v.shell_error ~= 0 or not full_hash then
-    logger.error('COMMIT', 'Failed to get full commit hash for: ' .. commit_hash)
-    vim.schedule(function()
-      vim.notify('Failed to resolve commit hash: ' .. commit_hash, vim.log.levels.ERROR)
-    end)
-    return
-  end
-  
-  -- Use gh CLI to open commit in browser with full hash
-  local gh_cmd = string.format('gh browse %s', full_hash)
-  
-  -- Run command asynchronously
-  vim.fn.jobstart(gh_cmd, {
-    on_stderr = function(_, data)
-      if data and #data > 0 then
-        local error_msg = table.concat(data, '\n'):gsub('\n$', '')
-        if error_msg and #error_msg > 0 then
-          logger.error('COMMIT', 'Failed to open commit in browser: ' .. error_msg)
-          vim.schedule(function()
-            vim.notify('Failed to open commit: ' .. error_msg, vim.log.levels.ERROR)
-          end)
-        end
-      end
-    end,
-    on_exit = function(_, exit_code)
-      if exit_code == 0 then
-        logger.info('COMMIT', 'Opened commit in browser: ' .. full_hash)
-        vim.schedule(function()
-          vim.notify('Opened commit ' .. commit_hash .. ' in browser', vim.log.levels.INFO)
-        end)
-      else
-        logger.error('COMMIT', 'gh command failed with exit code: ' .. exit_code)
-        vim.schedule(function()
-          vim.notify('Failed to open commit. Make sure gh CLI is installed and repository has remote.', vim.log.levels.ERROR)
-        end)
-      end
-    end
+  -- Use actions system for GitHub browse
+  actions.execute('github.browse', {
+    commit_hash = commit_hash
   })
 end
 

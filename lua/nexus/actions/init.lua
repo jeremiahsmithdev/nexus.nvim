@@ -236,6 +236,9 @@ function M.init()
   local OpenFileAction = require('nexus.actions.navigation.open_file')
   local RefreshAction = require('nexus.actions.navigation.refresh')
   
+  -- Import and register github actions
+  local GitHubBrowseAction = require('nexus.actions.github.browse')
+  
   -- Register actions with error handling
   local actions_to_register = {
     { GitAddAction, 'git.add' },
@@ -243,7 +246,8 @@ function M.init()
     { GitCommitAction, 'git.commit' },
     { GitDiffAction, 'git.diff' },
     { OpenFileAction, 'navigation.open_file' },
-    { RefreshAction, 'navigation.refresh' }
+    { RefreshAction, 'navigation.refresh' },
+    { GitHubBrowseAction, 'github.browse' }
   }
   
   local registered_count = 0
