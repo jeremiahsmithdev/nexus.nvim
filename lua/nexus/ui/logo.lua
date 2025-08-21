@@ -9,17 +9,6 @@ M._current_tmux_pane = nil
 function M.get_neovim_logo(config)
   local logo_selection = config and config.logo_selection or "nexus"
   
-  -- Handle backward compatibility
-  if not config.logo_selection and config.use_image_logo then
-    if config.use_image_logo == true then
-      logo_selection = "image"
-    elseif config.use_image_logo == false then
-      logo_selection = "neovim"
-    elseif type(config.use_image_logo) == "string" then
-      logo_selection = config.use_image_logo
-    end
-  end
-  
   if logo_selection == "image" then
     return M.get_image_logo(config)
   elseif logo_selection == "nexus" then
@@ -149,14 +138,6 @@ end
 function M.render_image_logo(buf, config, start_line, x_offset)
   local logo_selection = config and config.logo_selection or "nexus"
   
-  -- Handle backward compatibility
-  if not config.logo_selection and config.use_image_logo then
-    if config.use_image_logo == true then
-      logo_selection = "image"
-    elseif type(config.use_image_logo) == "string" then
-      logo_selection = config.use_image_logo
-    end
-  end
   
   if logo_selection ~= "image" then
     return false

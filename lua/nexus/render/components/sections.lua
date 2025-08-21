@@ -96,4 +96,9 @@ function M.build_sections(config, is_git_repo, files)
   return sections
 end
 
+-- Setup folding for git status sections
+function M.setup_folding(buf, lines, config, files)
+  folding.setup_git_status_folding(buf, lines, config, files)
+end
+
 return M

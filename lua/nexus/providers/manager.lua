@@ -6,9 +6,7 @@ local active_provider = nil
 
 -- Provider types and their module paths
 local PROVIDER_TYPES = {
-  linear = "nexus.providers.linear",
-  github = "nexus.providers.github",
-  jira = "nexus.providers.jira"
+  linear = "nexus.providers.linear"
 }
 
 -- Register a provider

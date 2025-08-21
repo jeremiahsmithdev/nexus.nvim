@@ -108,35 +108,12 @@ function M.setup(user_config)
     end
   end
   
-  -- Handle backward compatibility for use_image_logo and validate logo_selection
+  -- Validate logo_selection
   local valid_logo_types = {
     neovim = true,
     nexus = true,
     image = true
   }
-  
-  -- Handle backward compatibility: if use_image_logo exists, convert to logo_selection
-  if config.use_image_logo ~= nil then
-    logger.info("CONFIG", "Converting deprecated use_image_logo to logo_selection for backward compatibility")
-    
-    if type(config.use_image_logo) == "boolean" then
-      if config.use_image_logo == true then
-        config.logo_selection = "image"
-      else
-        config.logo_selection = "neovim"
-      end
-    elseif type(config.use_image_logo) == "string" and valid_logo_types[config.use_image_logo] then
-      config.logo_selection = config.use_image_logo
-    else
-      logger.warn("CONFIG", "Invalid use_image_logo value, defaulting to 'nexus'", {
-        provided_value = config.use_image_logo
-      })
-      config.logo_selection = "nexus"
-    end
-    
-    -- Remove the old config key
-    config.use_image_logo = nil
-  end
   
   -- Validate logo_selection
   if config.logo_selection ~= nil then

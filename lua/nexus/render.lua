@@ -12,8 +12,6 @@ local ui_state = require('nexus.state.ui')
 
 -- Legacy imports still needed
 local logo = require('nexus.ui.logo')
-local folding = require('nexus.ui.folding')
-local cursor = require('nexus.cursor')
 
 function M.render_git_status(buf, config, cached_files)
   -- Update configuration in state
@@ -43,7 +41,7 @@ function M.render_git_status(buf, config, cached_files)
   end
   
   -- Set up folding for git status overflow
-  folding.setup_git_status_folding(buf, lines, config, files)
+  sections_component.setup_folding(buf, lines, config, files)
   
   -- Update state with section ranges and logo info
   ui_state.update_section_ranges(section_ranges)
@@ -52,8 +50,8 @@ function M.render_git_status(buf, config, cached_files)
   -- Add syntax highlighting using component
   highlighting.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
   
-  -- Update cursor module with section ranges for dynamic shortcuts (maintains backward compatibility)
-  cursor.update_section_ranges(section_ranges)
+  -- Update UI state with section ranges for dynamic shortcuts
+  ui_state.update_section_ranges(section_ranges)
   
   -- Set up dynamic shortcut updating on cursor movement (only if shortcuts are enabled)
   if config.show_keyboard_shortcuts then
@@ -65,30 +63,5 @@ function M.render_git_status(buf, config, cached_files)
   return files, section_ranges
 end
 
--- Legacy function - now delegates to component
-function M.build_sections(config, is_git_repo, files)
-  return sections_component.build_sections(config, is_git_repo, files)
-end
-
-
--- Legacy function - now delegates to component
-function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
-  highlighting.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
-end
-
--- Legacy function - now delegates to component
-function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
-  highlighting.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
-end
-
--- Legacy function - now delegates to component
-function M.apply_shortcuts_highlighting(buf, lines, config, section_ranges)
-  highlighting.apply_shortcuts_highlighting(buf, lines, config, section_ranges)
-end
-
--- Legacy function - now delegates to component
-function M.setup_dynamic_shortcuts(buf, config, is_git_repo, section_ranges)
-  events.setup_dynamic_shortcuts(buf, config, is_git_repo, section_ranges)
-end
 
 return M

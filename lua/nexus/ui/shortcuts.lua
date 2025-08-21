@@ -1,6 +1,6 @@
 local M = {}
 
-local cursor = require('nexus.cursor')
+local ui_state = require('nexus.state.ui')
 local shortcuts_registry = require('nexus.shortcuts_registry')
 
 function M.get_keyboard_shortcuts(config, is_git_repo)
@@ -23,11 +23,9 @@ function M.get_current_contextual_shortcuts(buf, config, is_git_repo)
     return ""
   end
   
-  -- Get current section from cursor position
-  local current_section = cursor.get_current_section(buf)
-  
-  -- Get section info to determine if we're on an actionable line
-  local section_info = cursor.get_section_info(buf, current_section)
+  -- Get current section info from UI state
+  local section_info = ui_state.get_current_section_info(buf)
+  local current_section = section_info.section
   
   -- Only show contextual shortcuts if we're on an actionable line
   if not section_info.is_actionable then
