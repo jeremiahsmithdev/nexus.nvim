@@ -4,14 +4,16 @@ local M = {}
 local state = {
   git = {},
   ui = {},
-  cache = {}
+  cache = {},
+  linear = {}
 }
 
 -- Observer pattern - subscribers to state changes
 local observers = {
   git = {},
   ui = {},
-  cache = {}
+  cache = {},
+  linear = {}
 }
 
 -- State change event types
@@ -107,7 +109,7 @@ function M.clear(domain)
     state[domain] = {}
     M.notify(domain, '_cleared', {}, nil)
   else
-    state = { git = {}, ui = {}, cache = {} }
+    state = { git = {}, ui = {}, cache = {}, linear = {} }
     for d, _ in pairs(observers) do
       M.notify(d, '_cleared', {}, nil)
     end
@@ -161,6 +163,15 @@ function M.init()
         git_status = 30,  -- 30 seconds
         git_commits = 300 -- 5 minutes
       }
+    },
+    linear = {
+      issues = {},
+      user_info = nil,
+      teams = {},
+      loading = false,
+      error = nil,
+      last_sync = nil,
+      enabled = false
     }
   }
 end

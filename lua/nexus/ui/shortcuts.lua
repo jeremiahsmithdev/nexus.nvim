@@ -12,8 +12,7 @@ function M.get_keyboard_shortcuts(config, is_git_repo)
   
   return {
     global_line,
-    "", -- This will be populated dynamically based on cursor position
-    ""  -- Empty line for spacing after shortcuts section
+    "" -- This will be populated dynamically based on cursor position
   }
 end
 

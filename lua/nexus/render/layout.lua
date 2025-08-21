@@ -54,7 +54,12 @@ function M.layout_sections(sections, config, width)
   end
   
   -- Add button sections with center alignment
-  for _, section_info in ipairs(button_sections) do
+  for i, section_info in ipairs(button_sections) do
+    -- Add spacing before section (except first section)
+    if i > 1 or #lines > #logo_lines then
+      table.insert(lines, "")
+    end
+    
     local centered_section
     if section_info.name == "keyboard_shortcuts" then
       -- Use individual centering for keyboard shortcuts (each line centered independently)
@@ -89,7 +94,12 @@ function M.layout_sections(sections, config, width)
     local left_padding = math.max(0, math.floor((width - max_git_line_length) / 2))
     local padding_str = string.rep(" ", left_padding)
     
-    for _, section in ipairs(git_sections_data) do
+    for i, section in ipairs(git_sections_data) do
+      -- Add spacing before section (except first git section if no button sections exist)
+      if i > 1 or #button_sections > 0 or #lines > #logo_lines then
+        table.insert(lines, "")
+      end
+      
       for _, line in ipairs(section) do
         table.insert(lines, padding_str .. line)
       end

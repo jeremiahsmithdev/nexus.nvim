@@ -19,6 +19,7 @@ local default_config = {
     "keyboard_shortcuts",
     "recent_commits", 
     "git_status",
+    "linear_issues",
     "claude_conversations"
   },
   
@@ -31,11 +32,22 @@ local default_config = {
   
   -- Linear integration
   linear = {
-    enabled = false,                 -- Enable Linear integration
-    api_key = nil,                   -- Linear API key
-    workspace_id = nil,              -- Linear workspace ID
-    show_issues = true,              -- Show Linear issues in dashboard
-    max_issues = 10                  -- Maximum number of issues to display
+    enabled = false,                    -- Enable Linear integration
+    api_key = vim.env.LINEAR_API_KEY,   -- Linear API key (prefer env var)
+    team_id = nil,                      -- Default team ID for filtering issues
+    max_issues = 10,                    -- Maximum issues to show in dashboard
+    show_assignee = true,               -- Show assignee information
+    show_priority = true,               -- Show priority indicators
+    show_estimates = true,              -- Show story point estimates
+    show_cycle = true,                  -- Show cycle/sprint information
+    auto_refresh = 300,                 -- Auto-refresh interval in seconds (0 to disable)
+    
+    -- Cache settings
+    cache = {
+      issues_ttl = 300,                 -- Issues cache TTL (5 minutes)
+      teams_ttl = 3600,                 -- Teams cache TTL (1 hour)  
+      user_info_ttl = 3600,             -- User info cache TTL (1 hour)
+    }
   }
 }
 
@@ -83,6 +95,7 @@ function M.setup(user_config)
         keyboard_shortcuts = true,
         recent_commits = true,
         git_status = true,
+        linear_issues = true,
         claude_conversations = true
       }
       

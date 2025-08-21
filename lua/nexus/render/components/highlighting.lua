@@ -19,7 +19,10 @@ function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_secti
   -- 4. Git status highlighting  
   M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
   
-  -- 5. Keyboard shortcuts highlighting
+  -- 5. Linear issues highlighting
+  M.apply_linear_highlighting(buf, lines, config)
+  
+  -- 6. Keyboard shortcuts highlighting
   M.apply_shortcuts_highlighting(buf, lines, config, section_ranges)
 end
 
@@ -153,6 +156,107 @@ function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
           vim.api.nvim_buf_add_highlight(buf, git_ns, 'DiagnosticError', line_num - 1, j - 1, j)
         end
       end
+    end
+  end
+end
+
+-- Linear issues highlighting
+function M.apply_linear_highlighting(buf, lines, config)
+  if not config.linear or not config.linear.enabled then
+    return
+  end
+  
+  local linear_ns = vim.api.nvim_create_namespace('nexus_linear')
+  local linear_component = require('nexus.render.components.linear')
+  local linear_state = require('nexus.state.linear')
+  
+  -- Get current issues for reference
+  local issues = linear_state.get_issues()
+  if not issues then
+    return
+  end
+  
+  -- Find Linear Issues section
+  local linear_section_start = nil
+  for i, line in ipairs(lines) do
+    if line:match('Linear Issues:') then
+      linear_section_start = i
+      break
+    end
+  end
+  
+  if not linear_section_start then
+    return
+  end
+  
+  -- Apply highlighting to each issue line
+  for i = linear_section_start + 2, #lines do -- +2 to skip header and empty line
+    local line_content = lines[i]
+    if not line_content or line_content == "" then
+      break -- End of section
+    end
+    
+    local is_issue, identifier = linear_component.is_linear_issue_line(line_content)
+    if is_issue and identifier then
+      local issue = linear_component.get_issue_from_line(line_content, issues)
+      if issue then
+        -- Highlight state icon at the beginning
+        local state_icon_end = line_content:find('%s', 3) or 4 -- Find first space after icons
+        if state_icon_end > 3 then
+          local state_color = linear_component.get_state_color(issue.state)
+          vim.api.nvim_buf_add_highlight(buf, linear_ns, state_color, i - 1, 2, state_icon_end - 1)
+        end
+        
+        -- Highlight priority icon if present (after state, before identifier)
+        if issue.priority and type(issue.priority) == "number" and issue.priority >= 2 then
+          local priority_start = line_content:find('[🟢🟡🟠🔴]', state_icon_end or 4)
+          if priority_start then
+            local priority_color = linear_component.get_priority_color(issue.priority)
+            vim.api.nvim_buf_add_highlight(buf, linear_ns, priority_color, i - 1, priority_start - 1, priority_start)
+          end
+        end
+        
+        -- Highlight identifier [LIN-123]
+        local id_start, id_end = line_content:find('%[' .. vim.pesc(identifier) .. '%]')
+        if id_start then
+          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Number', i - 1, id_start - 1, id_end)
+        end
+        
+        -- Highlight assignee (@username)
+        local assignee_start, assignee_end = line_content:find('@[^)]+')
+        if assignee_start then
+          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Function', i - 1, assignee_start - 1, assignee_end)
+        end
+        
+        -- Highlight estimate (Np)
+        local estimate_start, estimate_end = line_content:find('%(%d+p%)')
+        if estimate_start then
+          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'String', i - 1, estimate_start - 1, estimate_end)
+        end
+        
+        -- Highlight cycle [CycleName]
+        local cycle_start, cycle_end = line_content:find('%[[^]]+%]', (id_end or 0) + 1)
+        if cycle_start then
+          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Type', i - 1, cycle_start - 1, cycle_end)
+        end
+      end
+    elseif line_content:match("Loading issues") then
+      -- Highlight loading message
+      vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticInfo', i - 1, 0, -1)
+    elseif line_content:match("No issues found") then
+      -- Highlight no issues message
+      vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Comment', i - 1, 0, -1)
+    elseif line_content:match("No API key found") or line_content:match("Invalid API key") then
+      -- Highlight API key setup messages as actionable
+      vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticWarn', i - 1, 0, -1)
+      -- Highlight the action hint
+      local enter_start, enter_end = line_content:find("<Enter>")
+      if enter_start then
+        vim.api.nvim_buf_add_highlight(buf, linear_ns, 'String', i - 1, enter_start - 1, enter_end)
+      end
+    elseif line_content:match("❌") then
+      -- Highlight other error messages
+      vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticError', i - 1, 0, -1)
     end
   end
 end

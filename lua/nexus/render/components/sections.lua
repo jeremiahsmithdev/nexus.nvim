@@ -41,7 +41,6 @@ function M.build_sections(config, is_git_repo, files)
         end
         table.insert(commits_lines, line)
       end
-      table.insert(commits_lines, "")
       sections.recent_commits = commits_lines
     end
   end
@@ -49,7 +48,7 @@ function M.build_sections(config, is_git_repo, files)
   -- Git status section
   if is_git_repo and config.show_git_status then
     if #files == 0 then
-      local no_changes_lines = {"No changes detected", ""}
+      local no_changes_lines = {"No changes detected"}
       sections.git_status = no_changes_lines
     else
       local git_status_lines = {"Git Status:", ""}
@@ -87,10 +86,16 @@ function M.build_sections(config, is_git_repo, files)
     end
   end
   
+  -- Linear issues section
+  if config.linear and config.linear.enabled then
+    local linear_component = require('nexus.render.components.linear')
+    sections.linear_issues = linear_component.build_linear_section(config)
+  end
+  
   -- Claude conversations section (placeholder for future implementation)
   if config.show_claude_conversations then
     -- This would be implemented when the feature is added
-    sections.claude_conversations = {"Claude Conversations:", "", "  (Feature not yet implemented)", ""}
+    sections.claude_conversations = {"Claude Conversations:", "", "  (Feature not yet implemented)"}
   end
   
   return sections

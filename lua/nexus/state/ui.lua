@@ -177,11 +177,26 @@ function M.detect_section_by_content(line_content)
     return "claude_conversations"
   end
   
+  -- Check for Linear issues
+  local linear_component = require('nexus.render.components.linear')
+  local is_issue, _ = linear_component.is_linear_issue_line(line_content)
+  if is_issue then
+    return "linear_issues"
+  end
+  
+  -- Check for Linear error/setup messages
+  if line_content:match("No API key found") or line_content:match("Invalid API key") or 
+     line_content:match("Loading issues") or line_content:match("No issues found") then
+    return "linear_issues"
+  end
+  
   -- Check for section headers
   if line_content:match("Recent Commits:") then
     return "recent_commits_header"
   elseif line_content:match("Git Status:") then
-    return "git_status_header"  
+    return "git_status_header"
+  elseif line_content:match("Linear Issues:") then
+    return "linear_issues_header"  
   elseif line_content:match("Claude Conversations:") then
     return "claude_conversations_header"
   end
@@ -215,6 +230,16 @@ function M.is_actionable_line(section_name, line_content)
   -- Claude conversations are actionable
   if section_name == "claude_conversations" then
     return line_content:match("^ %d+%.")
+  end
+  
+  -- Linear issues are actionable
+  if section_name == "linear_issues" then
+    local linear_component = require('nexus.render.components.linear')
+    local is_issue, _ = linear_component.is_linear_issue_line(line_content)
+    -- Issues are actionable, and so are error/setup messages
+    return is_issue or 
+           line_content:match("No API key found") or 
+           line_content:match("Invalid API key")
   end
   
   return false

@@ -52,6 +52,49 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       -- Check if it's a commit line (recent commits section)
       elseif is_git_repo and current_line and current_line:match("%s+[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+") then
         M.show_commit_details(current_line)
+      -- Check if it's a Linear issue line or error line
+      elseif config.linear and config.linear.enabled and current_line then
+        local linear_component = require('nexus.render.components.linear')
+        local is_issue, identifier = linear_component.is_linear_issue_line(current_line)
+        
+        logger.debug('LINEAR_KEYMAPS', 'Checking Linear line', {
+          current_line = current_line,
+          is_issue = is_issue,
+          identifier = identifier
+        })
+        
+        if is_issue and identifier then
+          -- Get issue data and open in browser
+          local linear_state = require('nexus.state.linear')
+          local issues = linear_state.get_issues()
+          
+          logger.debug('LINEAR_KEYMAPS', 'Found Linear issue', {
+            identifier = identifier,
+            issues_count = issues and #issues or 0
+          })
+          
+          local issue = linear_component.get_issue_from_line(current_line, issues)
+          if issue and issue.url then
+            logger.info('LINEAR_KEYMAPS', 'Opening Linear issue', {
+              identifier = issue.identifier,
+              url = issue.url
+            })
+            M.open_linear_issue(issue)
+          else
+            logger.warn('LINEAR_KEYMAPS', 'Could not find issue data', {
+              identifier = identifier,
+              issue = issue
+            })
+          end
+        elseif current_line:match("No API key found") or current_line:match("Invalid API key") then
+          -- Handle API key setup
+          logger.info('LINEAR_KEYMAPS', 'Triggering API key setup')
+          M.setup_linear_api_key(config, function()
+            render_callback(buf)
+          end)
+        else
+          logger.warn('LINEAR_KEYMAPS', 'Linear line detected but no action matched', { line = current_line })
+        end
       -- Check if it's a git status line (only in git repos)
       elseif is_git_repo and current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
         -- This is a git status line - extract filename and open file
@@ -203,6 +246,11 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       noremap = true,
       silent = true,
       callback = function()
+        -- Refresh Linear data if enabled
+        if config.linear and config.linear.enabled then
+          local linear_state = require('nexus.state.linear')
+          linear_state.refresh_data(config)
+        end
         render_callback(buf)
       end
     })
@@ -251,6 +299,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       end
     })
   end
+  
 end
 
 -- Async quit function - only quits when Nexus is the only real buffer
@@ -589,6 +638,62 @@ function M.open_commit_in_browser(commit_hash)
   actions.execute('github.browse', {
     commit_hash = commit_hash
   })
+end
+
+-- Open Linear issue in browser
+function M.open_linear_issue(issue)
+  logger.info('LINEAR_KEYMAPS', 'Opening Linear issue', { 
+    identifier = issue.identifier,
+    url = issue.url 
+  })
+  
+  -- Platform-specific URL opening
+  local open_cmd
+  if vim.fn.has('mac') == 1 then
+    open_cmd = 'open'
+  elseif vim.fn.has('unix') == 1 then
+    open_cmd = 'xdg-open'
+  elseif vim.fn.has('win32') == 1 then
+    open_cmd = 'start'
+  else
+    logger.error('LINEAR_KEYMAPS', 'Unsupported platform for opening URLs')
+    vim.notify("Unsupported platform for opening URLs", vim.log.levels.ERROR)
+    return
+  end
+  
+  -- Execute command to open URL
+  local result = vim.fn.system(string.format('%s "%s"', open_cmd, issue.url))
+  local exit_code = vim.v.shell_error
+  
+  if exit_code == 0 then
+    vim.notify(string.format("Opened %s in browser", issue.identifier), vim.log.levels.INFO)
+  else
+    logger.error('LINEAR_KEYMAPS', 'Failed to open browser', { 
+      exit_code = exit_code,
+      result = result
+    })
+    vim.notify(string.format("Failed to open browser: %s", result), vim.log.levels.ERROR)
+  end
+end
+
+-- Refresh Linear issues
+function M.refresh_linear_issues(buf, config, render_callback)
+  logger.info('LINEAR_KEYMAPS', 'Refreshing Linear issues')
+  vim.notify("Refreshing Linear issues...", vim.log.levels.INFO)
+  
+  local linear_state = require('nexus.state.linear')
+  linear_state.refresh_data(config)
+  
+  -- Re-render the buffer
+  render_callback(buf)
+end
+
+-- Setup Linear API key
+function M.setup_linear_api_key(config, render_callback)
+  logger.info('LINEAR_KEYMAPS', 'Setting up Linear API key')
+  
+  local linear_state = require('nexus.state.linear')
+  linear_state.handle_api_key_setup(config, render_callback)
 end
 
 return M

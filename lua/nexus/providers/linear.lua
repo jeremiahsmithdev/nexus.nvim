@@ -70,7 +70,7 @@ function LinearProvider:get_issues(opts)
   
   local query = string.format([[
     query {
-      issues(first: %d, filter: { %s }) {
+      issues(first: %d, filter: { %s }, orderBy: updatedAt) {
         nodes {
           id
           identifier
@@ -82,6 +82,7 @@ function LinearProvider:get_issues(opts)
             type
           }
           priority
+          estimate
           assignee {
             id
             name
@@ -95,6 +96,18 @@ function LinearProvider:get_issues(opts)
           project {
             id
             name
+          }
+          cycle {
+            id
+            name
+            number
+          }
+          labels {
+            nodes {
+              id
+              name
+              color
+            }
           }
           createdAt
           updatedAt
@@ -300,9 +313,46 @@ function LinearProvider:_make_request(data)
     return false, { errors = { { message = "No query provided" } } }
   end
   
-  -- For now, return a mock response since we don't have HTTP client
-  -- In a real implementation, this would use curl or http client
-  return false, { errors = { { message = "HTTP client not implemented - this is a placeholder" } } }
+  if not self.api_key then
+    return false, { errors = { { message = "No API key configured" } } }
+  end
+  
+  -- Only include variables if they exist and are not empty
+  local payload_data = { query = data.query }
+  if data.variables and next(data.variables) then
+    payload_data.variables = data.variables
+  end
+  
+  local payload = vim.json.encode(payload_data)
+  
+  -- Use curl via vim.fn.system for HTTP requests
+  local curl_command = string.format([[
+    curl -X POST "https://api.linear.app/graphql" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: %s" \
+    -d '%s' \
+    --silent \
+    --max-time 10 \
+    --show-error
+  ]], self.api_key, payload:gsub("'", "'\\''"))
+  
+  local response = vim.fn.system(curl_command)
+  local exit_code = vim.v.shell_error
+  
+  if exit_code ~= 0 then
+    return false, { errors = { { message = "HTTP request failed: " .. response } } }
+  end
+  
+  local ok, decoded = pcall(vim.json.decode, response)
+  if not ok then
+    return false, { errors = { { message = "Failed to parse JSON response: " .. tostring(decoded) } } }
+  end
+  
+  if decoded.errors then
+    return false, decoded
+  end
+  
+  return true, decoded
 end
 
 -- Get available teams (cached)

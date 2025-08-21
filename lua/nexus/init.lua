@@ -17,6 +17,9 @@ function M.setup(user_config)
     local git_state = require('nexus.state.git')
     git_state.init()
     
+    local linear_state = require('nexus.state.linear')
+    linear_state.init()
+    
     -- Initialize action system  
     local actions = require('nexus.actions')
     actions.init()

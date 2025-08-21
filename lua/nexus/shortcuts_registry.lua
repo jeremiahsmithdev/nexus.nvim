@@ -13,6 +13,10 @@ local shortcuts_registry = {
     {key = "u", action = "unstage"}
   },
   
+  linear_issues = {
+    {key = "<Enter>", action = "open issue in browser"}
+  },
+  
   recent_commits = {
     {key = "<Enter>", action = "show commit"}
   },
@@ -24,6 +28,7 @@ local shortcuts_registry = {
   -- Headers are generally not actionable, but can be expanded if needed
   recent_commits_header = {},
   git_status_header = {},
+  linear_issues_header = {},
   claude_conversations_header = {},
   
   -- Logo and keyboard shortcuts sections don't have specific actions
