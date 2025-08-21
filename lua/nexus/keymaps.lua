@@ -302,7 +302,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
     })
   end
   
-  -- Linear-specific keymaps (only if Linear is enabled)
+  -- Linear-specific keymaps (section-aware)
   if config.linear and config.linear.enabled then
     vim.api.nvim_buf_set_keymap(buf, 'n', 's', '', {
       noremap = true,
@@ -311,9 +311,18 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
         M.handle_linear_status_update(buf, render_callback, config)
       end
     })
+    
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'c', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        M.handle_linear_create_issue(buf, render_callback, config)
+      end
+    })
   end
   
 end
+
 
 -- Async quit function - only quits when Nexus is the only real buffer
 function M.async_quit()
@@ -1003,6 +1012,133 @@ function M.handle_linear_status_update(buf, render_callback, config)
         end
       end)
     end
+  end)
+end
+
+-- Handle Linear issue creation
+function M.handle_linear_create_issue(buf, render_callback, config)
+  -- Check if we're in the Linear section by looking at the current line
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  -- Check if we're in Linear section (on Linear Issues header or any Linear line)
+  if not current_line then
+    return
+  end
+  
+  local in_linear_section = false
+  
+  -- Check if it's the Linear Issues header
+  if current_line:match("Linear Issues:") then
+    in_linear_section = true
+  else
+    -- Check if it's a Linear issue line
+    local linear_component = require('nexus.render.components.linear')
+    local is_issue, _ = linear_component.is_linear_issue_line(current_line)
+    if is_issue then
+      in_linear_section = true
+    else
+      -- Check if it's a Linear error/loading line
+      if current_line:match("Loading issues") or 
+         current_line:match("No issues found") or 
+         current_line:match("No API key") or 
+         current_line:match("Invalid API key") then
+        in_linear_section = true
+      end
+    end
+  end
+  
+  if not in_linear_section then
+    vim.notify("'c' key is only active in the Linear Issues section", vim.log.levels.WARN)
+    return
+  end
+  
+  logger.info('LINEAR', 'Starting issue creation')
+  
+  -- Prompt for issue title
+  vim.ui.input({
+    prompt = 'Issue title: '
+  }, function(title)
+    if not title or title:match('^%s*$') then
+      return
+    end
+    
+    -- Prompt for issue description (optional)
+    vim.ui.input({
+      prompt = 'Description (optional): '
+    }, function(description)
+      -- Get cached provider
+      local provider = linear_state.get_cached_provider(config)
+      if not provider then
+        vim.notify("❌ Failed to get Linear provider", vim.log.levels.ERROR)
+        return
+      end
+      
+      -- Determine team ID and project ID from existing issues
+      local existing_issues = linear_state.get_issues()
+      local team_id = nil
+      local project_id = nil
+      
+      if existing_issues and #existing_issues > 0 then
+        -- Use team and project from the first existing issue
+        local first_issue = existing_issues[1]
+        team_id = first_issue.team and first_issue.team.id
+        project_id = first_issue.project and first_issue.project.id
+        
+        logger.debug('LINEAR', 'Using team and project from existing issues', {
+          team_id = team_id,
+          team_name = first_issue.team and first_issue.team.name,
+          project_id = project_id,
+          project_name = first_issue.project and first_issue.project.name
+        })
+      end
+      
+      if not team_id then
+        vim.notify("❌ No team found. Load existing Linear issues first or configure team_id in config.", vim.log.levels.ERROR)
+        return
+      end
+      
+      vim.notify("Creating Linear issue...", vim.log.levels.INFO)
+      
+      -- Create the issue
+      local issue_data = {
+        title = title,
+        description = description or "",
+        priority = 0, -- Default priority
+        team_id = team_id,
+        project_id = project_id -- Assign to same project as existing issues
+      }
+      
+      local created_issue, error_msg = provider:create_issue(issue_data)
+      
+      if created_issue then
+        logger.info('LINEAR', 'Issue created successfully', {
+          identifier = created_issue.identifier,
+          title = created_issue.title
+        })
+        
+        vim.notify(string.format("✅ Created issue %s: %s", 
+          created_issue.identifier, 
+          created_issue.title), 
+          vim.log.levels.INFO)
+        
+        -- Refresh Linear data to show the new issue
+        linear_state.refresh_data(config)
+        
+        -- Re-render the buffer
+        render_callback(buf)
+      else
+        logger.error('LINEAR', 'Failed to create issue', {
+          error = error_msg,
+          title = title
+        })
+        vim.notify(string.format("❌ Failed to create issue: %s", 
+          error_msg or "Unknown error"), 
+          vim.log.levels.ERROR)
+      end
+    end)
   end)
 end
 

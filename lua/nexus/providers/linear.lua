@@ -295,14 +295,17 @@ function LinearProvider:create_issue(data)
   local team_id = data.team_id or self.team_id
   local description = data.description or ""
   local priority = data.priority or 0
+  local project_id = data.project_id
   
+  -- Build mutation with optional project assignment
   local mutation = [[
-    mutation CreateIssue($title: String!, $description: String!, $teamId: String!, $priority: Int!) {
+    mutation CreateIssue($title: String!, $description: String!, $teamId: String!, $priority: Int!, $projectId: String) {
       issueCreate(input: {
         title: $title
         description: $description
         teamId: $teamId
         priority: $priority
+        projectId: $projectId
       }) {
         success
         issue {
@@ -319,7 +322,8 @@ function LinearProvider:create_issue(data)
     title = data.title,
     description = description,
     teamId = team_id,
-    priority = priority
+    priority = priority,
+    projectId = project_id
   }
   
   local success, result = self:_make_request({ query = mutation, variables = variables })
