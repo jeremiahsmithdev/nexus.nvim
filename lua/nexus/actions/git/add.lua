@@ -1,17 +1,17 @@
-local Command = require('nexus.commands.base')
+local Action = require('nexus.actions.base')
 local git_operations = require('nexus.git.operations')
-local git_status = require('nexus.git.status')
 local logger = require('nexus.logger')
 
----@class GitAddCommand : Command
-local GitAddCommand = {}
-GitAddCommand.__index = GitAddCommand
-setmetatable(GitAddCommand, { __index = Command })
+---@class GitAddAction : Action
+local GitAddAction = {}
+GitAddAction.__index = GitAddAction
+setmetatable(GitAddAction, { __index = Action })
 
-function GitAddCommand:new()
-  local instance = Command:new({
+function GitAddAction:new()
+  local instance = Action:new({
     name = "git.add",
     description = "Add file(s) to git staging area",
+    category = "git",
     can_undo = true
   })
   setmetatable(instance, { __index = self })
@@ -19,10 +19,10 @@ function GitAddCommand:new()
 end
 
 ---Validate git add arguments
----@param args table Command arguments with 'filename' field
+---@param args table Action arguments with 'filename' field
 ---@return boolean valid Whether arguments are valid
 ---@return string? error_msg Error message if invalid
-function GitAddCommand:validate(args)
+function GitAddAction:validate(args)
   if not args.filename then
     return false, "filename is required"
   end
@@ -38,10 +38,10 @@ function GitAddCommand:validate(args)
   return true, nil
 end
 
----Execute git add command
----@param args table Command arguments with 'filename' and optional 'refresh_callback'
+---Execute git add action
+---@param args table Action arguments with 'filename' and optional 'refresh_callback'
 ---@return boolean success Whether execution succeeded
-function GitAddCommand:_execute(args)
+function GitAddAction:_execute(args)
   -- Store context for undo
   self.context.filename = args.filename
   self.context.refresh_callback = args.refresh_callback
@@ -50,22 +50,22 @@ function GitAddCommand:_execute(args)
   local success = git_operations.git_add_file(args.filename, args.refresh_callback)
   
   if success then
-    logger.info('GIT_ADD_CMD', string.format('Successfully added file: %s', args.filename))
+    logger.info('GIT_ADD_ACTION', string.format('Successfully added file: %s', args.filename))
   else
-    logger.error('GIT_ADD_CMD', string.format('Failed to add file: %s', args.filename))
+    logger.error('GIT_ADD_ACTION', string.format('Failed to add file: %s', args.filename))
   end
   
   return success
 end
 
----Undo git add command by unstaging the file
+---Undo git add action by unstaging the file
 ---@return boolean success Whether undo succeeded
-function GitAddCommand:_undo()
+function GitAddAction:_undo()
   local filename = self.context.filename
   local refresh_callback = self.context.refresh_callback
   
   if not filename then
-    logger.error('GIT_ADD_CMD', 'Cannot undo: missing filename context')
+    logger.error('GIT_ADD_ACTION', 'Cannot undo: missing filename context')
     return false
   end
   
@@ -73,12 +73,12 @@ function GitAddCommand:_undo()
   local success = git_operations.git_unstage_file(filename, refresh_callback)
   
   if success then
-    logger.info('GIT_ADD_CMD', string.format('Successfully undid add for file: %s', filename))
+    logger.info('GIT_ADD_ACTION', string.format('Successfully undid add for file: %s', filename))
   else
-    logger.error('GIT_ADD_CMD', string.format('Failed to undo add for file: %s', filename))
+    logger.error('GIT_ADD_ACTION', string.format('Failed to undo add for file: %s', filename))
   end
   
   return success
 end
 
-return GitAddCommand
+return GitAddAction

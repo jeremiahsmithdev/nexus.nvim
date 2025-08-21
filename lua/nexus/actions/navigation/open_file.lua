@@ -1,15 +1,16 @@
-local Command = require('nexus.commands.base')
+local Action = require('nexus.actions.base')
 local logger = require('nexus.logger')
 
----@class OpenFileCommand : Command
-local OpenFileCommand = {}
-OpenFileCommand.__index = OpenFileCommand
-setmetatable(OpenFileCommand, { __index = Command })
+---@class OpenFileAction : Action
+local OpenFileAction = {}
+OpenFileAction.__index = OpenFileAction
+setmetatable(OpenFileAction, { __index = Action })
 
-function OpenFileCommand:new()
-  local instance = Command:new({
-    name = "ui.open_file",
+function OpenFileAction:new()
+  local instance = Action:new({
+    name = "navigation.open_file",
     description = "Open a file in the editor",
+    category = "navigation",
     can_undo = false -- File opening doesn't need undo (user can close manually)
   })
   setmetatable(instance, { __index = self })
@@ -17,10 +18,10 @@ function OpenFileCommand:new()
 end
 
 ---Validate open file arguments
----@param args table Command arguments with 'filename' field
+---@param args table Action arguments with 'filename' field
 ---@return boolean valid Whether arguments are valid
 ---@return string? error_msg Error message if invalid
-function OpenFileCommand:validate(args)
+function OpenFileAction:validate(args)
   if not args.filename then
     return false, "filename is required"
   end
@@ -36,14 +37,42 @@ function OpenFileCommand:validate(args)
   return true, nil
 end
 
----Execute open file command
----@param args table Command arguments with 'filename' and optional 'line', 'column'
+---Check if file can be opened
+---@param args table Action arguments
+---@return boolean can_execute Whether action can be executed
+---@return string? reason Reason if cannot execute
+function OpenFileAction:can_execute(args)
+  local valid, error_msg = self:validate(args)
+  if not valid then
+    return false, error_msg
+  end
+  
+  local filename = args.filename
+  
+  -- Resolve relative paths to absolute paths using git root
+  if not filename:match("^/") then
+    local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+    if git_root and vim.v.shell_error == 0 then
+      filename = git_root .. '/' .. filename
+    end
+  end
+  
+  -- Check if file exists
+  if not vim.loop.fs_stat(filename) then
+    return false, string.format("file not found: %s", args.filename)
+  end
+  
+  return true, nil
+end
+
+---Execute open file action
+---@param args table Action arguments with 'filename' and optional 'line', 'column', 'split'
 ---@return boolean success Whether execution succeeded
-function OpenFileCommand:_execute(args)
+function OpenFileAction:_execute(args)
   -- Store context
   self.context.filename = args.filename
-  self.context.line = args.line
-  self.context.column = args.column
+  self.context.line = args.line or 1
+  self.context.column = args.column or 0
   self.context.split = args.split
   
   local filename = args.filename
@@ -58,15 +87,8 @@ function OpenFileCommand:_execute(args)
     end
   end
   
+  -- Open the file based on split preference
   local success = true
-  
-  -- Check if file exists
-  if not vim.loop.fs_stat(filename) then
-    logger.error('OPEN_FILE_CMD', string.format('File not found: %s', filename))
-    return false
-  end
-  
-  -- Open the file
   if args.split then
     if args.split == 'vertical' then
       vim.cmd('vsplit ' .. vim.fn.fnameescape(filename))
@@ -75,7 +97,7 @@ function OpenFileCommand:_execute(args)
     elseif args.split == 'tab' then
       vim.cmd('tabnew ' .. vim.fn.fnameescape(filename))
     else
-      logger.warn('OPEN_FILE_CMD', string.format('Unknown split type: %s, opening normally', args.split))
+      logger.warn('OPEN_FILE_ACTION', string.format('Unknown split type: %s, opening normally', args.split))
       vim.cmd('edit ' .. vim.fn.fnameescape(filename))
     end
   else
@@ -88,12 +110,12 @@ function OpenFileCommand:_execute(args)
   end
   
   if success then
-    logger.info('OPEN_FILE_CMD', string.format('Successfully opened file: %s', filename))
+    logger.info('OPEN_FILE_ACTION', string.format('Successfully opened file: %s', filename))
   else
-    logger.error('OPEN_FILE_CMD', string.format('Failed to open file: %s', filename))
+    logger.error('OPEN_FILE_ACTION', string.format('Failed to open file: %s', filename))
   end
   
   return success
 end
 
-return OpenFileCommand
+return OpenFileAction

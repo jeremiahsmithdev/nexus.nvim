@@ -328,14 +328,17 @@ function M.handle_git_add(buf, render_callback)
     if filename then
       filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
       
-      -- Use command system with lazy loading to avoid circular dependency
-      local commands = require('nexus.commands')
-      commands.git_add(filename, function()
-        -- Re-parse git status after change and pass to render
-        local git_status = require('nexus.git.status')
-        local files = git_status.parse_git_status()
-        render_callback(buf, files)
-      end)
+      -- Use action system with lazy loading to avoid circular dependency
+      local actions = require('nexus.actions')
+      actions.execute('git.add', {
+        filename = filename,
+        refresh_callback = function()
+          -- Re-parse git status after change and pass to render
+          local git_status = require('nexus.git.status')
+          local files = git_status.parse_git_status()
+          render_callback(buf, files)
+        end
+      })
     end
   end
 end
@@ -358,14 +361,17 @@ function M.handle_git_unstage(buf, render_callback)
     if filename then
       filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
       
-      -- Use command system with lazy loading to avoid circular dependency
-      local commands = require('nexus.commands')
-      commands.git_unstage(filename, function()
-        -- Re-parse git status after change and pass to render
-        local git_status = require('nexus.git.status')
-        local files = git_status.parse_git_status()
-        render_callback(buf, files)
-      end)
+      -- Use action system with lazy loading to avoid circular dependency
+      local actions = require('nexus.actions')
+      actions.execute('git.unstage', {
+        filename = filename,
+        refresh_callback = function()
+          -- Re-parse git status after change and pass to render
+          local git_status = require('nexus.git.status')
+          local files = git_status.parse_git_status()
+          render_callback(buf, files)
+        end
+      })
     end
   end
 end
