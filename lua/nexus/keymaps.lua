@@ -76,7 +76,7 @@ function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
           identifier = issue.identifier,
           url = issue.url
         })
-        M.show_linear_issue_details(issue)
+        M.show_linear_issue_details(issue, config)
       else
         logger.warn('LINEAR', 'Could not find issue data', {
           identifier = identifier,
@@ -559,7 +559,7 @@ function M.show_commit_details(commit_line)
 end
 
 -- Show Linear issue details in popup
-function M.show_linear_issue_details(issue)
+function M.show_linear_issue_details(issue, config)
   logger.info('LINEAR', 'Showing Linear issue details', { 
     identifier = issue.identifier,
     title = issue.title
@@ -575,12 +575,23 @@ function M.show_linear_issue_details(issue)
   table.insert(issue_details, "")
   
   -- Basic info
+  local description_start_line = nil
+  local description_end_line = nil
+  
   if issue.description and type(issue.description) == "string" and issue.description ~= "" then
     table.insert(issue_details, "Description:")
+    description_start_line = #issue_details + 1 -- Next line after "Description:" header
     -- Split description by lines
     for line in issue.description:gmatch("[^\r\n]+") do
       table.insert(issue_details, "  " .. line)
     end
+    description_end_line = #issue_details
+    table.insert(issue_details, "")
+  else
+    table.insert(issue_details, "Description:")
+    description_start_line = #issue_details + 1
+    table.insert(issue_details, "  (No description - press 'e' to add one)")
+    description_end_line = #issue_details
     table.insert(issue_details, "")
   end
   
@@ -690,7 +701,7 @@ function M.show_linear_issue_details(issue)
   
   -- Add virtual text hint in top right corner
   local hint_ns = vim.api.nvim_create_namespace('nexus_linear_hint')
-  local hint_text = 'Ctrl-O -> open'
+  local hint_text = 'e -> edit desc | Ctrl-O -> open'
   local hint_col = actual_width - #hint_text
   vim.api.nvim_buf_set_extmark(popup_buf, hint_ns, 0, 0, {
     virt_text = {{ hint_text, 'Comment' }},
@@ -716,7 +727,127 @@ function M.show_linear_issue_details(issue)
     end
   })
   
+  -- Add keybinding to edit description with 'e'
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', 'e', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      M.edit_linear_issue_description(popup_buf, issue, description_start_line, description_end_line, config)
+    end
+  })
+  
   logger.info('LINEAR', 'Showing details for Linear issue: ' .. issue.identifier)
+end
+
+-- Edit Linear issue description
+function M.edit_linear_issue_description(popup_buf, issue, description_start_line, description_end_line, config)
+  logger.info('LINEAR', 'Editing description for issue: ' .. issue.identifier)
+  
+  -- Make buffer modifiable for editing
+  vim.api.nvim_buf_set_option(popup_buf, 'modifiable', true)
+  
+  -- Move cursor to description section
+  vim.api.nvim_win_set_cursor(0, {description_start_line, 2})
+  
+  -- Clear existing keymaps that would close the buffer
+  pcall(vim.api.nvim_buf_del_keymap, popup_buf, 'n', 'q')
+  pcall(vim.api.nvim_buf_del_keymap, popup_buf, 'n', '<Esc>')
+  pcall(vim.api.nvim_buf_del_keymap, popup_buf, 'n', '<CR>')
+  
+  -- Add editing keymaps
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<C-s>', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      M.save_linear_issue_description(popup_buf, issue, description_start_line, description_end_line, config)
+    end
+  })
+  
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<Esc>', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      -- Cancel editing - close popup
+      vim.cmd('close')
+    end
+  })
+  
+  -- Update hint text
+  local hint_ns = vim.api.nvim_create_namespace('nexus_linear_hint')
+  vim.api.nvim_buf_clear_namespace(popup_buf, hint_ns, 0, -1)
+  local actual_width = vim.api.nvim_win_get_width(0)
+  local hint_text = 'Ctrl-S -> save | Esc -> cancel'
+  local hint_col = actual_width - #hint_text
+  vim.api.nvim_buf_set_extmark(popup_buf, hint_ns, 0, 0, {
+    virt_text = {{ hint_text, 'Comment' }},
+    virt_text_pos = 'overlay',
+    virt_text_win_col = hint_col,
+    hl_mode = 'combine'
+  })
+  
+  -- Enter insert mode in description area
+  vim.schedule(function()
+    vim.cmd('startinsert')
+  end)
+  
+  vim.notify("Edit description - Ctrl-S to save, Esc to cancel", vim.log.levels.INFO)
+end
+
+-- Save edited Linear issue description
+function M.save_linear_issue_description(popup_buf, issue, description_start_line, description_end_line, config)
+  logger.info('LINEAR', 'Saving description for issue: ' .. issue.identifier)
+  
+  -- Extract description text from buffer
+  local lines = vim.api.nvim_buf_get_lines(popup_buf, description_start_line - 1, description_end_line, false)
+  local description_text = ""
+  
+  for _, line in ipairs(lines) do
+    -- Remove leading indentation (2 spaces)
+    local clean_line = line:gsub("^  ", "")
+    description_text = description_text .. clean_line .. "\n"
+  end
+  
+  -- Remove trailing newline and any placeholder text
+  description_text = description_text:gsub("\n$", "")
+  if description_text:match("%(No description") then
+    description_text = ""
+  end
+  
+  -- Get cached provider
+  local provider = linear_state.get_cached_provider(config)
+  
+  if not provider then
+    vim.notify("❌ Failed to get Linear provider", vim.log.levels.ERROR)
+    return
+  end
+  
+  vim.notify("Saving description...", vim.log.levels.INFO)
+  
+  -- Update the issue using the provider
+  local updated_issue, error_msg = provider:update_issue(issue.id, {
+    description = description_text
+  })
+  
+  if updated_issue then
+    logger.info('LINEAR', 'Description updated successfully', {
+      identifier = updated_issue.identifier
+    })
+    
+    vim.notify("✅ Description saved successfully!", vim.log.levels.INFO)
+    
+    -- Refresh Linear data
+    linear_state.refresh_data(config)
+    
+    -- Close the popup
+    vim.cmd('close')
+  else
+    logger.error('LINEAR', 'Failed to update description', {
+      identifier = issue.identifier,
+      error = error_msg
+    })
+    
+    vim.notify("❌ Failed to save description: " .. (error_msg or "Unknown error"), vim.log.levels.ERROR)
+  end
 end
 
 -- Apply syntax highlighting to commit details popup
