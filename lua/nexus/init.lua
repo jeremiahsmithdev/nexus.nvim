@@ -1,36 +1,35 @@
 local M = {}
 
--- Load modular components
+-- Load critical components immediately
 local config = require('nexus.config')
 local logger = require('nexus.logger')
 local buffer_mod = require('nexus.buffer')
-local render = require('nexus.render')
-local keymaps = require('nexus.keymaps')
-local logo = require('nexus.ui.logo')
-local dashboard = require('nexus.ui.dashboard')
-local global_keymaps = require('nexus.global_keymaps')
-local actions = require('nexus.actions')
 
 -- Setup function to allow user configuration
 function M.setup(user_config)
-  -- Initialize logger first
+  -- Initialize essential components only
   logger.init()
-  
   config.setup(user_config)
   
-  -- Initialize state management
-  local git_state = require('nexus.state.git')
-  git_state.init()
-  
-  -- Initialize action system
-  actions.init()
-  
-  -- Set up global keymaps for dashboard shortcuts
-  global_keymaps.setup()
+  -- Defer non-critical initialization
+  vim.defer_fn(function()
+    -- Initialize state management
+    local git_state = require('nexus.state.git')
+    git_state.init()
+    
+    -- Initialize action system  
+    local actions = require('nexus.actions')
+    actions.init()
+    
+    -- Set up global keymaps for dashboard shortcuts
+    local global_keymaps = require('nexus.global_keymaps')
+    global_keymaps.setup()
+  end, 0)
 end
 
 function M.open(is_manual_open)
-  -- Initialize action system if not already done
+  -- Lazy-load actions system if needed
+  local actions = require('nexus.actions')
   if vim.tbl_isempty(actions.list_actions()) then
     actions.init()
   end
@@ -46,19 +45,22 @@ function M.open(is_manual_open)
   
   buffer_mod.open_buffer(buf, is_manual_open)
   
-  -- NOW the buffer is in the window, so we can get the correct window width
-  local current_config = config.get()
+  -- Lazy-load render system
+  local render = require('nexus.render')
   local files, section_ranges = render.render_git_status(buf, current_config)
   
   local git_state = require('nexus.state.git')
   local is_git_repo = git_state.is_git_repo()
   
+  -- Lazy-load keymaps system
+  local keymaps = require('nexus.keymaps')
   keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(buf, cached_files)
     render.render_git_status(buf, current_config, cached_files)
   end, section_ranges)
   
   -- Position cursor on first actionable line (dashboard buttons)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local logo = require('nexus.ui.logo')
   local logo_lines = logo.get_neovim_logo(current_config)
   local logo_end_line = #logo_lines  -- Logo only
   
@@ -104,11 +106,13 @@ function M.refresh_buffer(buf)
   end
   
   local current_config = config.get()
+  local render = require('nexus.render')
   local files, section_ranges = render.render_git_status(buf, current_config)
   
   local git_state = require('nexus.state.git')
   local is_git_repo = git_state.is_git_repo()
   
+  local keymaps = require('nexus.keymaps')
   keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(buf, cached_files)
     render.render_git_status(buf, current_config, cached_files)
   end, section_ranges)
