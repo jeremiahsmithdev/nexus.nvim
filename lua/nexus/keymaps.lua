@@ -829,8 +829,16 @@ function M.edit_linear_issue_description(popup_buf, issue, description_start_lin
     noremap = true,
     silent = true,
     callback = function()
+      -- Clean up the edit buffer completely
+      pcall(vim.api.nvim_buf_set_name, popup_buf, '')
+      pcall(vim.api.nvim_buf_set_option, popup_buf, 'buftype', 'nofile')
+      
       -- Cancel editing - close popup
       vim.cmd('close')
+      -- Schedule buffer deletion to avoid issues
+      vim.schedule(function()
+        pcall(vim.api.nvim_buf_delete, popup_buf, { force = true })
+      end)
     end
   })
   
@@ -953,14 +961,19 @@ function M.save_linear_issue_description(popup_buf, issue, description_start_lin
     
     vim.notify("✅ Description saved successfully!", vim.log.levels.INFO)
     
-    -- Clear the buffer name to avoid conflicts on next edit
+    -- Clean up the edit buffer completely
     pcall(vim.api.nvim_buf_set_name, popup_buf, '')
+    pcall(vim.api.nvim_buf_set_option, popup_buf, 'buftype', 'nofile')
     
     -- Refresh Linear data
     linear_state.refresh_data(config)
     
-    -- Close the popup
+    -- Close the popup and clean up buffer
     vim.cmd('close')
+    -- Schedule buffer deletion to avoid issues
+    vim.schedule(function()
+      pcall(vim.api.nvim_buf_delete, popup_buf, { force = true })
+    end)
   else
     logger.error('LINEAR', 'Failed to update description', {
       identifier = issue.identifier,
