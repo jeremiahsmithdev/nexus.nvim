@@ -14,7 +14,7 @@ local shortcuts_registry = {
   },
   
   linear_issues = {
-    {key = "<Enter>", action = "open issue in browser"}
+    {key = "<Enter>", action = "show issue details"}
   },
   
   recent_commits = {
