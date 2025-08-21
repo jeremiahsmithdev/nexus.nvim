@@ -41,6 +41,7 @@ local default_config = {
     show_estimates = true,              -- Show story point estimates
     show_cycle = true,                  -- Show cycle/sprint information
     auto_refresh = 300,                 -- Auto-refresh interval in seconds (0 to disable)
+    filter_by_repository = true,        -- Filter issues by current git repository project
     
     -- Cache settings
     cache = {

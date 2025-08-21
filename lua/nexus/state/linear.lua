@@ -258,7 +258,8 @@ function M.refresh_data(config)
   
   -- Fetch issues
   local issues, error_msg = linear_provider:get_issues({
-    limit = config.linear.max_issues or 10
+    limit = config.linear.max_issues or 10,
+    filter_by_repository = config.linear.filter_by_repository
   })
   
   if issues then

@@ -24,6 +24,25 @@ function LinearProvider:new(name, config)
   return instance
 end
 
+-- Get the current git repository name for project filtering
+function LinearProvider:_get_repository_name()
+  local handle = io.popen('git rev-parse --show-toplevel 2>/dev/null')
+  if not handle then
+    return nil
+  end
+  
+  local result = handle:read('*a')
+  handle:close()
+  
+  if result and result ~= '' then
+    -- Extract repository name from path (e.g., /path/to/nexus.nvim -> nexus.nvim)
+    local repo_name = result:gsub('\n$', ''):match('([^/]+)$')
+    return repo_name
+  end
+  
+  return nil
+end
+
 -- Authentication implementation
 function LinearProvider:authenticate()
   if not self.api_key then
@@ -67,6 +86,29 @@ function LinearProvider:get_issues(opts)
   opts = opts or {}
   local limit = opts.limit or 50
   local team_filter = self.team_id and ('team: { id: { eq: "' .. self.team_id .. '" } }') or ""
+  
+  -- Add project filter based on repository name
+  local project_filter = ""
+  if opts.filter_by_repository ~= false then  -- Default to true, allow opt-out
+    local repo_name = self:_get_repository_name()
+    if repo_name then
+      -- Extract project name from repository name (remove .nvim suffix if present)
+      local project_name = repo_name:gsub('%.nvim$', '')
+      project_filter = string.format('project: { name: { containsIgnoreCase: "%s" } }', project_name)
+      if team_filter ~= "" then
+        project_filter = ", " .. project_filter
+      end
+      
+      -- Add debug logging
+      local logger = require('nexus.logger')
+      logger.debug('LINEAR_PROVIDER', 'Filtering issues by repository project', { 
+        repository = repo_name, 
+        project_filter = project_name 
+      })
+    end
+  end
+  
+  local filter_string = team_filter .. project_filter
   
   local query = string.format([[
     query {
@@ -119,7 +161,7 @@ function LinearProvider:get_issues(opts)
         }
       }
     }
-  ]], limit, team_filter)
+  ]], limit, filter_string)
   
   local success, result = self:_make_request({ query = query })
   
