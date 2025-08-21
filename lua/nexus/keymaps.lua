@@ -147,12 +147,15 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
     callback = function() move_to_next_actionable(-1) end
   })
   
-  -- Override gg to go to first actionable line instead of top of buffer
+  -- Override gg to go to first actionable line but show logo in viewport
   vim.api.nvim_buf_set_keymap(buf, 'n', 'gg', '', {
     noremap = true,
     silent = true,
     callback = function()
       local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      local target_line = nil
+      
+      -- Find the first actionable line
       for i = logo_end_line + 1, #lines do
         if lines[i] then
           -- Skip keyboard shortcuts section
@@ -173,11 +176,22 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
             goto continue
           end
           
-          -- This is an actionable line
-          vim.api.nvim_win_set_cursor(0, {i, 0})
-          return
+          -- This is the first actionable line
+          target_line = i
+          break
         end
         ::continue::
+      end
+      
+      if target_line then
+        -- First, scroll to show the top of the buffer (logo)
+        vim.cmd('normal! gg')
+        
+        -- Then set cursor to the actionable line
+        vim.api.nvim_win_set_cursor(0, {target_line, 0})
+      else
+        -- Fallback: just go to top if no actionable line found
+        vim.cmd('normal! gg')
       end
     end
   })

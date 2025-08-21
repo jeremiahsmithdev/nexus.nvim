@@ -27,7 +27,16 @@ local default_config = {
   logo_color = "String",             -- Highlight group for logo (default: String for green)
   image_logo_path = nil,             -- Custom image path (defaults to plugin's neovim.png if nil)
   image_logo_width = 30,             -- Width of the image in character units
-  image_logo_height = 6              -- Height of the image in line units
+  image_logo_height = 6,             -- Height of the image in line units
+  
+  -- Linear integration
+  linear = {
+    enabled = false,                 -- Enable Linear integration
+    api_key = nil,                   -- Linear API key
+    workspace_id = nil,              -- Linear workspace ID
+    show_issues = true,              -- Show Linear issues in dashboard
+    max_issues = 10                  -- Maximum number of issues to display
+  }
 }
 
 local config = vim.deepcopy(default_config)
