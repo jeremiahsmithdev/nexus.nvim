@@ -56,6 +56,70 @@ function M.git_commit(message, refresh_callback)
     return true
   else
     logger.error('GIT', 'Commit failed: ' .. result)
+    -- Show error output in floating window like <leader>g commands do
+    local git_command = require('nexus.git.command')
+    local show_output_window = git_command.show_output_window or function(title, content, is_error)
+      -- Fallback implementation if show_output_window is not available
+      local output_width = math.min(80, vim.api.nvim_get_option('columns') - 4)
+      local lines = vim.split(content, '\n')
+      local output_height = math.min(20, math.max(5, #lines + 2))
+      
+      local output_bufnr = vim.api.nvim_create_buf(false, true)
+      
+      -- Calculate position to center the window
+      local win_width = vim.api.nvim_get_option('columns')
+      local win_height = vim.api.nvim_get_option('lines')
+      local row = math.ceil((win_height - output_height) / 2 - 1)
+      local col = math.ceil((win_width - output_width) / 2)
+      
+      local opts = {
+        style = "minimal",
+        relative = "editor",
+        width = output_width,
+        height = output_height,
+        row = row,
+        col = col,
+        border = "rounded",
+        title = title,
+        title_pos = "center"
+      }
+      
+      local output_win = vim.api.nvim_open_win(output_bufnr, true, opts)
+      
+      -- Set buffer options
+      vim.api.nvim_buf_set_option(output_bufnr, 'buftype', 'nofile')
+      vim.api.nvim_buf_set_option(output_bufnr, 'swapfile', false)
+      vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)
+      vim.api.nvim_buf_set_option(output_bufnr, 'filetype', 'gitcommit')
+      
+      -- Set content
+      vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', true)
+      vim.api.nvim_buf_set_lines(output_bufnr, 0, -1, false, lines)
+      vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)
+      
+      -- Highlight error content if it's an error
+      if is_error then
+        local ns_id = vim.api.nvim_create_namespace('gboard_git_output_error')
+        for i = 0, #lines - 1 do
+          vim.api.nvim_buf_add_highlight(output_bufnr, ns_id, 'DiagnosticError', i, 0, -1)
+        end
+      end
+      
+      -- Set up keymaps to close the window
+      for _, key in ipairs({'<Esc>', 'q', '<CR>', '<C-c>'}) do
+        vim.api.nvim_buf_set_keymap(output_bufnr, 'n', key, '<cmd>q<CR>', { noremap = true, silent = true })
+      end
+      
+      -- Add help text
+      local help_text = "Press q, <Esc>, or <Enter> to close"
+      local help_ns = vim.api.nvim_create_namespace('gboard_git_output_help')
+      vim.api.nvim_buf_set_extmark(output_bufnr, help_ns, #lines, 0, {
+        virt_text = {{help_text, "Comment"}},
+        virt_text_pos = "eol"
+      })
+    end
+    
+    show_output_window(" Git Commit Error ", "Command: git commit\n\nError:\n" .. result, true)
     return false
   end
 end
@@ -303,6 +367,70 @@ function M.create_commit_amend_window(refresh_callback)
         end
       else
         logger.error('GIT', 'Commit amend failed: ' .. result)
+        -- Show error output in floating window like <leader>g commands do
+        local git_command = require('nexus.git.command')
+        local show_output_window = git_command.show_output_window or function(title, content, is_error)
+          -- Fallback implementation if show_output_window is not available
+          local output_width = math.min(80, vim.api.nvim_get_option('columns') - 4)
+          local lines = vim.split(content, '\n')
+          local output_height = math.min(20, math.max(5, #lines + 2))
+          
+          local output_bufnr = vim.api.nvim_create_buf(false, true)
+          
+          -- Calculate position to center the window
+          local win_width = vim.api.nvim_get_option('columns')
+          local win_height = vim.api.nvim_get_option('lines')
+          local row = math.ceil((win_height - output_height) / 2 - 1)
+          local col = math.ceil((win_width - output_width) / 2)
+          
+          local opts = {
+            style = "minimal",
+            relative = "editor",
+            width = output_width,
+            height = output_height,
+            row = row,
+            col = col,
+            border = "rounded",
+            title = title,
+            title_pos = "center"
+          }
+          
+          local output_win = vim.api.nvim_open_win(output_bufnr, true, opts)
+          
+          -- Set buffer options
+          vim.api.nvim_buf_set_option(output_bufnr, 'buftype', 'nofile')
+          vim.api.nvim_buf_set_option(output_bufnr, 'swapfile', false)
+          vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)
+          vim.api.nvim_buf_set_option(output_bufnr, 'filetype', 'gitcommit')
+          
+          -- Set content
+          vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', true)
+          vim.api.nvim_buf_set_lines(output_bufnr, 0, -1, false, lines)
+          vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)
+          
+          -- Highlight error content if it's an error
+          if is_error then
+            local ns_id = vim.api.nvim_create_namespace('gboard_git_output_error')
+            for i = 0, #lines - 1 do
+              vim.api.nvim_buf_add_highlight(output_bufnr, ns_id, 'DiagnosticError', i, 0, -1)
+            end
+          end
+          
+          -- Set up keymaps to close the window
+          for _, key in ipairs({'<Esc>', 'q', '<CR>', '<C-c>'}) do
+            vim.api.nvim_buf_set_keymap(output_bufnr, 'n', key, '<cmd>q<CR>', { noremap = true, silent = true })
+          end
+          
+          -- Add help text
+          local help_text = "Press q, <Esc>, or <Enter> to close"
+          local help_ns = vim.api.nvim_create_namespace('gboard_git_output_help')
+          vim.api.nvim_buf_set_extmark(output_bufnr, help_ns, #lines, 0, {
+            virt_text = {{help_text, "Comment"}},
+            virt_text_pos = "eol"
+          })
+        end
+        
+        show_output_window(" Git Commit Amend Error ", "Command: git commit --amend\n\nError:\n" .. result, true)
       end
     else
       logger.warn('GIT', 'No commit message provided')
