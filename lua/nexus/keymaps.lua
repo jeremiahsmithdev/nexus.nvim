@@ -2,118 +2,123 @@ local M = {}
 local logger = require('nexus.logger')
 
 local actions = require('nexus.actions')
-local git_operations = require('nexus.git.operations')
-local git_command = require('nexus.git.command')
 local tmux = require('nexus.tmux')
+local linear_state = require('nexus.state.linear')
+local linear_component = require('nexus.render.components.linear')
+local git_state = require('nexus.state.git')
+local claude = require('nexus.claude')
+local logo = require('nexus.ui.logo')
 
+
+--- Handle Enter key press in Nexus buffer
+function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  
+  -- Get all lines in the buffer
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  -- Check if it's a dashboard button line
+  if config.show_dashboard_buttons and current_line and current_line:match("Find file") then
+    M.handle_dashboard_action(config, 'Telescope find_files')
+  elseif config.show_dashboard_buttons and current_line and current_line:match("Recently opened files") then
+    M.handle_dashboard_action(config, 'Telescope oldfiles')
+  elseif config.show_dashboard_buttons and current_line and current_line:match("Find word") then
+    M.handle_dashboard_action(config, 'Telescope live_grep')
+  elseif config.show_dashboard_buttons and current_line and current_line:match("New file") then
+    M.handle_dashboard_action(config, 'enew')
+  elseif config.show_dashboard_buttons and current_line and current_line:match("Bookmarks") then
+    M.handle_dashboard_action(config, 'Telescope marks')
+  elseif config.show_dashboard_buttons and current_line and current_line:match("Restore session") then
+    -- Basic session restore - could be enhanced with session manager
+    if vim.fn.filereadable('Session.vim') == 1 then
+      M.handle_dashboard_action(config, 'source Session.vim')
+    else
+      logger.warn('SESSION', 'No session file found')
+    end
+  -- Check if it's a Claude conversation line (format: " N. ...")
+  elseif config.show_claude_conversations and current_line and current_line:match("^ %d+%.") then
+    -- Extract session ID and send /resume command
+    local conversations = claude.get_claude_conversations(config)
+    local line_index = current_line:match("^ (%d+)%.")
+    if line_index then
+      local conv_index = tonumber(line_index)
+      if conv_index and conversations[conv_index] then
+        tmux.send_resume_to_claude(conversations[conv_index].session_id)
+      end
+    end
+  -- Check if it's a commit line (recent commits section)
+  elseif is_git_repo and current_line and current_line:match("%s+[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+") then
+    M.show_commit_details(current_line)
+  -- Check if it's a Linear issue line or error line
+  elseif config.linear and config.linear.enabled and current_line then
+    local is_issue, identifier = linear_component.is_linear_issue_line(current_line)
+    
+    logger.debug('LINEAR', 'Checking Linear line', {
+      current_line = current_line,
+      is_issue = is_issue,
+      identifier = identifier
+    })
+    
+    if is_issue and identifier then
+      -- Get issue data and open in browser
+          local issues = linear_state.get_issues()
+      
+      logger.debug('LINEAR', 'Found Linear issue', {
+        identifier = identifier,
+        issues_count = issues and #issues or 0
+      })
+      
+      local issue = linear_component.get_issue_from_line(current_line, issues)
+      if issue and issue.url then
+        logger.info('LINEAR', 'Opening Linear issue', {
+          identifier = issue.identifier,
+          url = issue.url
+        })
+        M.show_linear_issue_details(issue)
+      else
+        logger.warn('LINEAR', 'Could not find issue data', {
+          identifier = identifier,
+          issue = issue
+        })
+      end
+    elseif current_line:match("No API key found") or current_line:match("Invalid API key") then
+      -- Handle API key setup
+      logger.info('LINEAR', 'Triggering API key setup')
+      M.setup_linear_api_key(config, function()
+        render_callback(buf)
+      end)
+    else
+      logger.warn('LINEAR', 'Linear line detected but no action matched', { line = current_line })
+    end
+  -- Check if it's a git status line (only in git repos)
+  elseif is_git_repo and current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
+    -- This is a git status line - extract filename and open file
+    local filename = current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
+                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%-") or
+                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.+)$")
+    if filename then
+      filename = filename:gsub("%s+$", "")
+    end
+    
+    if filename then
+      filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
+      
+      local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+      local full_path = git_root and (git_root .. '/' .. filename) or filename
+      local edit_cmd = 'edit ' .. vim.fn.fnameescape(full_path) .. ' | set number | set signcolumn=yes'
+      M.handle_dashboard_action(config, edit_cmd)
+    end
+  end
+end
 
 function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, section_ranges)
   vim.api.nvim_buf_set_keymap(buf, 'n', '<CR>', '', {
     noremap = true,
     silent = true,
     callback = function()
-      local cursor = vim.api.nvim_win_get_cursor(0)
-      local line_num = cursor[1]
-      
-      -- Get all lines in the buffer
-      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-      local current_line = lines[line_num]
-      
-      -- Check if it's a dashboard button line
-      if config.show_dashboard_buttons and current_line and current_line:match("Find file") then
-        M.handle_dashboard_action(config, 'Telescope find_files')
-      elseif config.show_dashboard_buttons and current_line and current_line:match("Recently opened files") then
-        M.handle_dashboard_action(config, 'Telescope oldfiles')
-      elseif config.show_dashboard_buttons and current_line and current_line:match("Find word") then
-        M.handle_dashboard_action(config, 'Telescope live_grep')
-      elseif config.show_dashboard_buttons and current_line and current_line:match("New file") then
-        M.handle_dashboard_action(config, 'enew')
-      elseif config.show_dashboard_buttons and current_line and current_line:match("Bookmarks") then
-        M.handle_dashboard_action(config, 'Telescope marks')
-      elseif config.show_dashboard_buttons and current_line and current_line:match("Restore session") then
-        -- Basic session restore - could be enhanced with session manager
-        if vim.fn.filereadable('Session.vim') == 1 then
-          M.handle_dashboard_action(config, 'source Session.vim')
-        else
-          logger.warn('SESSION', 'No session file found')
-        end
-      -- Check if it's a Claude conversation line (format: " N. ...")
-      elseif config.show_claude_conversations and current_line and current_line:match("^ %d+%.") then
-        -- Extract session ID and send /resume command
-        local claude = require('nexus.claude')
-        local conversations = claude.get_claude_conversations(config)
-        local line_index = current_line:match("^ (%d+)%.")
-        if line_index then
-          local conv_index = tonumber(line_index)
-          if conv_index and conversations[conv_index] then
-            tmux.send_resume_to_claude(conversations[conv_index].session_id)
-          end
-        end
-      -- Check if it's a commit line (recent commits section)
-      elseif is_git_repo and current_line and current_line:match("%s+[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+") then
-        M.show_commit_details(current_line)
-      -- Check if it's a Linear issue line or error line
-      elseif config.linear and config.linear.enabled and current_line then
-        local linear_component = require('nexus.render.components.linear')
-        local is_issue, identifier = linear_component.is_linear_issue_line(current_line)
-        
-        logger.debug('LINEAR_KEYMAPS', 'Checking Linear line', {
-          current_line = current_line,
-          is_issue = is_issue,
-          identifier = identifier
-        })
-        
-        if is_issue and identifier then
-          -- Get issue data and open in browser
-          local linear_state = require('nexus.state.linear')
-          local issues = linear_state.get_issues()
-          
-          logger.debug('LINEAR_KEYMAPS', 'Found Linear issue', {
-            identifier = identifier,
-            issues_count = issues and #issues or 0
-          })
-          
-          local issue = linear_component.get_issue_from_line(current_line, issues)
-          if issue and issue.url then
-            logger.info('LINEAR_KEYMAPS', 'Opening Linear issue', {
-              identifier = issue.identifier,
-              url = issue.url
-            })
-            M.show_linear_issue_details(issue)
-          else
-            logger.warn('LINEAR_KEYMAPS', 'Could not find issue data', {
-              identifier = identifier,
-              issue = issue
-            })
-          end
-        elseif current_line:match("No API key found") or current_line:match("Invalid API key") then
-          -- Handle API key setup
-          logger.info('LINEAR_KEYMAPS', 'Triggering API key setup')
-          M.setup_linear_api_key(config, function()
-            render_callback(buf)
-          end)
-        else
-          logger.warn('LINEAR_KEYMAPS', 'Linear line detected but no action matched', { line = current_line })
-        end
-      -- Check if it's a git status line (only in git repos)
-      elseif is_git_repo and current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
-        -- This is a git status line - extract filename and open file
-        local filename = current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
-                        current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%-") or
-                        current_line:match("%s*  [MADRCU?][MADRCU?]? (.+)$")
-        if filename then
-          filename = filename:gsub("%s+$", "")
-        end
-        
-        if filename then
-          filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
-          
-          local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
-          local full_path = git_root and (git_root .. '/' .. filename) or filename
-          local edit_cmd = 'edit ' .. vim.fn.fnameescape(full_path) .. ' | set number | set signcolumn=yes'
-          M.handle_dashboard_action(config, edit_cmd)
-        end
-      end
+      M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
     end
   })
   
@@ -135,7 +140,6 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
   })
   
   -- Calculate logo section end (just logo, NOT buttons)
-  local logo = require('nexus.ui.logo')
   local logo_lines = logo.get_neovim_logo(config)
   local logo_end_line = #logo_lines  -- Logo only
   
@@ -248,8 +252,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       callback = function()
         -- Refresh Linear data if enabled
         if config.linear and config.linear.enabled then
-          local linear_state = require('nexus.state.linear')
-          linear_state.refresh_data(config)
+                  linear_state.refresh_data(config)
         end
         render_callback(buf)
       end
@@ -291,11 +294,21 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       callback = function()
         git_command.create_git_command_window(function()
           -- Update git status through state system and refresh
-          local git_state = require('nexus.state.git')
           git_state.update_git_status(true) -- force refresh
           local files = git_state.get_git_status()
           render_callback(buf, files)
         end)
+      end
+    })
+  end
+  
+  -- Linear-specific keymaps (only if Linear is enabled)
+  if config.linear and config.linear.enabled then
+    vim.api.nvim_buf_set_keymap(buf, 'n', 's', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        M.handle_linear_status_update(buf, render_callback, config)
       end
     })
   end
@@ -397,12 +410,10 @@ function M.handle_git_add(buf, render_callback)
       filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
       
       -- Use action system with lazy loading to avoid circular dependency
-      local actions = require('nexus.actions')
       actions.execute('git.add', {
         filename = filename,
         refresh_callback = function()
           -- Update git status through state system and refresh
-          local git_state = require('nexus.state.git')
           git_state.update_git_status(true) -- force refresh
           local files = git_state.get_git_status()
           render_callback(buf, files)
@@ -431,12 +442,10 @@ function M.handle_git_unstage(buf, render_callback)
       filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
       
       -- Use action system with lazy loading to avoid circular dependency
-      local actions = require('nexus.actions')
       actions.execute('git.unstage', {
         filename = filename,
         refresh_callback = function()
           -- Update git status through state system and refresh
-          local git_state = require('nexus.state.git')
           git_state.update_git_status(true) -- force refresh
           local files = git_state.get_git_status()
           render_callback(buf, files)
@@ -533,7 +542,6 @@ function M.show_commit_details(commit_line)
     silent = true,
     callback = function()
       -- Use action system with lazy loading to avoid circular dependency
-      local actions = require('nexus.actions')
       actions.execute('open_commit', { commit_hash = commit_hash })
     end
   })
@@ -543,7 +551,7 @@ end
 
 -- Show Linear issue details in popup
 function M.show_linear_issue_details(issue)
-  logger.info('LINEAR_KEYMAPS', 'Showing Linear issue details', { 
+  logger.info('LINEAR', 'Showing Linear issue details', { 
     identifier = issue.identifier,
     title = issue.title
   })
@@ -699,7 +707,7 @@ function M.show_linear_issue_details(issue)
     end
   })
   
-  logger.info('LINEAR_KEYMAPS', 'Showing details for Linear issue: ' .. issue.identifier)
+  logger.info('LINEAR', 'Showing details for Linear issue: ' .. issue.identifier)
 end
 
 -- Apply syntax highlighting to commit details popup
@@ -904,7 +912,7 @@ end
 
 -- Open Linear issue in browser
 function M.open_linear_issue(issue)
-  logger.info('LINEAR_KEYMAPS', 'Opening Linear issue', { 
+  logger.info('LINEAR', 'Opening Linear issue', { 
     identifier = issue.identifier,
     url = issue.url 
   })
@@ -918,7 +926,7 @@ function M.open_linear_issue(issue)
   elseif vim.fn.has('win32') == 1 then
     open_cmd = 'start'
   else
-    logger.error('LINEAR_KEYMAPS', 'Unsupported platform for opening URLs')
+    logger.error('LINEAR', 'Unsupported platform for opening URLs')
     vim.notify("Unsupported platform for opening URLs", vim.log.levels.ERROR)
     return
   end
@@ -930,7 +938,7 @@ function M.open_linear_issue(issue)
   if exit_code == 0 then
     vim.notify(string.format("Opened %s in browser", issue.identifier), vim.log.levels.INFO)
   else
-    logger.error('LINEAR_KEYMAPS', 'Failed to open browser', { 
+    logger.error('LINEAR', 'Failed to open browser', { 
       exit_code = exit_code,
       result = result
     })
@@ -940,10 +948,9 @@ end
 
 -- Refresh Linear issues
 function M.refresh_linear_issues(buf, config, render_callback)
-  logger.info('LINEAR_KEYMAPS', 'Refreshing Linear issues')
+  logger.info('LINEAR', 'Refreshing Linear issues')
   vim.notify("Refreshing Linear issues...", vim.log.levels.INFO)
   
-  local linear_state = require('nexus.state.linear')
   linear_state.refresh_data(config)
   
   -- Re-render the buffer
@@ -952,10 +959,152 @@ end
 
 -- Setup Linear API key
 function M.setup_linear_api_key(config, render_callback)
-  logger.info('LINEAR_KEYMAPS', 'Setting up Linear API key')
+  logger.info('LINEAR', 'Setting up Linear API key')
   
-  local linear_state = require('nexus.state.linear')
   linear_state.handle_api_key_setup(config, render_callback)
 end
+
+-- Handle Linear status update for current issue
+function M.handle_linear_status_update(buf, render_callback, config)
+  local issue = M.get_current_issue_from_cursor(buf)
+  if not issue then
+    return
+  end
+  
+  logger.info('LINEAR', 'Starting status update', { 
+    identifier = issue.identifier,
+    current_status = issue.state and issue.state.name 
+  })
+  
+  -- Show status selection modal
+  M.show_status_selection_modal(issue, config, function(new_status_id)
+    if new_status_id then
+      logger.info('LINEAR', 'Updating issue status', {
+        identifier = issue.identifier,
+        issue_id = issue.id,
+        new_status_id = new_status_id
+      })
+      
+      vim.notify(string.format("Updating %s status...", issue.identifier), vim.log.levels.INFO)
+      
+      linear_state.update_issue_status(issue.id, new_status_id, config, function(success, result)
+        if success then
+          vim.notify(string.format("✅ %s status updated to: %s", 
+            result.identifier, 
+            result.state.name), 
+            vim.log.levels.INFO)
+          
+          render_callback(buf)
+        else
+          vim.notify(string.format("❌ Failed to update %s: %s", 
+            issue.identifier, 
+            result or "Unknown error"), 
+            vim.log.levels.ERROR)
+        end
+      end)
+    end
+  end)
+end
+
+-- Extract issue identification from cursor position
+function M.get_current_issue_from_cursor(buf)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  
+  -- Get all lines in the buffer
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  if not current_line then
+    logger.warn('LINEAR', 'No current line found')
+    return nil
+  end
+  
+  -- Check if this is a Linear issue line
+  local is_issue, identifier = linear_component.is_linear_issue_line(current_line)
+  
+  if not is_issue or not identifier then
+    logger.warn('LINEAR', 'Not on a Linear issue line', { line = current_line })
+    vim.notify("Position cursor on a Linear issue to update its status", vim.log.levels.WARN)
+    return nil
+  end
+  
+  logger.debug('LINEAR', 'Found Linear issue line', { identifier = identifier })
+  
+  -- Get the issue data
+  local issues = linear_state.get_issues()
+  local issue = linear_component.get_issue_from_line(current_line, issues)
+  
+  if not issue then
+    logger.error('LINEAR', 'Could not find issue data', { identifier = identifier })
+    vim.notify("Could not find issue data for " .. identifier, vim.log.levels.ERROR)
+    return nil
+  end
+  
+  return issue
+end
+
+-- Show status selection modal
+function M.show_status_selection_modal(issue, config, callback)
+  logger.info('LINEAR', 'Showing status selection modal', { 
+    identifier = issue.identifier 
+  })
+  
+  -- Get available states from cached provider
+  local states = linear_state.get_cached_states(config, issue.team and issue.team.id)
+  
+  if not states then
+    vim.notify("Failed to fetch available states", vim.log.levels.ERROR)
+    return
+  end
+  
+  if #states == 0 then
+    vim.notify("No states available for this team", vim.log.levels.WARN)
+    return
+  end
+  
+  -- Sort states by position
+  table.sort(states, function(a, b) 
+    return (a.position or 999) < (b.position or 999) 
+  end)
+  
+  -- Create status selection menu
+  local status_options = {}
+  local current_status_idx = nil
+  
+  for i, state in ipairs(states) do
+    local display_name = state.name
+    if issue.state and issue.state.id == state.id then
+      display_name = display_name .. " (current)"
+      current_status_idx = i
+    end
+    table.insert(status_options, display_name)
+  end
+  
+  -- Show selection using vim.ui.select
+  vim.ui.select(status_options, {
+    prompt = string.format("Select new status for %s:", issue.identifier),
+    format_item = function(item)
+      return "  " .. item
+    end,
+  }, function(choice, idx)
+    if choice and idx then
+      local selected_state = states[idx]
+      if selected_state and (not issue.state or selected_state.id ~= issue.state.id) then
+        logger.info('LINEAR', 'Status selected', { 
+          identifier = issue.identifier,
+          new_status = selected_state.name,
+          new_status_id = selected_state.id
+        })
+        callback(selected_state.id)
+      else
+        logger.debug('LINEAR', 'Same status selected, no change needed')
+      end
+    else
+      logger.debug('LINEAR', 'Status selection cancelled')
+    end
+  end)
+end
+
 
 return M

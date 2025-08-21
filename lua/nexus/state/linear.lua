@@ -4,6 +4,12 @@ local M = {}
 local logger = require('nexus.logger')
 local state = require('nexus.state')
 
+-- Cached provider instance to avoid repeated authentication
+local _cached_provider = nil
+local _cached_states = {}
+local _states_cache_timestamp = 0
+local STATES_CACHE_TTL = 3600 -- 1 hour
+
 ---Initialize Linear state
 function M.init()
   -- Only initialize if linear state doesn't exist yet
@@ -18,9 +24,9 @@ function M.init()
       last_sync = nil,
       enabled = false
     })
-    logger.info("LINEAR_STATE", "Linear state initialized")
+    logger.info("LINEAR", "Linear state initialized")
   else
-    logger.debug("LINEAR_STATE", "Linear state already exists, skipping initialization")
+    logger.debug("LINEAR", "Linear state already exists, skipping initialization")
   end
 end
 
@@ -106,7 +112,7 @@ end
 ---Clear all Linear state
 function M.clear()
   state.clear('linear')
-  logger.info("LINEAR_STATE", "Linear state cleared")
+  logger.info("LINEAR", "Linear state cleared")
 end
 
 ---Check if data needs refresh (based on TTL)
@@ -139,7 +145,7 @@ function M.refresh_if_needed(config)
   end
   
   -- Refresh data
-  logger.debug("LINEAR_STATE", "Refreshing Linear data", { ttl = ttl })
+  logger.debug("LINEAR", "Refreshing Linear data", { ttl = ttl })
   M.refresh_data(config)
 end
 
@@ -166,7 +172,7 @@ function M.prompt_for_api_key()
     -- Also try to save to shell config files for persistence
     M.save_api_key_to_shell_config(api_key)
     
-    logger.info("LINEAR_STATE", "Linear API key provided by user")
+    logger.info("LINEAR", "Linear API key provided by user")
     vim.notify("Linear API key saved! Refreshing issues...", vim.log.levels.INFO)
     return api_key
   end
@@ -210,7 +216,7 @@ function M.save_api_key_to_shell_config(api_key)
       
       -- Write back to file
       vim.fn.writefile(content, config_file)
-      logger.info("LINEAR_STATE", "Updated shell config", { file = config_file })
+      logger.info("LINEAR", "Updated shell config", { file = config_file })
       break -- Only update the first found config file
     end
   end
@@ -234,26 +240,12 @@ function M.refresh_data(config)
     return
   end
   
-  -- Create Linear provider directly with the API key
-  local provider_config = vim.deepcopy(config.linear)
-  provider_config.api_key = api_key
-  
-  local LinearProvider = require('nexus.providers.linear')
-  local linear_provider = LinearProvider:new('linear', provider_config)
-  
-  -- Authenticate first
-  local auth_success, auth_error = linear_provider:authenticate()
-  if not auth_success then
-    -- If authentication failed and it might be due to invalid key, offer to re-enter
-    if auth_error and (auth_error:match("Unauthorized") or auth_error:match("authentication")) then
-      M.set_loading(false)
-      M.set_error("Invalid API key - press <Enter> to update")
-      return
-    else
-      M.set_error("Authentication failed: " .. (auth_error or "Unknown error"))
-      M.set_loading(false)
-      return
-    end
+  -- Use cached provider
+  local linear_provider = M.get_cached_provider(config)
+  if not linear_provider then
+    M.set_loading(false)
+    M.set_error("Invalid API key - press <Enter> to update")
+    return
   end
   
   -- Fetch issues
@@ -265,12 +257,12 @@ function M.refresh_data(config)
   if issues then
     M.set_issues(issues)
     M.set_error(nil)
-    logger.info("LINEAR_STATE", "Successfully refreshed Linear data", { 
+    logger.info("LINEAR", "Successfully refreshed Linear data", { 
       issue_count = #issues 
     })
   else
     M.set_error(error_msg or "Failed to fetch issues")
-    logger.error("LINEAR_STATE", "Failed to refresh Linear data", { 
+    logger.error("LINEAR", "Failed to refresh Linear data", { 
       error = error_msg 
     })
   end
@@ -294,6 +286,108 @@ function M.handle_api_key_setup(config, render_callback)
     if render_callback then
       render_callback()
     end
+  end
+end
+
+---Get cached Linear provider instance
+---@param config table Configuration
+---@return table provider Linear provider instance
+function M.get_cached_provider(config)
+  -- Check if we have a valid cached provider
+  if _cached_provider and _cached_provider:is_authenticated() then
+    return _cached_provider
+  end
+  
+  -- Create new provider instance
+  local LinearProvider = require('nexus.providers.linear')
+  local provider_config = vim.deepcopy(config.linear)
+  provider_config.api_key = provider_config.api_key or vim.env.LINEAR_API_KEY
+  
+  _cached_provider = LinearProvider:new("linear", provider_config)
+  
+  if not _cached_provider:authenticate() then
+    logger.error('LINEAR', 'Failed to authenticate provider')
+    _cached_provider = nil
+    return nil
+  end
+  
+  logger.debug('LINEAR', 'Created and cached new provider instance')
+  return _cached_provider
+end
+
+---Get cached team states or fetch fresh
+---@param config table Configuration  
+---@param team_id? string Team ID (optional)
+---@return table? states Available states
+function M.get_cached_states(config, team_id)
+  local cache_key = team_id or 'default'
+  local now = os.time()
+  
+  -- Check if we have valid cached states
+  if _cached_states[cache_key] and (now - _states_cache_timestamp) < STATES_CACHE_TTL then
+    logger.debug('LINEAR', 'Using cached states', { team_id = team_id, cache_age = now - _states_cache_timestamp })
+    return _cached_states[cache_key]
+  end
+  
+  -- Fetch fresh states
+  local provider = M.get_cached_provider(config)
+  if not provider then
+    return nil
+  end
+  
+  local states, error_msg = provider:get_team_states(team_id)
+  if not states then
+    logger.error('LINEAR', 'Failed to fetch team states', { error = error_msg })
+    return nil
+  end
+  
+  -- Cache the states
+  _cached_states[cache_key] = states
+  _states_cache_timestamp = now
+  
+  logger.debug('LINEAR', 'Fetched and cached team states', { 
+    team_id = team_id, 
+    states_count = #states 
+  })
+  
+  return states
+end
+
+---Update issue status via cached provider
+---@param issue_id string Issue ID
+---@param status_id string New status ID
+---@param config table Configuration
+---@param callback function Callback function
+function M.update_issue_status(issue_id, status_id, config, callback)
+  local provider = M.get_cached_provider(config)
+  if not provider then
+    callback(false, "Failed to get authenticated provider")
+    return
+  end
+  
+  logger.info('LINEAR', 'Updating issue status via cached provider', {
+    issue_id = issue_id,
+    status_id = status_id
+  })
+  
+  local updated_issue, error_msg = provider:update_issue(issue_id, { state_id = status_id })
+  
+  if updated_issue then
+    logger.info('LINEAR', 'Issue status updated successfully', {
+      identifier = updated_issue.identifier,
+      new_status = updated_issue.state.name
+    })
+    
+    -- Refresh Linear data to show the change
+    M.refresh_data(config)
+    
+    callback(true, updated_issue)
+  else
+    logger.error('LINEAR', 'Failed to update issue status', {
+      issue_id = issue_id,
+      error = error_msg
+    })
+    callback(false, error_msg)
   end
 end
 

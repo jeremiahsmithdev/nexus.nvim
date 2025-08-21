@@ -39,7 +39,7 @@ local PRIORITY_LEVELS = {
 ---@param config table Nexus configuration
 ---@return table section
 function M.build_linear_section(config)
-  logger.debug("LINEAR_COMPONENT", "Building Linear section", { enabled = config.linear and config.linear.enabled })
+  logger.debug("LINEAR", "Building Linear section", { enabled = config.linear and config.linear.enabled })
   
   if not config.linear or not config.linear.enabled then
     return {}

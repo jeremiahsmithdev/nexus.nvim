@@ -101,7 +101,7 @@ function LinearProvider:get_issues(opts)
       
       -- Add debug logging
       local logger = require('nexus.logger')
-      logger.debug('LINEAR_PROVIDER', 'Filtering issues by repository project', { 
+      logger.debug('LINEAR', 'Filtering issues by repository project', { 
         repository = repo_name, 
         project_filter = project_name 
       })
@@ -173,6 +173,62 @@ function LinearProvider:get_issues(opts)
   end
 end
 
+
+-- Get available states for the team
+function LinearProvider:get_team_states(team_id)
+  if not self:is_authenticated() then
+    return nil, "Not authenticated"
+  end
+  
+  local query = string.format([[
+    query {
+      team(id: "%s") {
+        states {
+          nodes {
+            id
+            name
+            type
+            color
+            position
+          }
+        }
+      }
+    }
+  ]], team_id or self.team_id or "")
+  
+  -- If no team_id specified, get all workspace states
+  if not team_id and not self.team_id then
+    query = [[
+      query {
+        workflowStates(first: 50) {
+          nodes {
+            id
+            name
+            type
+            color
+            position
+          }
+        }
+      }
+    ]]
+  end
+  
+  local success, result = self:_make_request({ query = query })
+  
+  if success and result and result.data then
+    if result.data.team and result.data.team.states then
+      return result.data.team.states.nodes
+    elseif result.data.workflowStates then
+      return result.data.workflowStates.nodes
+    end
+  else
+    local error_msg = result and result.errors and result.errors[1] and result.errors[1].message or "Failed to fetch states"
+    return nil, error_msg
+  end
+  
+  return {}
+end
+
 function LinearProvider:get_issue(id)
   if not self:is_authenticated() then
     return nil, "Not authenticated"
@@ -240,13 +296,13 @@ function LinearProvider:create_issue(data)
   local description = data.description or ""
   local priority = data.priority or 0
   
-  local mutation = string.format([[
-    mutation {
+  local mutation = [[
+    mutation CreateIssue($title: String!, $description: String!, $teamId: String!, $priority: Int!) {
       issueCreate(input: {
-        title: "%s"
-        description: "%s"
-        teamId: "%s"
-        priority: %d
+        title: $title
+        description: $description
+        teamId: $teamId
+        priority: $priority
       }) {
         success
         issue {
@@ -257,9 +313,16 @@ function LinearProvider:create_issue(data)
         }
       }
     }
-  ]], data.title:gsub('"', '\\"'), description:gsub('"', '\\"'), team_id, priority)
+  ]]
   
-  local success, result = self:_make_request({ query = mutation })
+  local variables = {
+    title = data.title,
+    description = description,
+    teamId = team_id,
+    priority = priority
+  }
+  
+  local success, result = self:_make_request({ query = mutation, variables = variables })
   
   if success and result and result.data and result.data.issueCreate and result.data.issueCreate.success then
     return result.data.issueCreate.issue
@@ -274,32 +337,28 @@ function LinearProvider:update_issue(id, data)
     return nil, "Not authenticated"
   end
   
-  -- Build update fields
-  local update_fields = {}
-  
+  -- Build input object with only provided fields
+  local input_fields = {}
   if data.title then
-    table.insert(update_fields, 'title: "' .. data.title:gsub('"', '\\"') .. '"')
+    input_fields.title = data.title
   end
-  
   if data.description then
-    table.insert(update_fields, 'description: "' .. data.description:gsub('"', '\\"') .. '"')
+    input_fields.description = data.description
   end
-  
   if data.priority then
-    table.insert(update_fields, 'priority: ' .. data.priority)
+    input_fields.priority = data.priority
   end
-  
   if data.state_id then
-    table.insert(update_fields, 'stateId: "' .. data.state_id .. '"')
+    input_fields.stateId = data.state_id
   end
   
-  if #update_fields == 0 then
+  if vim.tbl_isempty(input_fields) then
     return nil, "No update fields provided"
   end
   
-  local mutation = string.format([[
-    mutation {
-      issueUpdate(id: "%s", input: { %s }) {
+  local mutation = [[
+    mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
+      issueUpdate(id: $id, input: $input) {
         success
         issue {
           id
@@ -309,9 +368,14 @@ function LinearProvider:update_issue(id, data)
         }
       }
     }
-  ]], id, table.concat(update_fields, ", "))
+  ]]
   
-  local success, result = self:_make_request({ query = mutation })
+  local variables = {
+    id = id,
+    input = input_fields
+  }
+  
+  local success, result = self:_make_request({ query = mutation, variables = variables })
   
   if success and result and result.data and result.data.issueUpdate and result.data.issueUpdate.success then
     return result.data.issueUpdate.issue
@@ -367,19 +431,31 @@ function LinearProvider:_make_request(data)
   
   local payload = vim.json.encode(payload_data)
   
-  -- Use curl via vim.fn.system for HTTP requests
+  -- Write payload to temporary file for security
+  local temp_file = vim.fn.tempname()
+  local file = io.open(temp_file, 'w')
+  if not file then
+    return false, { errors = { { message = "Failed to create temporary file" } } }
+  end
+  file:write(payload)
+  file:close()
+  
+  -- Use curl with temporary file to avoid shell injection
   local curl_command = string.format([[
     curl -X POST "https://api.linear.app/graphql" \
     -H "Content-Type: application/json" \
     -H "Authorization: %s" \
-    -d '%s' \
+    -d @%s \
     --silent \
     --max-time 10 \
     --show-error
-  ]], self.api_key, payload:gsub("'", "'\\''"))
+  ]], self.api_key, vim.fn.shellescape(temp_file))
   
   local response = vim.fn.system(curl_command)
   local exit_code = vim.v.shell_error
+  
+  -- Clean up temporary file
+  os.remove(temp_file)
   
   if exit_code ~= 0 then
     return false, { errors = { { message = "HTTP request failed: " .. response } } }
