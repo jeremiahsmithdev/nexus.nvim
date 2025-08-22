@@ -53,12 +53,12 @@ function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
   elseif is_git_repo and current_line and current_line:match("%s+[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+") then
     M.show_commit_details(current_line)
   -- Check if it's a git status line (only in git repos) - CHECK THIS BEFORE LINEAR
-  elseif is_git_repo and current_line and current_line:match("^  [MADRCU?][MADRCU?]? ") then
+  elseif is_git_repo and current_line and current_line:match("^%s*[MADRCU?][MADRCU?]? ") then
     -- This is a git status line - extract filename and open file
-    -- Format is "  MM filename" or "  ?? filename" etc.
-    local filename = current_line:match("^  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
-                    current_line:match("^  [MADRCU?][MADRCU?]? (.-)%s+%-") or
-                    current_line:match("^  [MADRCU?][MADRCU?]? (.+)$")
+    -- Format is "  MM filename" or "  ?? filename" etc. with variable spacing
+    local filename = current_line:match("^%s*[MADRCU?][MADRCU?]? (.-)%s+%+") or 
+                    current_line:match("^%s*[MADRCU?][MADRCU?]? (.-)%s+%-") or
+                    current_line:match("^%s*[MADRCU?][MADRCU?]? (.+)$")
     if filename then
       filename = filename:gsub("%s+$", "")
     end
