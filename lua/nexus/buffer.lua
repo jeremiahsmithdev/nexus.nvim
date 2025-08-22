@@ -28,7 +28,6 @@ function M.setup_window_options()
   vim.api.nvim_win_set_option(0, 'number', false)
   vim.api.nvim_win_set_option(0, 'relativenumber', false)
   vim.api.nvim_win_set_option(0, 'signcolumn', 'no')
-  vim.api.nvim_win_set_option(0, 'wrap', false)
   vim.api.nvim_win_set_option(0, 'cursorline', true)
 end
 

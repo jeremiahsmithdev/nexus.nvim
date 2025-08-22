@@ -293,8 +293,16 @@ end
 ---@param config table Configuration
 ---@return table provider Linear provider instance
 function M.get_cached_provider(config)
-  -- Check if we have a valid cached provider
-  if _cached_provider and _cached_provider:is_authenticated() then
+  -- Check if we need to recreate provider due to config changes
+  local current_team_id = config.linear and config.linear.team_id
+  local current_project_id = config.linear and config.linear.project_id
+  
+  local should_recreate = not _cached_provider or 
+                         not _cached_provider:is_authenticated() or
+                         _cached_provider.team_id ~= current_team_id or
+                         _cached_provider.project_id ~= current_project_id
+  
+  if not should_recreate then
     return _cached_provider
   end
   
@@ -311,7 +319,10 @@ function M.get_cached_provider(config)
     return nil
   end
   
-  logger.debug('LINEAR', 'Created and cached new provider instance')
+  logger.debug('LINEAR', 'Created and cached new provider instance', {
+    team_id = current_team_id,
+    project_id = current_project_id
+  })
   return _cached_provider
 end
 

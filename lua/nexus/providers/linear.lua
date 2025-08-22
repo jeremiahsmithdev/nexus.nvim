@@ -15,6 +15,7 @@ function LinearProvider:new(name, config)
   instance.api_url = config.api_url or "https://api.linear.app/graphql"
   instance.api_key = config.api_key or os.getenv("LINEAR_API_KEY")
   instance.team_id = config.team_id
+  instance.project_id = config.project_id
   instance.workspace_id = config.workspace_id
   
   -- Linear-specific cache
@@ -87,9 +88,21 @@ function LinearProvider:get_issues(opts)
   local limit = opts.limit or 50
   local team_filter = self.team_id and ('team: { id: { eq: "' .. self.team_id .. '" } }') or ""
   
-  -- Add project filter based on repository name
+  -- Add project filter - prioritize explicit project_id over repository name
   local project_filter = ""
-  if opts.filter_by_repository ~= false then  -- Default to true, allow opt-out
+  if self.project_id then
+    -- Use explicit project ID if set
+    project_filter = string.format('project: { id: { eq: "%s" } }', self.project_id)
+    if team_filter ~= "" then
+      project_filter = ", " .. project_filter
+    end
+    
+    -- Add debug logging
+    local logger = require('nexus.logger')
+    logger.debug('LINEAR', 'Filtering issues by explicit project ID', { 
+      project_id = self.project_id
+    })
+  elseif opts.filter_by_repository ~= false then  -- Default to true, allow opt-out
     local repo_name = self:_get_repository_name()
     if repo_name then
       -- Extract project name from repository name (remove .nvim suffix if present)
@@ -509,6 +522,77 @@ function LinearProvider:get_teams()
     return teams
   else
     local error_msg = result and result.errors and result.errors[1] and result.errors[1].message or "Failed to fetch teams"
+    return nil, error_msg
+  end
+end
+
+-- Get available projects for a team (cached)
+function LinearProvider:get_projects(team_id)
+  local cache_key = "projects_" .. (team_id or "all")
+  local cached = self:get_cache(cache_key)
+  if cached then
+    return cached
+  end
+  
+  if not self:is_authenticated() then
+    return nil, "Not authenticated"
+  end
+  
+  local query = [[
+    query {
+      projects {
+        nodes {
+          id
+          name
+          description
+          state
+          targetDate
+          teams {
+            nodes {
+              id
+              name
+              key
+            }
+          }
+        }
+      }
+    }
+  ]]
+  
+  local success, result = self:_make_request({ query = query })
+  
+  if success and result and result.data and result.data.projects then
+    local all_projects = result.data.projects.nodes
+    local filtered_projects = {}
+    
+    for _, project in ipairs(all_projects) do
+      -- Filter out archived/completed projects
+      if project.state ~= "completed" and project.state ~= "canceled" then
+        -- If team_id is specified, only include projects that belong to that team
+        if team_id then
+          local belongs_to_team = false
+          if project.teams and project.teams.nodes then
+            for _, team in ipairs(project.teams.nodes) do
+              if team.id == team_id then
+                belongs_to_team = true
+                break
+              end
+            end
+          end
+          if belongs_to_team then
+            table.insert(filtered_projects, project)
+          end
+        else
+          -- No team filter, include all active projects
+          table.insert(filtered_projects, project)
+        end
+      end
+    end
+    
+    self:set_cache(cache_key, filtered_projects, 3600) -- Cache for 1 hour
+    return filtered_projects
+  else
+    local error_msg = result and result.errors and result.errors[1] and result.errors[1].message or "Failed to fetch projects"
     return nil, error_msg
   end
 end

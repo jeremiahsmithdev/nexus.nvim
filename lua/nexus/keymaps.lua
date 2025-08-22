@@ -347,6 +347,14 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
         M.handle_linear_status_update(buf, render_callback, config)
       end
     })
+    
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'p', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        M.handle_linear_project_selection(buf, render_callback, config)
+      end
+    })
   end
   
 end
@@ -1280,6 +1288,41 @@ function M.handle_linear_status_update(buf, render_callback, config)
   end)
 end
 
+-- Handle Linear project selection
+function M.handle_linear_project_selection(buf, render_callback, config)
+  logger.info('LINEAR', 'Starting project selection')
+  
+  -- Show project selection modal (two-step: team -> project)
+  M.show_project_selection_modal(config, function(new_team_id, new_project_id)
+    if new_team_id then
+      logger.info('LINEAR', 'Updating team/project selection', {
+        new_team_id = new_team_id,
+        new_project_id = new_project_id
+      })
+      
+      -- Update config for this session
+      if not config.linear then
+        config.linear = {}
+      end
+      config.linear.team_id = new_team_id
+      if new_project_id then
+        config.linear.project_id = new_project_id
+      end
+      
+      vim.notify("Switching Linear project...", vim.log.levels.INFO)
+      
+      -- Force refresh Linear data with new team/project
+      local linear_state = require('nexus.state.linear')
+      linear_state.refresh_data(config)
+      
+      -- Re-render the buffer after a short delay to allow data refresh
+      vim.defer_fn(function()
+        render_callback(buf)
+      end, 500)
+    end
+  end)
+end
+
 -- Handle Linear issue creation
 function M.handle_linear_create_issue(buf, render_callback, config)
   logger.info('LINEAR', 'Starting issue creation')
@@ -1465,6 +1508,146 @@ function M.show_status_selection_modal(issue, config, callback)
       end
     else
       logger.debug('LINEAR', 'Status selection cancelled')
+    end
+  end)
+end
+
+-- Show project selection modal (two-step: team then project)
+function M.show_project_selection_modal(config, callback)
+  logger.info('LINEAR', 'Showing project selection modal')
+  
+  -- Get cached Linear provider
+  local linear_state = require('nexus.state.linear')
+  local provider = linear_state.get_cached_provider(config)
+  
+  if not provider then
+    vim.notify("Failed to get Linear provider", vim.log.levels.ERROR)
+    return
+  end
+  
+  -- Step 1: Get available teams
+  local teams, error_msg = provider:get_teams()
+  
+  if not teams then
+    vim.notify("Failed to fetch Linear teams: " .. (error_msg or "Unknown error"), vim.log.levels.ERROR)
+    return
+  end
+  
+  if #teams == 0 then
+    vim.notify("No Linear teams available", vim.log.levels.WARN)
+    return
+  end
+  
+  -- Sort teams by name
+  table.sort(teams, function(a, b) 
+    return a.name < b.name 
+  end)
+  
+  -- Create team selection menu
+  local team_options = {}
+  local current_team_idx = nil
+  
+  for i, team in ipairs(teams) do
+    local display_name = string.format("%s (%s)", team.name, team.key)
+    if config.linear.team_id and config.linear.team_id == team.id then
+      display_name = display_name .. " (current)"
+      current_team_idx = i
+    end
+    table.insert(team_options, display_name)
+  end
+  
+  -- Show team selection using vim.ui.select
+  vim.ui.select(team_options, {
+    prompt = "Step 1: Select Linear team:",
+    format_item = function(item)
+      return "  " .. item
+    end,
+  }, function(choice, idx)
+    if choice and idx then
+      local selected_team = teams[idx]
+      logger.info('LINEAR', 'Team selected', { 
+        team_name = selected_team.name,
+        team_id = selected_team.id
+      })
+      
+      -- Step 2: Get projects for the selected team
+      M.show_team_projects_selection(provider, selected_team, config, callback)
+    else
+      logger.debug('LINEAR', 'Team selection cancelled')
+    end
+  end)
+end
+
+-- Show projects selection for a specific team
+function M.show_team_projects_selection(provider, selected_team, config, callback)
+  logger.info('LINEAR', 'Showing projects for team', { team_name = selected_team.name })
+  
+  -- Get projects for the selected team
+  local projects, error_msg = provider:get_projects(selected_team.id)
+  
+  if not projects then
+    vim.notify("Failed to fetch projects for " .. selected_team.name .. ": " .. (error_msg or "Unknown error"), vim.log.levels.ERROR)
+    -- Still allow team-only selection
+    callback(selected_team.id, nil)
+    return
+  end
+  
+  if #projects == 0 then
+    vim.notify("No active projects in " .. selected_team.name .. ". Selecting team only.", vim.log.levels.INFO)
+    callback(selected_team.id, nil)
+    return
+  end
+  
+  -- Sort projects by name
+  table.sort(projects, function(a, b) 
+    return a.name < b.name 
+  end)
+  
+  -- Create project selection menu with team-only option
+  local project_options = {"[No specific project - team only]"}
+  local current_project_idx = nil
+  
+  for i, project in ipairs(projects) do
+    local display_name = project.name
+    if project.description and project.description ~= "" then
+      display_name = display_name .. " - " .. project.description:gsub("\n.*", ""):sub(1, 50) -- First line, truncated
+    end
+    
+    if config.linear.project_id and config.linear.project_id == project.id then
+      display_name = display_name .. " (current)"
+      current_project_idx = i + 1 -- +1 because of the "no project" option
+    end
+    table.insert(project_options, display_name)
+  end
+  
+  -- Show project selection
+  vim.ui.select(project_options, {
+    prompt = string.format("Step 2: Select project in %s:", selected_team.name),
+    format_item = function(item)
+      return "  " .. item
+    end,
+  }, function(choice, idx)
+    if choice and idx then
+      if idx == 1 then
+        -- Selected "no specific project"
+        logger.info('LINEAR', 'Team-only selection', { 
+          team_name = selected_team.name,
+          team_id = selected_team.id
+        })
+        callback(selected_team.id, nil)
+      else
+        -- Selected a specific project
+        local selected_project = projects[idx - 1] -- -1 because of the "no project" option
+        logger.info('LINEAR', 'Team and project selected', { 
+          team_name = selected_team.name,
+          team_id = selected_team.id,
+          project_name = selected_project.name,
+          project_id = selected_project.id
+        })
+        callback(selected_team.id, selected_project.id)
+      end
+    else
+      logger.debug('LINEAR', 'Project selection cancelled')
     end
   end)
 end
