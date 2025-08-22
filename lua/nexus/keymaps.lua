@@ -68,7 +68,12 @@ function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
       
       local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
       local full_path = git_root and (git_root .. '/' .. filename) or filename
-      local edit_cmd = 'edit ' .. vim.fn.fnameescape(full_path) .. ' | set number | set signcolumn=yes'
+      
+      -- Get the first changed line number using git diff
+      local first_line = M.get_first_changed_line(filename)
+      local goto_line = first_line and (' | ' .. first_line) or ''
+      
+      local edit_cmd = 'edit ' .. vim.fn.fnameescape(full_path) .. ' | set number | set signcolumn=yes' .. goto_line
       M.handle_dashboard_action(config, edit_cmd)
     end
   -- Check if it's a Linear issue line or error line
@@ -1651,6 +1656,38 @@ function M.show_team_projects_selection(provider, selected_team, config, callbac
       logger.debug('LINEAR', 'Project selection cancelled')
     end
   end)
+end
+
+-- Get the first changed line number for a file using git diff
+function M.get_first_changed_line(filename)
+  -- Try unstaged changes first
+  local handle = io.popen('git diff --unified=0 -- "' .. filename .. '" 2>/dev/null')
+  if handle then
+    local result = handle:read('*a')
+    handle:close()
+    
+    -- If no unstaged changes, try staged changes
+    if result == '' then
+      handle = io.popen('git diff --cached --unified=0 -- "' .. filename .. '" 2>/dev/null')
+      if handle then
+        result = handle:read('*a')
+        handle:close()
+      end
+    end
+    
+    -- Parse the diff output to find first changed line
+    if result and result ~= '' then
+      for line in result:gmatch('[^\r\n]+') do
+        -- Look for hunk headers like @@ -10,5 +10,6 @@
+        local new_start = line:match('^@@ %-?%d+,?%d* %+(%d+)')
+        if new_start then
+          return tonumber(new_start)
+        end
+      end
+    end
+  end
+  
+  return nil
 end
 
 
