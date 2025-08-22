@@ -52,6 +52,25 @@ function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
   -- Check if it's a commit line (recent commits section)
   elseif is_git_repo and current_line and current_line:match("%s+[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+") then
     M.show_commit_details(current_line)
+  -- Check if it's a git status line (only in git repos) - CHECK THIS BEFORE LINEAR
+  elseif is_git_repo and current_line and current_line:match("^  [MADRCU?][MADRCU?]? ") then
+    -- This is a git status line - extract filename and open file
+    -- Format is "  MM filename" or "  ?? filename" etc.
+    local filename = current_line:match("^  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
+                    current_line:match("^  [MADRCU?][MADRCU?]? (.-)%s+%-") or
+                    current_line:match("^  [MADRCU?][MADRCU?]? (.+)$")
+    if filename then
+      filename = filename:gsub("%s+$", "")
+    end
+    
+    if filename then
+      filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
+      
+      local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+      local full_path = git_root and (git_root .. '/' .. filename) or filename
+      local edit_cmd = 'edit ' .. vim.fn.fnameescape(full_path) .. ' | set number | set signcolumn=yes'
+      M.handle_dashboard_action(config, edit_cmd)
+    end
   -- Check if it's a Linear issue line or error line
   elseif config.linear and config.linear.enabled and current_line then
     local is_issue, identifier = linear_component.is_linear_issue_line(current_line)
@@ -92,24 +111,6 @@ function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
       end)
     else
       logger.warn('LINEAR', 'Linear line detected but no action matched', { line = current_line })
-    end
-  -- Check if it's a git status line (only in git repos)
-  elseif is_git_repo and current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
-    -- This is a git status line - extract filename and open file
-    local filename = current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
-                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%-") or
-                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.+)$")
-    if filename then
-      filename = filename:gsub("%s+$", "")
-    end
-    
-    if filename then
-      filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
-      
-      local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
-      local full_path = git_root and (git_root .. '/' .. filename) or filename
-      local edit_cmd = 'edit ' .. vim.fn.fnameescape(full_path) .. ' | set number | set signcolumn=yes'
-      M.handle_dashboard_action(config, edit_cmd)
     end
   end
 end
