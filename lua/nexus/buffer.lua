@@ -24,11 +24,9 @@ function M.create_nexus_buffer(is_manual_open)
   return buf
 end
 
-function M.setup_window_options()
-  vim.api.nvim_win_set_option(0, 'number', false)
-  vim.api.nvim_win_set_option(0, 'relativenumber', false)
-  vim.api.nvim_win_set_option(0, 'signcolumn', 'no')
-  vim.api.nvim_win_set_option(0, 'cursorline', true)
+function M.setup_window_options(buf)
+  -- Use vim commands with setlocal to set buffer-local window options
+  vim.cmd('setlocal nonumber norelativenumber signcolumn=no cursorline')
 end
 
 function M.open_buffer(buf, is_manual_open)
@@ -39,7 +37,7 @@ function M.open_buffer(buf, is_manual_open)
       if vim.api.nvim_buf_is_valid(existing_buf) and vim.api.nvim_buf_get_name(existing_buf):match('Nexus$') then
         -- Switch to existing Nexus buffer
         vim.api.nvim_win_set_buf(0, existing_buf)
-        M.setup_window_options()
+        M.setup_window_options(existing_buf)
         -- Ensure autocommands are set up for this buffer
         M.setup_image_autocommands(existing_buf)
         -- Force render image for this buffer after a small delay to ensure buffer content is ready
@@ -70,7 +68,7 @@ function M.open_buffer(buf, is_manual_open)
     vim.api.nvim_win_set_buf(0, buf)
   end
   
-  M.setup_window_options()
+  M.setup_window_options(buf)
   
   -- Set up image management autocommands for this buffer
   M.setup_image_autocommands(buf)
