@@ -393,8 +393,8 @@ function M.async_quit()
     if real_bufs == 0 then
       vim.cmd('qa!')
     else
-      -- Fallback to default q behavior - simulate default keymap
-      vim.cmd('normal! \\<C-\\>\\<C-N>q')
+      -- Close the Nexus buffer when other buffers exist
+      vim.cmd('bdelete')
     end
   end)
 end
@@ -431,8 +431,8 @@ function M.async_esc()
     if real_bufs == 0 then
       vim.cmd('qa!')
     else
-      -- Fallback to default Esc behavior - usually does nothing in normal mode
-      vim.cmd('normal! \\<Esc>')
+      -- Close the Nexus buffer when other buffers exist
+      vim.cmd('bdelete')
     end
   end)
 end
