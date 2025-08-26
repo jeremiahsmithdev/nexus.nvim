@@ -43,6 +43,9 @@ local default_config = {
     auto_refresh = 300,                 -- Auto-refresh interval in seconds (0 to disable)
     filter_by_repository = true,        -- Filter issues by current git repository project
     
+    -- Issue ordering and filtering
+    issue_order = nil,                  -- Status-based ordering: {"Todo", "In Progress", "Done"} or nil for all
+    
     -- Cache settings
     cache = {
       issues_ttl = 300,                 -- Issues cache TTL (5 minutes)
@@ -159,6 +162,41 @@ function M.setup(user_config)
     elseif #config.logo_color == 0 then
       logger.warn("CONFIG", "logo_color cannot be empty, using default 'String'")
       config.logo_color = "String"
+    end
+  end
+  
+  -- Validate Linear configuration
+  if config.linear and config.linear.issue_order ~= nil then
+    if type(config.linear.issue_order) ~= "table" then
+      logger.warn("CONFIG", "linear.issue_order must be a table, disabling filtering", {
+        provided_value = config.linear.issue_order,
+        provided_type = type(config.linear.issue_order)
+      })
+      config.linear.issue_order = nil
+    elseif #config.linear.issue_order == 0 then
+      logger.warn("CONFIG", "linear.issue_order is empty, disabling filtering")
+      config.linear.issue_order = nil
+    else
+      -- Validate that all items are strings
+      local valid_order = {}
+      for i, status in ipairs(config.linear.issue_order) do
+        if type(status) == "string" and #status > 0 then
+          table.insert(valid_order, status)
+        else
+          logger.warn("CONFIG", "Invalid status in linear.issue_order, skipping", {
+            status = status,
+            index = i,
+            type = type(status)
+          })
+        end
+      end
+      
+      if #valid_order == 0 then
+        logger.warn("CONFIG", "No valid statuses in linear.issue_order, disabling filtering")
+        config.linear.issue_order = nil
+      else
+        config.linear.issue_order = valid_order
+      end
     end
   end
   

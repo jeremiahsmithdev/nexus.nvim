@@ -179,7 +179,15 @@ function LinearProvider:get_issues(opts)
   local success, result = self:_make_request({ query = query })
   
   if success and result and result.data and result.data.issues then
-    return result.data.issues.nodes
+    local issues = result.data.issues.nodes
+    
+    -- Apply status-based filtering and ordering if configured
+    local config = require('nexus.config').get()
+    if config.linear and config.linear.issue_order then
+      issues = self:_filter_and_order_issues(issues, config.linear.issue_order)
+    end
+    
+    return issues
   else
     local error_msg = result and result.errors and result.errors[1] and result.errors[1].message or "Failed to fetch issues"
     return nil, error_msg
@@ -382,6 +390,12 @@ function LinearProvider:update_issue(id, data)
           identifier
           title
           url
+          state {
+            id
+            name
+            color
+            type
+          }
         }
       }
     }
@@ -428,6 +442,93 @@ function LinearProvider:health_check()
   else
     return false, "Health check failed: " .. (error_msg or "Unknown error")
   end
+end
+
+-- Filter and order issues by status
+---@param issues table List of Linear issues
+---@param issue_order table Ordered list of status names to include
+---@return table filtered_issues
+function LinearProvider:_filter_and_order_issues(issues, issue_order)
+  local logger = require('nexus.logger')
+  
+  if not issues or #issues == 0 then
+    return issues
+  end
+  
+  logger.debug('LINEAR', 'Filtering and ordering issues', { 
+    total_issues = #issues,
+    issue_order = issue_order 
+  })
+  
+  -- Group issues by status name
+  local issues_by_status = {}
+  local unmatched_issues = {}
+  
+  for _, issue in ipairs(issues) do
+    local status_name = issue.state and issue.state.name or "Unknown"
+    
+    -- Check if this status is in our desired order
+    local status_included = false
+    for _, desired_status in ipairs(issue_order) do
+      if status_name == desired_status then
+        status_included = true
+        break
+      end
+    end
+    
+    if status_included then
+      if not issues_by_status[status_name] then
+        issues_by_status[status_name] = {}
+      end
+      table.insert(issues_by_status[status_name], issue)
+    else
+      table.insert(unmatched_issues, { issue = issue, status = status_name })
+    end
+  end
+  
+  -- Log excluded issues for debugging
+  if #unmatched_issues > 0 then
+    local excluded_statuses = {}
+    for _, item in ipairs(unmatched_issues) do
+      if not excluded_statuses[item.status] then
+        excluded_statuses[item.status] = 0
+      end
+      excluded_statuses[item.status] = excluded_statuses[item.status] + 1
+    end
+    logger.debug('LINEAR', 'Issues excluded by status filter', excluded_statuses)
+  end
+  
+  -- Build result in the specified order
+  local ordered_issues = {}
+  for _, status_name in ipairs(issue_order) do
+    local status_issues = issues_by_status[status_name] or {}
+    
+    -- Sort by updatedAt within each status (most recent first)
+    table.sort(status_issues, function(a, b)
+      if not a.updatedAt or not b.updatedAt then
+        return false
+      end
+      return a.updatedAt > b.updatedAt
+    end)
+    
+    -- Add to result
+    for _, issue in ipairs(status_issues) do
+      table.insert(ordered_issues, issue)
+    end
+    
+    logger.debug('LINEAR', 'Added status group to results', { 
+      status = status_name,
+      count = #status_issues 
+    })
+  end
+  
+  logger.info('LINEAR', 'Issue filtering complete', { 
+    original_count = #issues,
+    filtered_count = #ordered_issues,
+    excluded_count = #unmatched_issues 
+  })
+  
+  return ordered_issues
 end
 
 -- Private helper methods
