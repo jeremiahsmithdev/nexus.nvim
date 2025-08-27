@@ -259,9 +259,8 @@ function M.edit_linear_issue_description(popup_buf, issue, description_start_lin
     noremap = true,
     silent = true,
     callback = function()
-      -- Clean up the edit buffer completely
-      pcall(vim.api.nvim_buf_set_name, popup_buf, '')
-      pcall(vim.api.nvim_buf_set_option, popup_buf, 'buftype', 'nofile')
+      -- Clean up the edit buffer using our cleanup function
+      M.cleanup_edit_buffer(popup_buf, buffer_name)
       
       -- Cancel editing - close popup
       vim.cmd('close')
@@ -279,6 +278,15 @@ function M.edit_linear_issue_description(popup_buf, issue, description_start_lin
       M.save_linear_issue_description(popup_buf, issue, description_start_line, description_end_line, config)
     end,
     desc = 'Save Linear issue description with :w'
+  })
+  
+  -- Add cleanup on window close to ensure no leftover files
+  vim.api.nvim_create_autocmd({'WinClosed', 'BufUnload'}, {
+    buffer = popup_buf,
+    callback = function()
+      M.cleanup_edit_buffer(popup_buf, buffer_name)
+    end,
+    desc = 'Clean up Linear edit buffer on close'
   })
   
   -- Extract current description content
@@ -352,6 +360,21 @@ function M.edit_linear_issue_description(popup_buf, issue, description_start_lin
   vim.notify("Edit description - Ctrl-S to save, Esc to cancel", vim.log.levels.INFO)
 end
 
+--- Clean up edit buffer and any temporary files
+---@param popup_buf number The popup buffer
+---@param buffer_name string The buffer name to clean up
+function M.cleanup_edit_buffer(popup_buf, buffer_name)
+  -- Reset buffer to prevent file creation
+  pcall(vim.api.nvim_buf_set_name, popup_buf, '')
+  pcall(vim.api.nvim_buf_set_option, popup_buf, 'buftype', 'nofile')
+  
+  -- Clean up any existing temp files
+  pcall(vim.fn.delete, '"no current target"')
+  if buffer_name then
+    pcall(vim.fn.delete, buffer_name)
+  end
+end
+
 --- Save edited Linear issue description
 ---@param popup_buf number The popup buffer
 ---@param issue table The Linear issue object
@@ -389,9 +412,9 @@ function M.save_linear_issue_description(popup_buf, issue, description_start_lin
     
     vim.notify("✅ Description saved successfully!", vim.log.levels.INFO)
     
-    -- Clean up the edit buffer completely
-    pcall(vim.api.nvim_buf_set_name, popup_buf, '')
-    pcall(vim.api.nvim_buf_set_option, popup_buf, 'buftype', 'nofile')
+    -- Clean up the edit buffer using our cleanup function
+    local buffer_name = 'linear-desc-' .. issue.identifier
+    M.cleanup_edit_buffer(popup_buf, buffer_name)
     
     -- Refresh Linear data
     linear_state.refresh_data(config)
