@@ -3,19 +3,10 @@ local M = {}
 local center = require('nexus.ui.center')
 local logo = require('nexus.ui.logo')
 
--- Get the actual display width (tmux pane width if in tmux, otherwise vim width)
+-- Get the actual display width (current window width, not tmux pane width)
 function M.get_display_width()
-  local width = vim.fn.winwidth(0) -- default to vim width
-  
-  if vim.env.TMUX then
-    local pane_width = vim.fn.system("tmux display-message -p '#{pane_width}'"):gsub('\n', '')
-    local tmux_width = tonumber(pane_width)
-    if tmux_width then
-      width = tmux_width
-    end
-  end
-  
-  return width
+  -- Always use the current Neovim window width for proper split support
+  return vim.fn.winwidth(0)
 end
 
 -- Layout sections with proper alignment
