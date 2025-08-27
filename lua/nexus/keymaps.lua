@@ -342,6 +342,59 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
     end
   })
   
+  -- Section navigation with { and } - jump to first actionable line of previous/next section
+  vim.api.nvim_buf_set_keymap(buf, 'n', '{', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      local current_line = vim.api.nvim_win_get_cursor(0)[1]
+      local current_section = M.get_current_section(lines, current_line, config)
+      
+      -- Find previous section header
+      for i = current_line - 1, 1, -1 do
+        local line = lines[i]
+        if line and line:match("^%s*[^%s].*:%s*$") then
+          local section = M.get_current_section(lines, i, config)
+          if section ~= current_section then
+            -- Found different section, move to its first actionable line
+            vim.api.nvim_win_set_cursor(0, {i + 1, 0})
+            move_to_next_actionable(1)
+            return
+          end
+        end
+      end
+      -- No previous section, go to top
+      vim.cmd('normal! gg')
+    end
+  })
+  
+  vim.api.nvim_buf_set_keymap(buf, 'n', '}', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      local current_line = vim.api.nvim_win_get_cursor(0)[1]
+      local current_section = M.get_current_section(lines, current_line, config)
+      
+      -- Find next section header
+      for i = current_line + 1, #lines do
+        local line = lines[i]
+        if line and line:match("^%s*[^%s].*:%s*$") then
+          local section = M.get_current_section(lines, i, config)
+          if section ~= current_section then
+            -- Found different section, move to its first actionable line
+            vim.api.nvim_win_set_cursor(0, {i + 1, 0})
+            move_to_next_actionable(1)
+            return
+          end
+        end
+      end
+      -- No next section, go to end
+      vim.cmd('normal! G')
+    end
+  })
+  
   -- Git-specific keymaps (only in git repositories)
   if is_git_repo then
     vim.api.nvim_buf_set_keymap(buf, 'n', 'r', '', {
