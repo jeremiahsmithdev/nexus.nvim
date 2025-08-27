@@ -227,25 +227,41 @@ function M.setup_api_key(config, callback)
   end)
 end
 
---- Handle Linear status update for current issue
-function M.handle_status_update(buf, render_callback, config)
+--- Get current Linear issue from cursor position
+function M.get_current_issue_from_cursor(buf)
   local cursor = vim.api.nvim_win_get_cursor(0)
   local line_num = cursor[1]
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local current_line = lines[line_num]
   
-  if not current_line then return end
+  if not current_line then return nil end
   
   local is_issue, identifier = linear_component.is_linear_issue_line(current_line)
   if is_issue and identifier then
     local issues = linear_state.get_issues()
-    local issue = linear_component.get_issue_from_line(current_line, issues)
-    if issue then
-      -- Use existing Linear status update functionality
-      -- This would typically involve showing status selection UI
-      vim.notify("Linear status update - functionality available in popup (Enter -> 's')", vim.log.levels.INFO)
-    end
+    return linear_component.get_issue_from_line(current_line, issues)
   end
+  
+  return nil
+end
+
+--- Handle Linear status update for current issue
+function M.handle_status_update(buf, render_callback, config)
+  local issue = M.get_current_issue_from_cursor(buf)
+  if not issue then
+    return
+  end
+  
+  logger.info('LINEAR', 'Starting status update', {
+    identifier = issue.identifier,
+    current_status = issue.state and issue.state.name
+  })
+  
+  -- Show status selection modal
+  M.show_status_selection_modal(issue, config, function()
+    -- Re-render buffer after successful status update
+    render_callback(buf)
+  end)
 end
 
 --- Handle Linear project selection 
@@ -424,6 +440,86 @@ function M.show_project_selection_modal(config, callback)
       M.show_team_projects_selection(provider, selected_team, config, callback)
     else
       logger.debug('LINEAR', 'Team selection cancelled')
+    end
+  end)
+end
+
+--- Show status selection modal for issue  
+function M.show_status_selection_modal(issue, config, callback)
+  logger.info('LINEAR', 'Showing status selection modal', {
+    identifier = issue.identifier
+  })
+  
+  -- Get available states from cached provider
+  local states = linear_state.get_cached_states(config, issue.team and issue.team.id)
+  
+  if not states then
+    vim.notify("Failed to fetch available states", vim.log.levels.ERROR)
+    return
+  end
+  
+  if #states == 0 then
+    vim.notify("No states available for this team", vim.log.levels.WARN)
+    return
+  end
+  
+  -- Sort states by position (as in original implementation)
+  table.sort(states, function(a, b)
+    return (a.position or 999) < (b.position or 999)
+  end)
+  
+  -- Create status selection menu
+  local status_options = {}
+  local current_status_idx = nil
+  
+  for i, state in ipairs(states) do
+    local display_name = state.name
+    if issue.state and issue.state.id == state.id then
+      display_name = display_name .. " (current)"
+      current_status_idx = i
+    end
+    table.insert(status_options, display_name)
+  end
+  
+  -- Show selection using vim.ui.select
+  vim.ui.select(status_options, {
+    prompt = string.format("Select new status for %s:", issue.identifier),
+    format_item = function(item)
+      return "  " .. item
+    end,
+  }, function(choice, idx)
+    if choice and idx then
+      local selected_state = states[idx]
+      if selected_state and (not issue.state or selected_state.id ~= issue.state.id) then
+        logger.info('LINEAR', 'Status selected', {
+          identifier = issue.identifier,
+          new_status = selected_state.name,
+          new_status_id = selected_state.id
+        })
+        
+        -- Use the linear_state update method for consistency
+        linear_state.update_issue_status(issue.id, selected_state.id, config, function(success, result)
+          if success then
+            vim.notify(string.format("✅ %s status updated to: %s", 
+              result.identifier, 
+              result.state.name), 
+              vim.log.levels.INFO)
+            
+            if callback then
+              callback()
+            end
+          else
+            vim.notify(string.format("❌ Failed to update %s: %s", 
+              issue.identifier, 
+              result or "Unknown error"), 
+              vim.log.levels.ERROR)
+          end
+        end)
+      else
+        logger.debug('LINEAR', 'Same status selected, no change needed')
+      end
+    else
+      logger.debug('LINEAR', 'Status selection cancelled')
     end
   end)
 end
