@@ -85,8 +85,10 @@ function LinearProvider:get_issues(opts)
   end
   
   opts = opts or {}
-  local limit = opts.limit or 50
+  local per_page = 50  -- Linear's recommended page size
+  local max_total = opts.limit or 200
   local team_filter = self.team_id and ('team: { id: { eq: "' .. self.team_id .. '" } }') or ""
+  local logger = require('nexus.logger')
   
   -- Add project filter - prioritize explicit project_id over repository name
   local project_filter = ""
@@ -97,8 +99,6 @@ function LinearProvider:get_issues(opts)
       project_filter = ", " .. project_filter
     end
     
-    -- Add debug logging
-    local logger = require('nexus.logger')
     logger.debug('LINEAR', 'Filtering issues by explicit project ID', { 
       project_id = self.project_id
     })
@@ -112,8 +112,6 @@ function LinearProvider:get_issues(opts)
         project_filter = ", " .. project_filter
       end
       
-      -- Add debug logging
-      local logger = require('nexus.logger')
       logger.debug('LINEAR', 'Filtering issues by repository project', { 
         repository = repo_name, 
         project_filter = project_name 
@@ -122,76 +120,116 @@ function LinearProvider:get_issues(opts)
   end
   
   local filter_string = team_filter .. project_filter
+  local all_issues = {}
+  local cursor = ""
+  local page_count = 0
   
-  local query = string.format([[
-    query {
-      issues(first: %d, filter: { %s }, orderBy: updatedAt) {
-        nodes {
-          id
-          identifier
-          title
-          description
-          state {
+  -- Fetch multiple pages
+  while #all_issues < max_total do
+    page_count = page_count + 1
+    
+    local after_clause = cursor ~= "" and string.format(', after: "%s"', cursor) or ""
+    local query = string.format([[
+      query {
+        issues(first: %d%s, filter: { %s }, orderBy: updatedAt) {
+          nodes {
             id
-            name
-            type
-          }
-          priority
-          estimate
-          assignee {
-            id
-            name
-            email
-          }
-          team {
-            id
-            name
-            key
-          }
-          project {
-            id
-            name
-          }
-          cycle {
-            id
-            name
-            number
-          }
-          labels {
-            nodes {
+            identifier
+            title
+            description
+            state {
               id
               name
-              color
+              type
             }
+            priority
+            estimate
+            assignee {
+              id
+              name
+              email
+            }
+            team {
+              id
+              name
+              key
+            }
+            project {
+              id
+              name
+            }
+            cycle {
+              id
+              name
+              number
+            }
+            labels {
+              nodes {
+                id
+                name
+                color
+              }
+            }
+            createdAt
+            updatedAt
+            url
           }
-          createdAt
-          updatedAt
-          url
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
         }
       }
-    }
-  ]], limit, filter_string)
-  
-  local success, result = self:_make_request({ query = query })
-  
-  if success and result and result.data and result.data.issues then
-    local issues = result.data.issues.nodes
+    ]], per_page, after_clause, filter_string)
     
-    -- Apply status-based filtering and ordering if configured
-    local config = require('nexus.config').get()
-    if config.linear and config.linear.issue_order then
-      issues = self:_filter_and_order_issues(issues, config.linear.issue_order)
+    local success, result = self:_make_request({ query = query })
+    
+    if not success or not result or not result.data or not result.data.issues then
+      local error_msg = result and result.errors and result.errors[1] and result.errors[1].message or "Failed to fetch issues"
+      return nil, error_msg
     end
     
-    return issues
-  else
-    local error_msg = result and result.errors and result.errors[1] and result.errors[1].message or "Failed to fetch issues"
-    return nil, error_msg
+    local page_issues = result.data.issues.nodes
+    local page_info = result.data.issues.pageInfo
+    
+    logger.debug('LINEAR', 'Fetched page of issues', { 
+      page = page_count,
+      page_size = #page_issues,
+      total_so_far = #all_issues + #page_issues,
+      has_next_page = page_info.hasNextPage
+    })
+    
+    -- Add this page's issues
+    for _, issue in ipairs(page_issues) do
+      table.insert(all_issues, issue)
+    end
+    
+    -- Check if we should continue
+    if not page_info.hasNextPage or #page_issues == 0 then
+      break
+    end
+    
+    cursor = page_info.endCursor
+    
+    -- Safety limit - don't fetch more than 10 pages
+    if page_count >= 10 then
+      logger.warn('LINEAR', 'Reached maximum page limit', { pages_fetched = page_count })
+      break
+    end
   end
+  
+  logger.info('LINEAR', 'Completed paginated fetch', { 
+    total_issues = #all_issues,
+    pages_fetched = page_count
+  })
+  
+  -- Apply status-based filtering and ordering if configured
+  local config = require('nexus.config').get()
+  if config.linear and config.linear.issue_order then
+    all_issues = self:_filter_and_order_issues(all_issues, config.linear.issue_order)
+  end
+  
+  return all_issues
 end
 
 

@@ -20,6 +20,9 @@ function M.setup(user_config)
     local linear_state = require('nexus.state.linear')
     linear_state.init()
     
+    local todo_state = require('nexus.state.todo')
+    todo_state.init()
+    
     -- Initialize action system  
     local actions = require('nexus.actions')
     actions.init()

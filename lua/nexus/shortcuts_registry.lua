@@ -23,6 +23,14 @@ local shortcuts_registry = {
     {key = "<Enter>", action = "show commit"}
   },
   
+  todos = {
+    {key = "<Enter>", action = "details"},
+    {key = "c", action = "create"},
+    {key = "e", action = "edit"},
+    {key = "d", action = "done"},
+    {key = "D", action = "delete"}
+  },
+  
   claude_conversations = {
     {key = "<Enter>", action = "resume conversation"}
   },
@@ -31,6 +39,7 @@ local shortcuts_registry = {
   recent_commits_header = {},
   git_status_header = {},
   linear_issues_header = {},
+  todos_header = {},
   claude_conversations_header = {},
   
   -- Logo and keyboard shortcuts sections don't have specific actions

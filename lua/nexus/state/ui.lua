@@ -190,13 +190,26 @@ function M.detect_section_by_content(line_content)
     return "linear_issues"
   end
   
+  -- Check for todos
+  local todo_component = require('nexus.render.components.todo')
+  if todo_component.is_todo_line(line_content) then
+    return "todos"
+  end
+  
+  -- Check for todo messages
+  if line_content:match("No todos") or line_content:match("press 'c' to create") then
+    return "todos"
+  end
+  
   -- Check for section headers
   if line_content:match("Recent Commits:") then
     return "recent_commits_header"
   elseif line_content:match("Git Status:") then
     return "git_status_header"
   elseif line_content:match("Linear Issues:") then
-    return "linear_issues_header"  
+    return "linear_issues_header"
+  elseif line_content:match("Todo:") then
+    return "todos_header"  
   elseif line_content:match("Claude Conversations:") then
     return "claude_conversations_header"
   end
@@ -240,6 +253,15 @@ function M.is_actionable_line(section_name, line_content)
     return is_issue or 
            line_content:match("No API key found") or 
            line_content:match("Invalid API key")
+  end
+  
+  -- Todos are actionable
+  if section_name == "todos" then
+    local todo_component = require('nexus.render.components.todo')
+    -- Todo lines are actionable, and so are empty todo messages
+    return todo_component.is_todo_line(line_content) or 
+           line_content:match("No todos") or 
+           line_content:match("press 'c' to create")
   end
   
   return false

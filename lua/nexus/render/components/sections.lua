@@ -26,6 +26,12 @@ function M.build_sections(config, is_git_repo, files)
     end
   end
   
+  -- Todo section
+  if config.show_todos then
+    local todo_component = require('nexus.render.components.todo')
+    sections.todos = todo_component.build_todo_section(config)
+  end
+  
   -- Recent commits section
   if is_git_repo and config.show_recent_commits then
     local git_state = require('nexus.state.git')

@@ -14,9 +14,12 @@ local default_config = {
   recent_commits_count = 3,          -- Number of recent commits to show
   show_git_status = true,            -- Show git status section
   git_status_count = nil,            -- Limit git status files (nil = no limit)
+  show_todos = true,                 -- Show todo section
+  max_todos = 10,                    -- Maximum todos to show (nil = no limit)
   section_order = {                  -- Order of sections after logo
     "dashboard_buttons",
     "keyboard_shortcuts",
+    "todos",
     "recent_commits", 
     "git_status",
     "linear_issues",
@@ -97,6 +100,7 @@ function M.setup(user_config)
       local known_sections = {
         dashboard_buttons = true,
         keyboard_shortcuts = true,
+        todos = true,
         recent_commits = true,
         git_status = true,
         linear_issues = true,

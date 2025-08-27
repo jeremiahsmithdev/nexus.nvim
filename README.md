@@ -1,13 +1,45 @@
-- AI is like a bullet train
-- Git is like the train track with each commit representing a rung holding that rail up
-- Commit often
-- Use Nexus to keep you on task with your git commits, giving you a persistent visual reminder
-
 This plugin is built for people who are doing fast iteration with AI pair programming in Neovim.Or indeed anyone who ever finds them self developing faster than they commit and needs a constant visual reminder to commit their changes incrementally. 
+
+## Why?
+This plugin is especially designed for Neovim developers who are rapidly iterating and prototyping with AI code generation and may have multiple projects on the go at any one time.
+
+What problem does this solve?
+- Context switching between git and AI pair programming is a common challenge for developers.
+- Context switching between the terminal/editor and project management tools is a common challenge for developers
+
+- For example if you have two terminals open, one with Neovim for reviewing and editing code, and another with Claude Code for your AI pair programming,
+  - Nexus.nvim gives you quick access to git and project management software to help you stay on task without needing to leave Neovim or your terminal
+  - No need to open another pane/window. Stay in deep focus mode and continuously iterate with git and Linear
+
+I always wanted a central location in Neovim to see what is happening in my project so I finally created Nexus.nvim to serve this purpose.
+It shows my favourite git information in a clean, centered layout. No more continously running "git status" and "git log" and then forgetting how many features I have added since the last commit. This plugin has become an invaluable tool to curb bad git habits and hold me accountable with a constant visual reminder of where I am at and what I am working on.
+
+Commit first, commit often.
+
+- AI is like a bullet train
+- Git is like the train tracks with each commit a sleeper holidng the track up.
+- Use Nexus to keep you on task with your git commits, giving you a persistent visual reminder
 
 # Nexus.nvim
 
-A Neovim plugin that provides a git dashboard interface similar to popular dashboard plugins like alpha.nvim. It opens automatically on startup when no files are specified and displays git information in a clean, centered layout.
+A highly configurable Neovim plugin that provides a git dashboard interface similar to popular dashboard plugins. It can open automatically on startup or just when called with :Nexus depending on user preferneces.
+
+Nexus includes many configurable sections each of which can be enabled/disabled and reordered.
+Each section has its own keyboard shortcuts which are dynamically shown as subtle hints when your cursor is in that section.
+
+Sections included:
+- standard startup dashboard buttons
+  - new file, find file, find word, etc.
+- Git sections **(primary feature)**
+  - Recent commits
+  - Git status
+- Linear issues
+  - Create and update issues directly from Nexus
+
+Planned Sections:
+- Github Issues
+- Todo List
+- Todoist
 
 ## Features
 

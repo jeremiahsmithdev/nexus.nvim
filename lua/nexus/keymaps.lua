@@ -1,15 +1,83 @@
 local M = {}
 local logger = require('nexus.logger')
-
 local actions = require('nexus.actions')
-local git_command = require('nexus.git.command')
-local tmux = require('nexus.tmux')
-local linear_state = require('nexus.state.linear')
-local linear_component = require('nexus.render.components.linear')
-local git_state = require('nexus.state.git')
-local claude = require('nexus.claude')
-local logo = require('nexus.ui.logo')
 
+-- Section-specific keymap handlers
+local todo_keymaps = require('nexus.keymaps.todo')
+local linear_keymaps = require('nexus.keymaps.linear')
+local dashboard_keymaps = require('nexus.keymaps.dashboard')
+local git_keymaps = require('nexus.keymaps.git')
+local claude_keymaps = require('nexus.keymaps.claude')
+
+-- Keep legacy imports for existing functionality
+local linear_component = require('nexus.render.components.linear')
+local linear_state = require('nexus.state.linear')
+local todo_component = require('nexus.render.components.todo')
+local logo = require('nexus.ui.logo')
+local claude = require('nexus.claude')
+local tmux = require('nexus.tmux')
+local git_command = require('nexus.git.command')
+local git_state = require('nexus.state.git')
+
+
+--- Determine which section the cursor is currently in
+---@param lines table All buffer lines
+---@param line_num number Current cursor line number
+---@param config table Nexus configuration
+---@return string section_name The section the cursor is in
+function M.get_current_section(lines, line_num, config)
+  local current_line = lines[line_num]
+  if not current_line then return "unknown" end
+  
+  -- Look backwards from current line to find the section header
+  for i = line_num, 1, -1 do
+    local line = lines[i]
+    if line then
+      -- Check for section headers (end with colon)
+      if line:match("^%s*Linear Issues:%s*$") then
+        return "linear"
+      elseif line:match("^%s*Todo:%s*$") then
+        return "todo"
+      elseif line:match("^%s*Recent Commits:%s*$") then
+        return "commits"
+      elseif line:match("^%s*Git Status:%s*$") then
+        return "git_status"
+      elseif line:match("^%s*Dashboard:%s*$") or line:match("Find file") or line:match("Recently opened files") then
+        return "dashboard"
+      elseif line:match("^%s*Keyboard Shortcuts:%s*$") then
+        return "shortcuts"
+      end
+    end
+  end
+  
+  -- If no section header found, determine by line content
+  if current_line:match("Find file") or current_line:match("Recently opened files") or 
+     current_line:match("Find word") or current_line:match("New file") or
+     current_line:match("Bookmarks") or current_line:match("Restore session") then
+    return "dashboard"
+  elseif current_line:match("^ %d+%.") then
+    return "claude_conversations"
+  elseif current_line:match("%s+[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+") then
+    return "commits"
+  elseif current_line:match("^%s*[MADRCU?][MADRCU?]? ") then
+    return "git_status"
+  elseif config.linear and config.linear.enabled then
+    local linear_component = require('nexus.render.components.linear')
+    local is_issue, _ = linear_component.is_linear_issue_line(current_line)
+    if is_issue then
+      return "linear"
+    end
+  end
+  
+  if config.show_todos then
+    local todo_component = require('nexus.render.components.todo')
+    if todo_component.is_todo_line(current_line) then
+      return "todo"
+    end
+  end
+  
+  return "unknown"
+end
 
 --- Handle Enter key press in Nexus buffer
 function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
@@ -20,102 +88,131 @@ function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local current_line = lines[line_num]
   
-  -- Check if it's a dashboard button line
-  if config.show_dashboard_buttons and current_line and current_line:match("Find file") then
+  if not current_line then return end
+  
+  -- Determine which section we're in
+  local section = M.get_current_section(lines, line_num, config)
+  
+  -- Handle based on section
+  if section == "dashboard" then
+    dashboard_keymaps.handle_enter(current_line, config)
+    
+  elseif section == "claude_conversations" then
+    claude_keymaps.handle_enter(current_line, config)
+    
+  elseif section == "commits" then
+    git_keymaps.handle_enter_commits(current_line)
+    
+  elseif section == "git_status" and is_git_repo then
+    git_keymaps.handle_enter_git_status(current_line, config)
+    
+  elseif section == "linear" then
+    linear_keymaps.handle_enter(current_line, config, buf, render_callback)
+    
+  elseif section == "todo" then
+    todo_keymaps.handle_enter(current_line, line_num, config)
+    
+  else
+    logger.debug('KEYMAP', 'Enter key pressed in unknown section', { 
+      section = section, 
+      line = current_line 
+    })
+  end
+end
+
+--- Handle Enter key in dashboard section
+function M.handle_enter_dashboard(current_line, config)
+  if current_line:match("Find file") then
     M.handle_dashboard_action(config, 'Telescope find_files')
-  elseif config.show_dashboard_buttons and current_line and current_line:match("Recently opened files") then
+  elseif current_line:match("Recently opened files") then
     M.handle_dashboard_action(config, 'Telescope oldfiles')
-  elseif config.show_dashboard_buttons and current_line and current_line:match("Find word") then
+  elseif current_line:match("Find word") then
     M.handle_dashboard_action(config, 'Telescope live_grep')
-  elseif config.show_dashboard_buttons and current_line and current_line:match("New file") then
+  elseif current_line:match("New file") then
     M.handle_dashboard_action(config, 'enew')
-  elseif config.show_dashboard_buttons and current_line and current_line:match("Bookmarks") then
+  elseif current_line:match("Bookmarks") then
     M.handle_dashboard_action(config, 'Telescope marks')
-  elseif config.show_dashboard_buttons and current_line and current_line:match("Restore session") then
-    -- Basic session restore - could be enhanced with session manager
+  elseif current_line:match("Restore session") then
     if vim.fn.filereadable('Session.vim') == 1 then
       M.handle_dashboard_action(config, 'source Session.vim')
     else
       logger.warn('SESSION', 'No session file found')
     end
-  -- Check if it's a Claude conversation line (format: " N. ...")
-  elseif config.show_claude_conversations and current_line and current_line:match("^ %d+%.") then
-    -- Extract session ID and send /resume command
-    local conversations = claude.get_claude_conversations(config)
-    local line_index = current_line:match("^ (%d+)%.")
-    if line_index then
-      local conv_index = tonumber(line_index)
-      if conv_index and conversations[conv_index] then
-        tmux.send_resume_to_claude(conversations[conv_index].session_id)
-      end
+  end
+end
+
+--- Handle Enter key in Claude conversations section
+function M.handle_enter_claude_conversations(current_line, config)
+  local conversations = claude.get_claude_conversations(config)
+  local line_index = current_line:match("^ (%d+)%.")
+  if line_index then
+    local conv_index = tonumber(line_index)
+    if conv_index and conversations[conv_index] then
+      tmux.send_resume_to_claude(conversations[conv_index].session_id)
     end
-  -- Check if it's a commit line (recent commits section)
-  elseif is_git_repo and current_line and current_line:match("%s+[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+") then
-    M.show_commit_details(current_line)
-  -- Check if it's a git status line (only in git repos) - CHECK THIS BEFORE LINEAR
-  elseif is_git_repo and current_line and current_line:match("^%s*[MADRCU?][MADRCU?]? ") then
-    -- This is a git status line - extract filename and open file
-    -- Format is "  MM filename" or "  ?? filename" etc. with variable spacing
-    local filename = current_line:match("^%s*[MADRCU?][MADRCU?]? (.-)%s+%+") or 
-                    current_line:match("^%s*[MADRCU?][MADRCU?]? (.-)%s+%-") or
-                    current_line:match("^%s*[MADRCU?][MADRCU?]? (.+)$")
-    if filename then
-      filename = filename:gsub("%s+$", "")
-    end
+  end
+end
+
+--- Handle Enter key in commits section
+function M.handle_enter_commits(current_line)
+  M.show_commit_details(current_line)
+end
+
+--- Handle Enter key in git status section
+function M.handle_enter_git_status(current_line, config)
+  local filename = current_line:match("^%s*[MADRCU?][MADRCU?]? (.-)%s+%+") or 
+                  current_line:match("^%s*[MADRCU?][MADRCU?]? (.-)%s+%-") or
+                  current_line:match("^%s*[MADRCU?][MADRCU?]? (.+)$")
+  if filename then
+    filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
     
-    if filename then
-      filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
-      
-      local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
-      local full_path = git_root and (git_root .. '/' .. filename) or filename
-      
-      -- Get the first changed line number using git diff
-      local first_line = M.get_first_changed_line(filename)
-      local goto_line = first_line and (' | ' .. first_line) or ''
-      
-      local edit_cmd = 'edit ' .. vim.fn.fnameescape(full_path) .. ' | set number | set signcolumn=yes' .. goto_line
-      M.handle_dashboard_action(config, edit_cmd)
-    end
-  -- Check if it's a Linear issue line or error line
-  elseif config.linear and config.linear.enabled and current_line then
-    local is_issue, identifier = linear_component.is_linear_issue_line(current_line)
+    local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+    local full_path = git_root and (git_root .. '/' .. filename) or filename
     
-    logger.debug('LINEAR', 'Checking Linear line', {
-      current_line = current_line,
-      is_issue = is_issue,
-      identifier = identifier
-    })
+    local first_line = M.get_first_changed_line(filename)
+    local goto_line = first_line and (' | ' .. first_line) or ''
     
-    if is_issue and identifier then
-      -- Get issue data and open in browser
-          local issues = linear_state.get_issues()
-      
-      logger.debug('LINEAR', 'Found Linear issue', {
-        identifier = identifier,
-        issues_count = issues and #issues or 0
+    local edit_cmd = 'edit ' .. vim.fn.fnameescape(full_path) .. ' | set number | set signcolumn=yes' .. goto_line
+    M.handle_dashboard_action(config, edit_cmd)
+  end
+end
+
+--- Handle Enter key in Linear section
+function M.handle_enter_linear(current_line, config, buf, render_callback)
+  if current_line:match("No API key found") or current_line:match("Invalid API key") then
+    logger.info('LINEAR', 'Triggering API key setup')
+    M.setup_linear_api_key(config, function()
+      render_callback(buf)
+    end)
+    return
+  end
+  
+  local is_issue, identifier = linear_component.is_linear_issue_line(current_line)
+  if is_issue and identifier then
+    local issues = linear_state.get_issues()
+    local issue = linear_component.get_issue_from_line(current_line, issues)
+    if issue and issue.url then
+      logger.info('LINEAR', 'Opening Linear issue', {
+        identifier = issue.identifier,
+        url = issue.url
       })
-      
-      local issue = linear_component.get_issue_from_line(current_line, issues)
-      if issue and issue.url then
-        logger.info('LINEAR', 'Opening Linear issue', {
-          identifier = issue.identifier,
-          url = issue.url
-        })
-        M.show_linear_issue_details(issue, config)
-      else
-        logger.warn('LINEAR', 'Could not find issue data', {
-          identifier = identifier,
-          issue = issue
-        })
-      end
-    elseif current_line:match("No API key found") or current_line:match("Invalid API key") then
-      -- Handle API key setup
-      logger.info('LINEAR', 'Triggering API key setup')
-      M.setup_linear_api_key(config, function()
-        render_callback(buf)
-      end)
+      M.show_linear_issue_details(issue, config)
     else
-      logger.warn('LINEAR', 'Linear line detected but no action matched', { line = current_line })
+      logger.warn('LINEAR', 'Could not find issue data', {
+        identifier = identifier,
+        issue = issue
+      })
+    end
+  end
+end
+
+--- Handle Enter key in todo section
+function M.handle_enter_todo(current_line, line_num, config)
+  local todo_id = todo_component.get_todo_id_from_line_num(line_num)
+  if todo_id then
+    local todo = todo_state.get_todo_by_id(todo_id)
+    if todo then
+      M.show_todo_details(todo, config)
     end
   end
 end
@@ -138,13 +235,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
     end
   })
   
-  vim.api.nvim_buf_set_keymap(buf, 'n', '<Esc>', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      M.async_esc()
-    end
-  })
+  -- Note: <Esc> keymap removed to prevent accidental quitting
   
   -- Calculate logo section end (just logo, NOT buttons)
   local logo_lines = logo.get_neovim_logo(config)
@@ -285,48 +376,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
       noremap = true,
       silent = true,
       callback = function()
-        -- Check if we're in Linear section first (if Linear is enabled)
-        if config.linear and config.linear.enabled then
-          local cursor = vim.api.nvim_win_get_cursor(0)
-          local line_num = cursor[1]
-          local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-          local current_line = lines[line_num]
-          
-          if current_line then
-            local in_linear_section = false
-            
-            if current_line:match("Linear Issues:") then
-              in_linear_section = true
-            else
-              local linear_component = require('nexus.render.components.linear')
-              local is_issue, _ = linear_component.is_linear_issue_line(current_line)
-              if is_issue then
-                in_linear_section = true
-              else
-                if current_line:match("Loading issues") or 
-                   current_line:match("No issues found") or 
-                   current_line:match("No API key") or 
-                   current_line:match("Invalid API key") then
-                  in_linear_section = true
-                end
-              end
-            end
-            
-            if in_linear_section then
-              -- Handle Linear create issue
-              M.handle_linear_create_issue(buf, render_callback, config)
-              return
-            end
-          end
-        end
-        
-        -- Default: Use actions system for git commit window
-        actions.execute('git.commit', {
-          interactive = true,
-          refresh_callback = function()
-            render_callback(buf)
-          end
-        })
+        M.handle_c_key(buf, render_callback, config)
       end
     })
     
@@ -342,6 +392,33 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
         end)
       end
     })
+    
+    -- Todo-specific keymaps (available in git repos since todos are stored there)
+    if config.show_todos then
+      vim.api.nvim_buf_set_keymap(buf, 'n', 'e', '', {
+        noremap = true,
+        silent = true,
+        callback = function()
+          M.handle_e_key(buf, render_callback, config)
+        end
+      })
+      
+      vim.api.nvim_buf_set_keymap(buf, 'n', 'd', '', {
+        noremap = true,
+        silent = true,
+        callback = function()
+          M.handle_d_key(buf, render_callback, config)
+        end
+      })
+      
+      vim.api.nvim_buf_set_keymap(buf, 'n', 'D', '', {
+        noremap = true,
+        silent = true,
+        callback = function()
+          M.handle_D_key(buf, render_callback, config)
+        end
+      })
+    end
   end
   
   -- Linear-specific keymaps (section-aware)
@@ -1690,5 +1767,266 @@ function M.get_first_changed_line(filename)
   return nil
 end
 
+-- Handle 'c' key - context-aware create (git commit, Linear issue, or todo)
+function M.handle_c_key(buf, render_callback, config)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  if not current_line then return end
+  
+  -- Determine which section we're in
+  local section = M.get_current_section(lines, line_num, config)
+  
+  -- Handle based on section
+  if section == "linear" then
+    linear_keymaps.handle_create(buf, render_callback, config)
+  elseif section == "todo" then
+    todo_keymaps.handle_create(buf, render_callback, config)
+  else
+    -- Default: git commit
+    actions.execute('git.commit', {
+      interactive = true,
+      refresh_callback = function()
+        render_callback(buf)
+      end
+    })
+  end
+end
+
+-- Handle 'e' key - edit todo
+function M.handle_e_key(buf, render_callback, config)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  if not current_line then return end
+  
+  -- Determine which section we're in
+  local section = M.get_current_section(lines, line_num, config)
+  
+  -- Only handle 'e' key in todo section
+  if section == "todo" then
+    local todo_id = todo_component.get_todo_id_from_line_num(line_num)
+    if todo_id then
+      todo_keymaps.handle_edit(todo_id, buf, render_callback, config)
+    end
+  end
+end
+
+-- Handle 'd' key - mark todo as done
+function M.handle_d_key(buf, render_callback, config)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  if not current_line then return end
+  
+  -- Determine which section we're in
+  local section = M.get_current_section(lines, line_num, config)
+  
+  -- Only handle 'd' key in todo section
+  if section == "todo" then
+    local todo_id = todo_component.get_todo_id_from_line_num(line_num)
+    if todo_id then
+      todo_keymaps.handle_done(todo_id, buf, render_callback, config)
+    end
+  end
+end
+
+-- Check if cursor is in the Todo section
+function M.is_in_todo_section(lines, line_num)
+  -- Look backwards for section headers
+  for i = line_num, 1, -1 do
+    local line = lines[i]
+    if line then
+      if line:match("^Todo:") then
+        return true
+      elseif line:match("^[%w%s]+:$") and not line:match("^Todo:") then
+        -- Hit another section header
+        return false
+      end
+    end
+  end
+  return false
+end
+
+-- Handle todo creation
+function M.handle_todo_create(buf, render_callback, config)
+  vim.ui.input({
+    prompt = 'New todo: '
+  }, function(text)
+    if not text or text:match('^%s*$') then
+      return
+    end
+    
+    actions.execute('todo.create', {
+      text = text
+    })
+    -- Refresh the buffer after creating
+    render_callback(buf)
+  end)
+end
+
+-- Handle todo editing
+function M.handle_todo_edit(todo_id, buf, render_callback, config)
+  local todo = todo_state.get_todo_by_id(todo_id)
+  if not todo then
+    vim.notify("Todo not found", vim.log.levels.ERROR)
+    return
+  end
+  
+  vim.ui.input({
+    prompt = 'Edit todo: ',
+    default = todo.text
+  }, function(text)
+    if not text or text:match('^%s*$') then
+      return
+    end
+    
+    actions.execute('todo.edit', {
+      id = todo_id,
+      text = text
+    })
+    -- Refresh the buffer after editing
+    render_callback(buf)
+  end)
+end
+
+-- Handle todo completion
+function M.handle_todo_done(todo_id, buf, render_callback, config)
+  local todo = todo_state.get_todo_by_id(todo_id)
+  if not todo then
+    vim.notify("Todo not found", vim.log.levels.ERROR)
+    return
+  end
+  
+  if todo.completed then
+    vim.notify("Todo already completed", vim.log.levels.INFO)
+    return
+  end
+  
+  actions.execute('todo.done', {
+    id = todo_id
+  })
+  -- Refresh the buffer after marking done
+  render_callback(buf)
+end
+
+-- Handle 'D' key - delete todo
+function M.handle_D_key(buf, render_callback, config)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  if not current_line then return end
+  
+  -- Determine which section we're in
+  local section = M.get_current_section(lines, line_num, config)
+  
+  -- Only handle 'D' key in todo section
+  if section == "todo" then
+    local todo_id = todo_component.get_todo_id_from_line_num(line_num)
+    if todo_id then
+      todo_keymaps.handle_delete(todo_id, buf, render_callback, config)
+    end
+  end
+end
+
+-- Handle todo deletion  
+function M.handle_todo_delete(todo_id, buf, render_callback, config)
+  local todo = todo_state.get_todo_by_id(todo_id)
+  if not todo then
+    vim.notify("Todo not found", vim.log.levels.ERROR)
+    return
+  end
+  
+  -- Confirm deletion
+  vim.ui.select({'Yes', 'No'}, {
+    prompt = string.format('Delete todo: "%s"?', todo.text)
+  }, function(choice)
+    if choice == 'Yes' then
+      actions.execute('todo.delete', {
+        id = todo_id
+      })
+      -- Refresh the buffer after deleting
+      render_callback(buf)
+    end
+  end)
+end
+
+-- Show todo details popup
+function M.show_todo_details(todo, config)
+  local todo_details = {}
+  
+  -- Header
+  table.insert(todo_details, string.format("Todo: %s", todo.text))
+  table.insert(todo_details, string.rep("=", #todo_details[1]))
+  table.insert(todo_details, "")
+  
+  -- Status
+  local status = todo.completed and "✅ Completed" or "⭕ Active"
+  table.insert(todo_details, "Status: " .. status)
+  
+  -- Dates
+  local created_date = os.date("%Y-%m-%d %H:%M", todo.created_at)
+  table.insert(todo_details, "Created: " .. created_date)
+  
+  if todo.updated_at ~= todo.created_at then
+    local updated_date = os.date("%Y-%m-%d %H:%M", todo.updated_at)
+    table.insert(todo_details, "Updated: " .. updated_date)
+  end
+  
+  -- Create popup buffer
+  local popup_buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_option(popup_buf, 'buftype', 'nofile')
+  vim.api.nvim_buf_set_option(popup_buf, 'swapfile', false)
+  vim.api.nvim_buf_set_option(popup_buf, 'modifiable', true)
+  
+  vim.api.nvim_buf_set_lines(popup_buf, 0, -1, false, todo_details)
+  vim.api.nvim_buf_set_option(popup_buf, 'modifiable', false)
+  
+  -- Calculate popup size
+  local max_width = 60
+  local max_height = 20
+  local actual_width = math.min(max_width, math.max(30, #todo_details > 0 and math.max(unpack(vim.tbl_map(function(line) return #line end, todo_details))) or 30))
+  local actual_height = math.min(max_height, math.max(8, #todo_details))
+  
+  -- Calculate popup position
+  local screen_width = vim.api.nvim_get_option('columns')
+  local screen_height = vim.api.nvim_get_option('lines')
+  local col = math.floor((screen_width - actual_width) / 2)
+  local row = math.floor((screen_height - actual_height) / 2)
+  
+  -- Create popup window
+  local popup_opts = {
+    relative = 'editor',
+    width = actual_width,
+    height = actual_height,
+    col = col,
+    row = row,
+    style = 'minimal',
+    border = 'rounded',
+    title = ' Todo Details ',
+    title_pos = 'center'
+  }
+  
+  local popup_win = vim.api.nvim_open_win(popup_buf, true, popup_opts)
+  
+  -- Set popup window options
+  vim.api.nvim_win_set_option(popup_win, 'wrap', true)
+  vim.api.nvim_win_set_option(popup_win, 'number', false)
+  vim.api.nvim_win_set_option(popup_win, 'relativenumber', false)
+  vim.api.nvim_win_set_option(popup_win, 'cursorline', true)
+  
+  -- Set up keymaps to close popup
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', 'q', '<cmd>close<CR>', {noremap = true, silent = true})
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<Esc>', '<cmd>close<CR>', {noremap = true, silent = true})
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<CR>', '<cmd>close<CR>', {noremap = true, silent = true})
+end
 
 return M

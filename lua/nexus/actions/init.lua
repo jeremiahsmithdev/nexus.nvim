@@ -239,6 +239,12 @@ function M.init()
   -- Import and register github actions
   local GitHubBrowseAction = require('nexus.actions.github.browse')
   
+  -- Import and register todo actions
+  local TodoCreateAction = require('nexus.actions.todo.create')
+  local TodoEditAction = require('nexus.actions.todo.edit')
+  local TodoDoneAction = require('nexus.actions.todo.done')
+  local TodoDeleteAction = require('nexus.actions.todo.delete')
+  
   -- Register actions with error handling
   local actions_to_register = {
     { GitAddAction, 'git.add' },
@@ -247,7 +253,11 @@ function M.init()
     { GitDiffAction, 'git.diff' },
     { OpenFileAction, 'navigation.open_file' },
     { RefreshAction, 'navigation.refresh' },
-    { GitHubBrowseAction, 'github.browse' }
+    { GitHubBrowseAction, 'github.browse' },
+    { TodoCreateAction, 'todo.create' },
+    { TodoEditAction, 'todo.edit' },
+    { TodoDoneAction, 'todo.done' },
+    { TodoDeleteAction, 'todo.delete' }
   }
   
   local registered_count = 0
