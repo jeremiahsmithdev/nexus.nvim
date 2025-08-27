@@ -138,6 +138,16 @@ function M.refresh_if_needed(config)
   
   M.set_enabled(true)
   
+  -- Load cached project selection if no project is set
+  if not config.linear.project_id then
+    local linear_keymaps = require('nexus.keymaps.linear')
+    local cached_project_id = linear_keymaps.load_project_selection(config)
+    if cached_project_id then
+      config.linear.project_id = cached_project_id
+      logger.info("LINEAR", "Applied cached project selection", { project_id = cached_project_id })
+    end
+  end
+  
   -- Check if we need to refresh based on TTL
   local ttl = (config.linear.cache and config.linear.cache.issues_ttl) or 300 -- 5 minutes default
   if not M.needs_refresh(ttl) and M.get_issues() then
