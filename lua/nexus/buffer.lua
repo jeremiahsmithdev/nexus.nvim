@@ -223,6 +223,24 @@ function M.setup_image_autocommands(buf)
     })
   end
   
+  -- Handle tmux and terminal resize events (these were working)
+  vim.api.nvim_create_autocmd({'VimResized', 'WinResized'}, {
+    group = group_name,
+    callback = function()
+      M.quick_resize(buf)
+    end
+  })
+  
+  -- Handle neovim splits by checking on buffer enter
+  vim.api.nvim_create_autocmd({'BufEnter'}, {
+    group = group_name,
+    buffer = buf,
+    callback = function()
+      -- Check for neovim split size changes
+      M.check_split_resize(buf)
+    end
+  })
+  
   -- Clean up when buffer is deleted
   vim.api.nvim_create_autocmd('BufDelete', {
     group = group_name,
@@ -230,10 +248,91 @@ function M.setup_image_autocommands(buf)
     callback = function()
       local logo = require('nexus.ui.logo')
       logo.cleanup_image()
+      
+      -- Clean up resize timer if it exists
+      if M._resize_timer then
+        M._resize_timer:stop()
+        M._resize_timer:close()
+        M._resize_timer = nil
+      end
+      
+      -- Clean up width cache
+      M._last_width = nil
+      
       -- Clean up the autocmd group
       pcall(vim.api.nvim_del_augroup_by_name, group_name)
     end
   })
+end
+
+--- Original working resize handler for tmux/terminal (restored)
+---@param buf number Buffer number of the Nexus buffer
+function M.quick_resize(buf)
+  if not vim.api.nvim_buf_is_valid(buf) then
+    return
+  end
+  
+  local current_win = vim.api.nvim_get_current_win()
+  local current_buf = vim.api.nvim_win_get_buf(current_win)
+  
+  if current_buf ~= buf then
+    return
+  end
+  
+  -- Simple debounce
+  if M._resize_timer then
+    M._resize_timer:stop()
+    M._resize_timer:close()
+  end
+  
+  M._resize_timer = vim.defer_fn(function()
+    M._resize_timer = nil
+    
+    if not vim.api.nvim_buf_is_valid(buf) or vim.api.nvim_win_get_buf(current_win) ~= buf then
+      return
+    end
+    
+    -- Store cursor position
+    local cursor_pos = vim.api.nvim_win_get_cursor(current_win)
+    
+    -- Re-render with current dimensions
+    local config = require('nexus.config').get()
+    local render = require('nexus.render')
+    render.render_git_status(buf, config)
+    
+    -- Restore cursor position
+    local line_count = vim.api.nvim_buf_line_count(buf)
+    if cursor_pos[1] <= line_count then
+      vim.api.nvim_win_set_cursor(current_win, cursor_pos)
+    end
+    
+  end, 50)
+end
+
+--- Check for neovim split resize on buffer enter
+---@param buf number Buffer number of the Nexus buffer
+function M.check_split_resize(buf)
+  if not vim.api.nvim_buf_is_valid(buf) then
+    return
+  end
+  
+  local current_win = vim.api.nvim_get_current_win()
+  local current_width = vim.api.nvim_win_get_width(current_win)
+  
+  -- Simple check - if width is different from typical tmux pane, re-render
+  if not M._last_width then
+    M._last_width = current_width
+    return
+  end
+  
+  if M._last_width ~= current_width then
+    M._last_width = current_width
+    
+    -- Re-render for split
+    local config = require('nexus.config').get()
+    local render = require('nexus.render')
+    render.render_git_status(buf, config)
+  end
 end
 
 return M
