@@ -24,6 +24,9 @@ function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_secti
   
   -- 6. Keyboard shortcuts highlighting
   M.apply_shortcuts_highlighting(buf, lines, config, section_ranges)
+  
+  -- 7. Todo highlighting
+  M.apply_todo_highlighting(buf, lines, config)
 end
 
 -- Logo highlighting
@@ -275,6 +278,23 @@ function M.apply_shortcuts_highlighting(buf, lines, config, section_ranges)
     local line_content = lines[i]
     if line_content and #line_content > 0 then -- Only highlight non-empty lines
       vim.api.nvim_buf_add_highlight(buf, shortcuts_ns, 'Comment', i - 1, 0, -1)
+    end
+  end
+end
+
+-- Todo highlighting
+function M.apply_todo_highlighting(buf, lines, config)
+  if not config.show_todos then
+    return
+  end
+  
+  local todo_component = require('nexus.render.components.todo')
+  
+  -- Find Todo section
+  for i, line in ipairs(lines) do
+    if line:match('^%s*Todo:') then
+      todo_component.apply_todo_highlighting(buf, i)
+      break
     end
   end
 end

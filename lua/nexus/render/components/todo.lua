@@ -11,8 +11,8 @@ local _todos_cache = {} -- Cache todos for lookup
 
 -- Icons for todo states
 local ICONS = {
-  todo = "⭕",
-  done = "✅",
+  todo = "☐",
+  done = "✓",
   error = "❌",
   info = "ℹ️",
   empty = "📝"
@@ -117,6 +117,30 @@ function M.build_todo_section(config)
   return lines
 end
 
+---Apply todo highlighting to buffer
+---@param buf number Buffer handle
+---@param todo_section_start number Start line of todo section
+function M.apply_todo_highlighting(buf, todo_section_start)
+  local todo_ns = vim.api.nvim_create_namespace('nexus_todo')
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  
+  -- Highlight todo items
+  for i = todo_section_start + 2, #lines do -- +2 to skip header and empty line
+    local line_content = lines[i]
+    if not line_content or line_content == "" then
+      break -- End of section
+    end
+    
+    -- Check if it's a todo line with completed tick
+    if line_content:match("^%s*✓") then
+      local tick_start, tick_end = line_content:find('✓')
+      if tick_start then
+        vim.api.nvim_buf_add_highlight(buf, todo_ns, 'DiagnosticOk', i - 1, tick_start - 1, tick_end)
+      end
+    end
+  end
+end
+
 ---Format single todo line
 ---@param todo table Todo item data
 ---@param is_completed boolean Whether this is in the completed section
@@ -131,7 +155,6 @@ function M.format_todo_line(todo, is_completed)
     text = text:sub(1, max_length - 3) .. "..."
   end
   
-  -- Just show icon and text - NO IDs
   local line = string.format("%s %s", icon, text)
   
   return line
@@ -186,7 +209,7 @@ end
 ---@return string todo_text The clean todo text without icon
 function M.get_todo_text_from_line(line)
   -- Remove the icon and clean up whitespace
-  local text = line:gsub("^%s*[⭕✅]%s*", ""):gsub("^%s+", ""):gsub("%s+$", "")
+  local text = line:gsub("^%s*[☐✓]%s*", ""):gsub("^%s+", ""):gsub("%s+$", "")
   return text
 end
 
@@ -194,7 +217,7 @@ end
 ---@param line string The line to check
 ---@return boolean is_todo_line Whether the line represents a todo item
 function M.is_todo_line(line)
-  return line:match("^%s*[⭕✅]%s*.+") ~= nil
+  return line:match("^%s*[☐✓]%s*.+") ~= nil
 end
 
 return M
