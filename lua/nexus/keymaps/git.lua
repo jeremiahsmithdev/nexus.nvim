@@ -1,11 +1,18 @@
----@class GitKeymaps
+--- Git-specific keymap handlers
+--- Handles git commit browsing, file operations, and status management
+---@module nexus.keymaps.git
+
 local M = {}
 
 local logger = require('nexus.logger')
+local commit_popup = require('nexus.ui.popups.commit')
+local actions = require('nexus.actions')
+local git_command = require('nexus.git.command')
+local git_state = require('nexus.state.git')
 
 --- Handle Enter key in commits section
 function M.handle_enter_commits(current_line)
-  M.show_commit_details(current_line)
+  commit_popup.show_commit_details(current_line)
 end
 
 --- Handle Enter key in git status section  
@@ -27,54 +34,88 @@ function M.handle_enter_git_status(current_line, config)
   end
 end
 
---- Show commit details in popup
-function M.show_commit_details(current_line)
-  -- Extract commit hash from the line
-  local commit_hash = current_line:match("%s+([a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+)")
-  if not commit_hash then
-    return
+--- Handle git add operation
+function M.handle_add(buf, render_callback)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  
+  -- Get all lines in the buffer
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  logger.debug('GIT_ADD', string.format('Cursor at line %d: "%s"', line_num, current_line or 'nil'))
+  
+  -- Check if it's a git status line
+  if current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
+    local filename = current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
+                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%-") or
+                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.+)$")
+    if filename then
+      filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
+      
+      -- Use action system
+      actions.execute('git.add', {
+        filename = filename,
+        refresh_callback = function()
+          git_state.update_git_status(true) -- force refresh
+          local files = git_state.get_git_status()
+          render_callback(buf, files)
+        end
+      })
+    end
   end
+end
+
+--- Handle git unstage operation
+function M.handle_unstage(buf, render_callback)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
   
-  logger.debug('GIT', 'Showing commit details', { hash = commit_hash })
+  -- Get all lines in the buffer
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
   
-  -- Get full commit details
-  local commit_info = vim.fn.systemlist('git show --stat --pretty=fuller ' .. commit_hash)
+  logger.debug('GIT_UNSTAGE', string.format('Cursor at line %d: "%s"', line_num, current_line or 'nil'))
   
-  if vim.v.shell_error ~= 0 then
-    logger.warn('GIT', 'Failed to get commit details', { hash = commit_hash })
-    return
+  -- Check if it's a git status line
+  if current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
+    local filename = current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
+                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%-") or
+                    current_line:match("%s*  [MADRCU?][MADRCU?]? (.+)$")
+    if filename then
+      filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
+      
+      -- Use action system
+      actions.execute('git.unstage', {
+        filename = filename,
+        refresh_callback = function()
+          git_state.update_git_status(true) -- force refresh
+          local files = git_state.get_git_status()
+          render_callback(buf, files)
+        end
+      })
+    end
   end
-  
-  -- Create popup
-  local popup_buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_lines(popup_buf, 0, -1, false, commit_info)
-  
-  -- Calculate popup size
-  local width = math.min(100, math.max(60, vim.fn.max(vim.tbl_map(vim.fn.strlen, commit_info)) + 4))
-  local height = math.min(30, #commit_info + 2)
-  
-  -- Center the popup
-  local ui = vim.api.nvim_list_uis()[1]
-  local popup_win = vim.api.nvim_open_win(popup_buf, true, {
-    relative = 'editor',
-    width = width,
-    height = height,
-    row = (ui.height - height) / 2,
-    col = (ui.width - width) / 2,
-    style = 'minimal',
-    border = 'rounded',
-    title = ' Commit Details ',
-    title_pos = 'center'
+end
+
+--- Handle git commit operation
+function M.handle_commit(buf, render_callback, config)
+  actions.execute('git.commit', {
+    interactive = true,
+    refresh_callback = function()
+      render_callback(buf)
+    end
   })
-  
-  -- Set popup options
-  vim.api.nvim_buf_set_option(popup_buf, 'modifiable', false)
-  vim.api.nvim_buf_set_option(popup_buf, 'readonly', true)
-  vim.api.nvim_buf_set_option(popup_buf, 'filetype', 'git')
-  
-  -- Close on 'q' or Escape
-  vim.api.nvim_buf_set_keymap(popup_buf, 'n', 'q', '<cmd>close<cr>', { noremap = true, silent = true })
-  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<Esc>', '<cmd>close<cr>', { noremap = true, silent = true })
+end
+
+--- Handle git command window
+function M.handle_command_window(buf, render_callback, config)
+  git_command.create_git_command_window(function()
+    -- Update git status through state system and refresh
+    git_state.update_git_status(true) -- force refresh
+    local files = git_state.get_git_status()
+    render_callback(buf, files)
+  end)
 end
 
 --- Get the first changed line in a file using git diff

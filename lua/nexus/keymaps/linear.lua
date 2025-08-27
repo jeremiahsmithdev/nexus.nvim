@@ -1,8 +1,13 @@
----@class LinearKeymaps
+--- Linear-specific keymap handlers
+--- Handles Linear issue browsing, creation, and status updates
+---@module nexus.keymaps.linear
+
 local M = {}
 
 local linear_state = require('nexus.state.linear')
 local linear_component = require('nexus.render.components.linear')
+local linear_popup = require('nexus.ui.popups.linear')
+local actions = require('nexus.actions')
 local logger = require('nexus.logger')
 
 --- Handle Enter key in Linear section
@@ -24,7 +29,7 @@ function M.handle_enter(current_line, config, buf, render_callback)
         identifier = issue.identifier,
         url = issue.url
       })
-      M.show_issue_details(issue, config)
+      linear_popup.show_linear_issue_details(issue, config)
     else
       logger.warn('LINEAR', 'Could not find issue data', {
         identifier = identifier,
@@ -220,6 +225,36 @@ function M.setup_api_key(config, callback)
       end
     end
   end)
+end
+
+--- Handle Linear status update for current issue
+function M.handle_status_update(buf, render_callback, config)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  if not current_line then return end
+  
+  local is_issue, identifier = linear_component.is_linear_issue_line(current_line)
+  if is_issue and identifier then
+    local issues = linear_state.get_issues()
+    local issue = linear_component.get_issue_from_line(current_line, issues)
+    if issue then
+      -- Use existing Linear status update functionality
+      -- This would typically involve showing status selection UI
+      vim.notify("Linear status update - functionality available in popup (Enter -> 's')", vim.log.levels.INFO)
+    end
+  end
+end
+
+--- Handle Linear project selection 
+function M.handle_project_selection(buf, render_callback, config)
+  -- Use existing Linear project selection functionality
+  vim.notify("Linear project selection - use Linear provider directly", vim.log.levels.INFO)
+  -- Refresh Linear data with any project changes
+  linear_state.refresh_data(config)
+  render_callback(buf)
 end
 
 return M
