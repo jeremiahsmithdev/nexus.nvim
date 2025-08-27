@@ -29,7 +29,7 @@ function M.handle_enter(current_line, config, buf, render_callback)
         identifier = issue.identifier,
         url = issue.url
       })
-      linear_popup.show_linear_issue_details(issue, config)
+      M.show_linear_issue_details(issue, config)
     else
       logger.warn('LINEAR', 'Could not find issue data', {
         identifier = identifier,
@@ -57,15 +57,20 @@ function M.handle_create(buf, render_callback, config)
       prompt = 'Issue description (optional): ',
       default = ''
     }, function(description)
-      local linear_provider = require('nexus.providers.linear'):new(config.linear)
+      -- Get cached provider
+      local provider = linear_state.get_cached_provider(config)
+      if not provider then
+        vim.notify("❌ Failed to get Linear provider", vim.log.levels.ERROR)
+        return
+      end
       
-      -- Try to get team/project info from existing issues
-      local issues = linear_state.get_issues()
+      -- Determine team ID and project ID from existing issues
+      local existing_issues = linear_state.get_issues()
       local team_id, project_id
       
-      if issues and #issues > 0 then
+      if existing_issues and #existing_issues > 0 then
         -- Use team and project from first available issue
-        local first_issue = issues[1]
+        local first_issue = existing_issues[1]
         if first_issue.team then
           team_id = first_issue.team.id
         end
@@ -81,6 +86,14 @@ function M.handle_create(buf, render_callback, config)
         })
       end
       
+      if not team_id then
+        vim.notify("❌ No team found. Load existing Linear issues first or configure team_id in config.", vim.log.levels.ERROR)
+        return
+      end
+      
+      vim.notify("Creating Linear issue...", vim.log.levels.INFO)
+      
+      -- Create the issue
       local issue_data = {
         title = title,
         description = description or "",
@@ -88,7 +101,7 @@ function M.handle_create(buf, render_callback, config)
         project_id = project_id
       }
       
-      local issue, err = linear_provider:create_issue(issue_data)
+      local issue, err = provider:create_issue(issue_data)
       
       if issue then
         logger.info('LINEAR', 'Issue created successfully', {
@@ -98,7 +111,7 @@ function M.handle_create(buf, render_callback, config)
         vim.notify(string.format("Created issue %s: %s", issue.identifier, issue.title), vim.log.levels.INFO)
         
         -- Refresh Linear data to show the new issue
-        linear_state.refresh_issues(config)
+        linear_state.refresh_data(config)
         render_callback(buf)
       else
         logger.error('LINEAR', 'Failed to create issue', { error = err })
@@ -596,6 +609,11 @@ function M.show_team_projects_selection(provider, selected_team, config, callbac
       logger.debug('LINEAR', 'Project selection cancelled')
     end
   end)
+end
+
+--- Show Linear issue details popup (local function for performance)
+function M.show_linear_issue_details(issue, config)
+  linear_popup.show_linear_issue_details(issue, config)
 end
 
 return M
