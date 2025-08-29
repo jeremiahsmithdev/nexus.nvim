@@ -15,6 +15,8 @@ function M.get_neovim_logo(config)
     return M.get_nexus_ascii_logo()
   elseif logo_selection == "neovim" then
     return M.get_ascii_logo()
+  elseif logo_selection == "project" then
+    return M.get_project_logo()
   else
     -- Default to nexus ASCII logo
     return M.get_nexus_ascii_logo()
@@ -33,6 +35,218 @@ function M.get_ascii_logo()
   }
 end
 
+-- Alphabet definition using NEXUS font style
+local alphabet = {
+  A = {
+    [[█████╗ ]],
+    [[██╔██╗]],
+    [[███████]],
+    [[██╔══██]],
+    [[██║  ██]],
+    [[╚═╝  ╚═]]
+  },
+  B = {
+    [[███████╗]],
+    [[██╔══██║]],
+    [[███████║]],
+    [[██╔══██║]],
+    [[███████║]],
+    [[╚══════╝]]
+  },
+  C = {
+    [[ ██████╗]],
+    [[██╔════╝]],
+    [[██║     ]],
+    [[██║     ]],
+    [[╚██████╗]],
+    [[ ╚═════╝]]
+  },
+  D = {
+    [[██████╗ ]],
+    [[██╔══██╗]],
+    [[██║  ██║]],
+    [[██║  ██║]],
+    [[██████╔╝]],
+    [[╚═════╝ ]]
+  },
+  E = {
+    [[███████╗]],
+    [[██╔════╝]],
+    [[█████╗  ]],
+    [[██╔══╝  ]],
+    [[███████╗]],
+    [[╚══════╝]]
+  },
+  F = {
+    [[███████╗]],
+    [[██╔════╝]],
+    [[█████╗  ]],
+    [[██╔══╝  ]],
+    [[██║     ]],
+    [[╚═╝     ]]
+  },
+  G = {
+    [[ ██████╗ ]],
+    [[██╔════╝ ]],
+    [[██║  ███╗]],
+    [[██║   ██║]],
+    [[╚██████╔╝]],
+    [[ ╚═════╝ ]]
+  },
+  H = {
+    [[██╗  ██╗]],
+    [[██║  ██║]],
+    [[███████║]],
+    [[██╔══██║]],
+    [[██║  ██║]],
+    [[╚═╝  ╚═╝]]
+  },
+  I = {
+    [[██╗]],
+    [[██║]],
+    [[██║]],
+    [[██║]],
+    [[██║]],
+    [[╚═╝]]
+  },
+  J = {
+    [[     ██╗]],
+    [[     ██║]],
+    [[     ██║]],
+    [[██   ██║]],
+    [[╚██████╔╝]],
+    [[ ╚═════╝ ]]
+  },
+  K = {
+    [[██╗  ██╗]],
+    [[██║ ██╔╝]],
+    [[█████╔╝ ]],
+    [[██╔═██╗ ]],
+    [[██║  ██╗]],
+    [[╚═╝  ╚═╝]]
+  },
+  L = {
+    [[██╗     ]],
+    [[██║     ]],
+    [[██║     ]],
+    [[██║     ]],
+    [[███████╗]],
+    [[╚══════╝]]
+  },
+  M = {
+    [[███╗   ███╗]],
+    [[████╗ ████║]],
+    [[██╔████╔██║]],
+    [[██║╚██╔╝██║]],
+    [[██║ ╚═╝ ██║]],
+    [[╚═╝     ╚═╝]]
+  },
+  N = {
+    [[███╗   ██╗]],
+    [[████╗  ██║]],
+    [[██╔██╗ ██║]],
+    [[██║╚██╗██║]],
+    [[██║ ╚████║]],
+    [[╚═╝  ╚═══╝]]
+  },
+  O = {
+    [[ ██████╗ ]],
+    [[██╔═══██╗]],
+    [[██║   ██║]],
+    [[██║   ██║]],
+    [[╚██████╔╝]],
+    [[ ╚═════╝ ]]
+  },
+  P = {
+    [[██████╗ ]],
+    [[██╔══██╗]],
+    [[██████╔╝]],
+    [[██╔═══╝ ]],
+    [[██║     ]],
+    [[╚═╝     ]]
+  },
+  Q = {
+    [[ ██████╗ ]],
+    [[██╔═══██╗]],
+    [[██║   ██║]],
+    [[██║▄▄ ██║]],
+    [[╚██████╔╝]],
+    [[ ╚══▀▀═╝ ]]
+  },
+  R = {
+    [[██████╗ ]],
+    [[██╔══██╗]],
+    [[██████╔╝]],
+    [[██╔══██╗]],
+    [[██║  ██║]],
+    [[╚═╝  ╚═╝]]
+  },
+  S = {
+    [[███████╗]],
+    [[██╔════╝]],
+    [[███████╗]],
+    [[╚════██║]],
+    [[███████║]],
+    [[╚══════╝]]
+  },
+  T = {
+    [[████████╗]],
+    [[╚══██╔══╝]],
+    [[   ██║   ]],
+    [[   ██║   ]],
+    [[   ██║   ]],
+    [[   ╚═╝   ]]
+  },
+  U = {
+    [[██╗   ██╗]],
+    [[██║   ██║]],
+    [[██║   ██║]],
+    [[██║   ██║]],
+    [[╚██████╔╝]],
+    [[ ╚═════╝ ]]
+  },
+  V = {
+    [[██╗   ██╗]],
+    [[██║   ██║]],
+    [[██║   ██║]],
+    [[ ██╗ ██╔╝]],
+    [[  ╚████╔╝ ]],
+    [[   ╚═══╝  ]]
+  },
+  W = {
+    [[██╗    ██╗]],
+    [[██║    ██║]],
+    [[██║ █╗ ██║]],
+    [[██║███╗██║]],
+    [[╚███╔███╔╝]],
+    [[ ╚══╝╚══╝ ]]
+  },
+  X = {
+    [[██╗  ██╗]],
+    [[╚██╗██╔╝]],
+    [[ ╚███╔╝ ]],
+    [[ ██╔██╗ ]],
+    [[██╔╝ ██╗]],
+    [[╚═╝  ╚═╝]]
+  },
+  Y = {
+    [[██╗   ██╗]],
+    [[╚██╗ ██╔╝]],
+    [[ ╚████╔╝ ]],
+    [[  ╚██╔╝  ]],
+    [[   ██║   ]],
+    [[   ╚═╝   ]]
+  },
+  Z = {
+    [[███████╗]],
+    [[╚══███╔╝]],
+    [[  ███╔╝ ]],
+    [[ ███╔╝  ]],
+    [[███████╗]],
+    [[╚══════╝]]
+  }
+}
+
 function M.get_nexus_ascii_logo()
   return {
     "",
@@ -46,6 +260,72 @@ function M.get_nexus_ascii_logo()
     "[ The Developer's Mission Control Center ]",
     ""
   }
+end
+
+-- Function to generate project logo using the alphabet
+function M.get_project_logo()
+  local project_name = M._get_project_name()
+  if not project_name then
+    -- Fallback to nexus logo if no project name detected
+    return M.get_nexus_ascii_logo()
+  end
+  
+  -- Convert to uppercase and filter out unsupported characters
+  local upper_name = string.upper(project_name)
+  local filtered_chars = {}
+  for char in upper_name:gmatch(".") do
+    if alphabet[char] then
+      table.insert(filtered_chars, char)
+    end
+  end
+  
+  if #filtered_chars == 0 then
+    -- No valid characters, fallback to nexus logo
+    return M.get_nexus_ascii_logo()
+  end
+  
+  -- Build the logo by combining character patterns
+  local logo_lines = {""}
+  
+  -- Each character has 6 lines, combine them horizontally
+  for line_idx = 1, 6 do
+    local combined_line = ""
+    for i, char in ipairs(filtered_chars) do
+      local char_pattern = alphabet[char]
+      if char_pattern and char_pattern[line_idx] then
+        combined_line = combined_line .. char_pattern[line_idx]
+        -- Add space between characters except for the last one
+        if i < #filtered_chars then
+          combined_line = combined_line .. " "
+        end
+      end
+    end
+    table.insert(logo_lines, combined_line)
+  end
+  
+  -- Add closing empty line and subtitle
+  table.insert(logo_lines, "")
+  table.insert(logo_lines, "[ " .. project_name .. " - Developer Dashboard ]")
+  table.insert(logo_lines, "")
+  
+  return logo_lines
+end
+
+-- Helper function to get the current project name
+function M._get_project_name()
+  -- Try to get project name from git repository
+  local git_root = vim.fn.system("git rev-parse --show-toplevel 2>/dev/null"):gsub('\n', '')
+  if vim.v.shell_error == 0 and git_root ~= "" then
+    local project_name = vim.fn.fnamemodify(git_root, ":t")
+    if project_name and project_name ~= "" then
+      return project_name
+    end
+  end
+  
+  -- Fallback to current working directory name
+  local cwd = vim.fn.getcwd()
+  local cwd_name = vim.fn.fnamemodify(cwd, ":t")
+  return cwd_name and cwd_name ~= "" and cwd_name or nil
 end
 
 function M.get_image_logo(config)

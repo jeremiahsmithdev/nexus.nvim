@@ -27,7 +27,7 @@ local default_config = {
   },
   
   -- Logo configuration
-  logo_selection = "nexus",          -- Logo selection: "neovim", "nexus", or "image" (requires image.nvim plugin)
+  logo_selection = "nexus",          -- Logo selection: "neovim", "nexus", "project", or "image" (requires image.nvim plugin)
   logo_color = "String",             -- Highlight group for logo (default: String for green)
   image_logo_path = nil,             -- Custom image path (defaults to plugin's neovim.png if nil)
   image_logo_width = 30,             -- Width of the image in character units
@@ -133,6 +133,7 @@ function M.setup(user_config)
   local valid_logo_types = {
     neovim = true,
     nexus = true,
+    project = true,
     image = true
   }
   
@@ -142,7 +143,7 @@ function M.setup(user_config)
       if not valid_logo_types[config.logo_selection] then
         logger.warn("CONFIG", "Invalid logo_selection, using default 'nexus'", {
           provided_value = config.logo_selection,
-          valid_options = {"neovim", "nexus", "image"}
+          valid_options = {"neovim", "nexus", "project", "image"}
         })
         config.logo_selection = "nexus"
       end
