@@ -77,8 +77,8 @@ function M.show_commit_details(commit_line)
   
   -- Add virtual text hint in top right corner
   local hint_ns = vim.api.nvim_create_namespace('nexus_commit_hint')
-  local hint_text = 'Ctrl-O -> open'
-  local hint_col = actual_width - #hint_text
+  local hint_text = 'Enter -> file | Ctrl-O -> open'
+  local hint_col = math.max(0, actual_width - #hint_text)
   vim.api.nvim_buf_set_extmark(popup_buf, hint_ns, 0, 0, {
     virt_text = {{ hint_text, 'Comment' }},
     virt_text_pos = 'overlay',
@@ -89,7 +89,15 @@ function M.show_commit_details(commit_line)
   -- Set up keymaps to close popup
   vim.api.nvim_buf_set_keymap(popup_buf, 'n', 'q', '<cmd>close<CR>', {noremap = true, silent = true})
   vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<Esc>', '<cmd>close<CR>', {noremap = true, silent = true})
-  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<CR>', '<cmd>close<CR>', {noremap = true, silent = true})
+  
+  -- Set up Enter key to navigate to files or close popup
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<CR>', '', {
+    noremap = true, 
+    silent = true,
+    callback = function()
+      M.handle_enter_key(popup_buf, popup_win)
+    end
+  })
   
   -- Add keybinding to open commit in browser with gh
   vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<C-o>', '', {
@@ -102,6 +110,47 @@ function M.show_commit_details(commit_line)
   })
   
   logger.info('COMMIT', 'Showing details for commit: ' .. commit_hash)
+end
+
+--- Handle Enter key press in commit popup
+---@param popup_buf number The popup buffer number
+---@param popup_win number The popup window number
+function M.handle_enter_key(popup_buf, popup_win)
+  local cursor = vim.api.nvim_win_get_cursor(popup_win)
+  local line_num = cursor[1]
+  
+  -- Get the current line
+  local lines = vim.api.nvim_buf_get_lines(popup_buf, line_num - 1, line_num, false)
+  local current_line = lines[1]
+  
+  if not current_line then
+    vim.cmd('close')
+    return
+  end
+  
+  -- Check if this line contains a file path (lines ending with |)
+  local filename = current_line:match("^%s*(.-)%s*|")
+  
+  if filename and #filename > 0 then
+    -- Clean up the filename (remove any leading/trailing whitespace)
+    filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
+    
+    -- Get git root directory
+    local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+    local full_path = git_root and (git_root .. '/' .. filename) or filename
+    
+    -- Close the popup first
+    vim.cmd('close')
+    
+    -- Open the file
+    local edit_cmd = 'edit ' .. vim.fn.fnameescape(full_path) .. ' | set number | set signcolumn=yes'
+    vim.cmd(edit_cmd)
+    
+    logger.info('COMMIT', 'Opened file from commit popup: ' .. filename)
+  else
+    -- If not on a file line, just close the popup
+    vim.cmd('close')
+  end
 end
 
 --- Apply syntax highlighting to commit popup
