@@ -132,10 +132,12 @@ function M.setup_image_autocommands(buf)
         end
       end
       
+      
       -- Skip automatic git refresh on BufEnter to improve performance
       -- Users can manually refresh with 'r' if needed
     end
   })
+  
   
   -- Consolidated focus management for images
   vim.api.nvim_create_autocmd({'FocusGained', 'FocusLost'}, {

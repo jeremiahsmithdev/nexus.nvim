@@ -33,6 +33,7 @@ function M.show_commit_details(commit_line)
   vim.api.nvim_buf_set_option(popup_buf, 'buftype', 'nofile')
   vim.api.nvim_buf_set_option(popup_buf, 'swapfile', false)
   vim.api.nvim_buf_set_option(popup_buf, 'modifiable', true)
+  vim.api.nvim_buf_set_option(popup_buf, 'filetype', 'git')
   
   -- Set buffer content
   vim.api.nvim_buf_set_lines(popup_buf, 0, -1, false, commit_details)
@@ -69,11 +70,12 @@ function M.show_commit_details(commit_line)
   
   local popup_win = vim.api.nvim_open_win(popup_buf, true, popup_opts)
   
-  -- Set popup window options
+  -- Set popup window options  
   vim.api.nvim_win_set_option(popup_win, 'wrap', false)
   vim.api.nvim_win_set_option(popup_win, 'number', false)
   vim.api.nvim_win_set_option(popup_win, 'relativenumber', false)
   vim.api.nvim_win_set_option(popup_win, 'cursorline', true)
+  vim.api.nvim_win_set_option(popup_win, 'winhighlight', 'CursorLine:Visual')
   
   -- Add virtual text hint in top right corner
   local hint_ns = vim.api.nvim_create_namespace('nexus_commit_hint')
@@ -108,6 +110,7 @@ function M.show_commit_details(commit_line)
       actions.execute('github.browse', { commit_hash = commit_hash })
     end
   })
+  
   
   logger.info('COMMIT', 'Showing details for commit: ' .. commit_hash)
 end
