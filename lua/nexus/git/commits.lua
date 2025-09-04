@@ -37,16 +37,17 @@ function M.get_git_log(config)
       end
       
       -- Check review status if enabled
-      local is_reviewed = false
+      local review_status = "unreviewed"
       if config.show_commit_review then
-        is_reviewed = M.is_commit_reviewed(hash)
+        review_status = M.get_commit_review_status(hash)
       end
       
       table.insert(commits, {
         hash = hash,
         message = message,
         decoration = decoration,
-        is_reviewed = is_reviewed
+        review_status = review_status,
+        is_reviewed = review_status == "reviewed" -- For backward compatibility
       })
     end
   end
@@ -54,18 +55,33 @@ function M.get_git_log(config)
   return commits
 end
 
-function M.is_commit_reviewed(hash)
-  -- Check if commit has a review note containing "Reviewed"
+function M.get_commit_review_status(hash)
+  -- Check if commit has review notes and determine status
   local handle = io.popen('git notes show ' .. hash .. ' 2>/dev/null')
   if not handle then
-    return false
+    return "unreviewed"
   end
   
   local notes = handle:read('*a')
   handle:close()
   
-  -- Check if notes contain "Reviewed" (case-insensitive)
-  return notes:lower():match('reviewed') ~= nil
+  if notes == '' then
+    return "unreviewed"
+  end
+  
+  local notes_lower = notes:lower()
+  if notes_lower:match('needs attention') then
+    return "needs_attention"
+  elseif notes_lower:match('reviewed') then
+    return "reviewed"
+  else
+    return "unreviewed"
+  end
+end
+
+-- Legacy function for backward compatibility
+function M.is_commit_reviewed(hash)
+  return M.get_commit_review_status(hash) == "reviewed"
 end
 
 function M.mark_commit_reviewed(hash)
@@ -74,6 +90,22 @@ function M.mark_commit_reviewed(hash)
   local review_message = string.format('Reviewed by %s on %s', username, os.date())
   
   local handle = io.popen(string.format('git notes add -m "%s" %s -f 2>/dev/null', review_message, hash))
+  if not handle then
+    return false
+  end
+  
+  local result = handle:read('*a')
+  local success = handle:close()
+  
+  return success
+end
+
+function M.mark_commit_needs_attention(hash)
+  -- Add needs attention note to commit
+  local username = os.getenv('USER') or os.getenv('USERNAME') or 'user'
+  local attention_message = string.format('Needs attention - flagged by %s on %s', username, os.date())
+  
+  local handle = io.popen(string.format('git notes add -m "%s" %s -f 2>/dev/null', attention_message, hash))
   if not handle then
     return false
   end

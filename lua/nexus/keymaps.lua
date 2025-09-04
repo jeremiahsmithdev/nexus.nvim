@@ -434,7 +434,7 @@ end
 ---@param config table Nexus configuration
 function M.handle_commit_review_toggle(commit_line, buf, render_callback, config)
   -- Extract commit hash from the line (accounting for review icons)
-  local hash = commit_line:match("%s*[☐✓]?%s*([a-f0-9]+)")
+  local hash = commit_line:match("%s*[☐✓⚠]?%s*([a-f0-9]+)")
   if not hash then
     vim.notify("Could not extract commit hash from line", vim.log.levels.ERROR)
     return
@@ -442,33 +442,67 @@ function M.handle_commit_review_toggle(commit_line, buf, render_callback, config
   
   -- Check current review status
   local git_commits = require('nexus.git.commits')
-  local is_reviewed = git_commits.is_commit_reviewed(hash)
+  local current_status = git_commits.get_commit_review_status(hash)
   
-  -- Prepare confirmation message
-  local action = is_reviewed and "mark as unreviewed" or "mark as reviewed"
-  local prompt = string.format('Commit %s: %s?', hash:sub(1, 7), action)
+  -- Prepare action options based on current status
+  local options = {}
+  local actions = {}
   
-  -- Show confirmation dialog
-  vim.ui.select({'Yes', 'No'}, {
-    prompt = prompt
+  if current_status == "reviewed" then
+    table.insert(options, "Mark as needs attention")
+    table.insert(actions, "needs_attention")
+    table.insert(options, "Mark as unreviewed")
+    table.insert(actions, "unreviewed")
+  elseif current_status == "needs_attention" then
+    table.insert(options, "Mark as reviewed")
+    table.insert(actions, "reviewed")
+    table.insert(options, "Mark as unreviewed")
+    table.insert(actions, "unreviewed")
+  else -- unreviewed
+    table.insert(options, "Mark as reviewed")
+    table.insert(actions, "reviewed")
+    table.insert(options, "Mark as needs attention")
+    table.insert(actions, "needs_attention")
+  end
+  
+  -- Show action selection dialog
+  vim.ui.select(options, {
+    prompt = string.format('Commit %s (%s):', hash:sub(1, 7), current_status:gsub('_', ' '))
   }, function(choice)
-    if choice == 'Yes' then
-      local success
-      if is_reviewed then
-        success = git_commits.mark_commit_unreviewed(hash)
-      else
-        success = git_commits.mark_commit_reviewed(hash)
+    if not choice then return end
+    
+    local choice_index = nil
+    for i, option in ipairs(options) do
+      if option == choice then
+        choice_index = i
+        break
       end
-      
-      if success then
-        vim.notify(string.format("Commit %s %s", hash:sub(1, 7), 
-          is_reviewed and "marked as unreviewed" or "marked as reviewed"))
-        -- Refresh git state and re-render
-        git_state.force_refresh(config)
-        render_callback(buf)
-      else
-        vim.notify("Failed to update commit review status", vim.log.levels.ERROR)
-      end
+    end
+    
+    if not choice_index then return end
+    
+    local action = actions[choice_index]
+    local success = false
+    local status_message = ""
+    
+    if action == "reviewed" then
+      success = git_commits.mark_commit_reviewed(hash)
+      status_message = "marked as reviewed"
+    elseif action == "needs_attention" then
+      success = git_commits.mark_commit_needs_attention(hash)
+      status_message = "marked as needs attention"
+    elseif action == "unreviewed" then
+      success = git_commits.mark_commit_unreviewed(hash)
+      status_message = "marked as unreviewed"
+    end
+    
+    if success then
+      vim.notify(string.format("Commit %s %s", hash:sub(1, 7), status_message))
+      -- Refresh git state and re-render
+      git_state.force_refresh(config)
+      render_callback(buf)
+    else
+      vim.notify("Failed to update commit review status", vim.log.levels.ERROR)
     end
   end)
 end

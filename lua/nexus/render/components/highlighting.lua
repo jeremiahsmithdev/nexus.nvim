@@ -77,16 +77,19 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo)
     if config.show_commit_review then
       local review_check = line:find('✓')
       local review_box = line:find('☐')
+      local review_warning = line:find('⚠')
       
       if review_check then
         vim.api.nvim_buf_add_highlight(buf, commits_ns, 'DiagnosticOk', i - 1, review_check - 1, review_check)
+      elseif review_warning then
+        vim.api.nvim_buf_add_highlight(buf, commits_ns, 'DiagnosticWarn', i - 1, review_warning - 1, review_warning)
       elseif review_box then
         vim.api.nvim_buf_add_highlight(buf, commits_ns, 'Comment', i - 1, review_box - 1, review_box)
       end
     end
     
     -- Look for commit hash pattern (7+ hex chars after spaces, accounting for review icons)
-    local hash_start, hash_end = line:find('%s+[☐✓]?%s*([a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+)')
+    local hash_start, hash_end = line:find('%s+[☐✓⚠]?%s*([a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+)')
     if hash_start and hash_end then
       -- Find the actual hash position within the captured group
       local actual_hash_start = line:find('[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+', hash_start)

@@ -43,8 +43,14 @@ function M.build_sections(config, is_git_repo, files)
         local review_icon = ""
         
         -- Add review status indicator if enabled
-        if config.show_commit_review and commit.is_reviewed ~= nil then
-          review_icon = commit.is_reviewed and "✓ " or "☐ "
+        if config.show_commit_review and commit.review_status then
+          if commit.review_status == "reviewed" then
+            review_icon = "✓ "
+          elseif commit.review_status == "needs_attention" then
+            review_icon = "⚠ "
+          else -- unreviewed
+            review_icon = "☐ "
+          end
         end
         
         if commit.decoration then

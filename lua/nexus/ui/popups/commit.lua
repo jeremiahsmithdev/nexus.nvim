@@ -242,6 +242,9 @@ function M.apply_commit_popup_highlighting(buf, lines, commit_hash)
       elseif line:match('^%s*Reviewed by') then
         -- Highlight "Reviewed by" lines specifically (may be indented)
         vim.api.nvim_buf_add_highlight(buf, commit_ns, 'DiagnosticOk', i - 1, 0, -1)
+      elseif line:match('^%s*Needs attention') then
+        -- Highlight "Needs attention" lines specifically (may be indented)
+        vim.api.nvim_buf_add_highlight(buf, commit_ns, 'DiagnosticWarn', i - 1, 0, -1)
       end
     end
   end
