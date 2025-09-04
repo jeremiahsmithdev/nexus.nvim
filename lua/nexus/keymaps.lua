@@ -62,6 +62,40 @@ function M.get_current_section(lines, line_num, config)
   return "unknown"
 end
 
+--- Handle 'e' key press - context-sensitive editing (todo edit or commit review toggle)
+---@param buf number Buffer number
+---@param config table Nexus configuration
+---@param render_callback function Function to re-render the buffer
+function M.handle_e_key(buf, config, render_callback)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  
+  -- Get all lines in the buffer
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  if not current_line then return end
+  
+  -- Determine which section we're in
+  local section = M.get_current_section(lines, line_num, config)
+  
+  if section == "todo" then
+    -- Handle todo editing
+    local todo_id = todo_component.get_todo_id_from_line_num(line_num)
+    todo_keymaps.handle_edit(todo_id, buf, render_callback, config)
+    
+  elseif section == "commits" and config.show_commit_review then
+    -- Handle commit review toggle
+    M.handle_commit_review_toggle(current_line, buf, render_callback, config)
+    
+  else
+    logger.debug('KEYMAP', 'e key pressed in unsupported section', { 
+      section = section, 
+      line = current_line 
+    })
+  end
+end
+
 --- Handle Enter key press in Nexus buffer
 ---@param buf number Buffer number
 ---@param files table Git status files
@@ -226,22 +260,24 @@ local function setup_git_keymaps(buf, config, render_callback)
   })
 end
 
---- Set up todo-specific keymaps
+--- Set up context-sensitive keymaps (todo/commit review)
 ---@param buf number Buffer number
 ---@param config table Nexus configuration
 ---@param render_callback function Function to re-render the buffer
-local function setup_todo_keymaps(buf, config, render_callback)
-  if not config.show_todos then return end
+local function setup_context_keymaps(buf, config, render_callback)
+  -- Set up 'e' key if either todos or commit review are enabled
+  if config.show_todos or config.show_commit_review then
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'e', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        M.handle_e_key(buf, config, render_callback)
+      end
+    })
+  end
   
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'e', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      local line_num = vim.api.nvim_win_get_cursor(0)[1]
-      local todo_id = todo_component.get_todo_id_from_line_num(line_num)
-      todo_keymaps.handle_edit(todo_id, buf, render_callback, config)
-    end
-  })
+  -- Set up todo-specific keymaps only if todos are enabled
+  if not config.show_todos then return end
   
   vim.api.nvim_buf_set_keymap(buf, 'n', 'd', '', {
     noremap = true,
@@ -340,7 +376,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
   -- Git-specific keymaps (only in git repositories)
   if is_git_repo then
     setup_git_keymaps(buf, config, render_callback)
-    setup_todo_keymaps(buf, config, render_callback)
+    setup_context_keymaps(buf, config, render_callback)
     setup_linear_keymaps(buf, config, render_callback)
   end
 end
@@ -389,6 +425,52 @@ end
 ---@param config table Nexus configuration
 function M.show_linear_issue_details(issue, config)
   linear_popup.show_linear_issue_details(issue, config)
+end
+
+--- Handle commit review toggle
+---@param commit_line string The line containing commit information
+---@param buf number Buffer number
+---@param render_callback function Function to re-render the buffer
+---@param config table Nexus configuration
+function M.handle_commit_review_toggle(commit_line, buf, render_callback, config)
+  -- Extract commit hash from the line (accounting for review icons)
+  local hash = commit_line:match("%s*[☐✓]?%s*([a-f0-9]+)")
+  if not hash then
+    vim.notify("Could not extract commit hash from line", vim.log.levels.ERROR)
+    return
+  end
+  
+  -- Check current review status
+  local git_commits = require('nexus.git.commits')
+  local is_reviewed = git_commits.is_commit_reviewed(hash)
+  
+  -- Prepare confirmation message
+  local action = is_reviewed and "mark as unreviewed" or "mark as reviewed"
+  local prompt = string.format('Commit %s: %s?', hash:sub(1, 7), action)
+  
+  -- Show confirmation dialog
+  vim.ui.select({'Yes', 'No'}, {
+    prompt = prompt
+  }, function(choice)
+    if choice == 'Yes' then
+      local success
+      if is_reviewed then
+        success = git_commits.mark_commit_unreviewed(hash)
+      else
+        success = git_commits.mark_commit_reviewed(hash)
+      end
+      
+      if success then
+        vim.notify(string.format("Commit %s %s", hash:sub(1, 7), 
+          is_reviewed and "marked as unreviewed" or "marked as reviewed"))
+        -- Refresh git state and re-render
+        git_state.force_refresh(config)
+        render_callback(buf)
+      else
+        vim.notify("Failed to update commit review status", vim.log.levels.ERROR)
+      end
+    end
+  end)
 end
 
 return M

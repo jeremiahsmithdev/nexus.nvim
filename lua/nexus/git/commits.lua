@@ -36,15 +36,65 @@ function M.get_git_log(config)
         decoration = nil
       end
       
+      -- Check review status if enabled
+      local is_reviewed = false
+      if config.show_commit_review then
+        is_reviewed = M.is_commit_reviewed(hash)
+      end
+      
       table.insert(commits, {
         hash = hash,
         message = message,
-        decoration = decoration
+        decoration = decoration,
+        is_reviewed = is_reviewed
       })
     end
   end
   
   return commits
+end
+
+function M.is_commit_reviewed(hash)
+  -- Check if commit has a review note containing "Reviewed"
+  local handle = io.popen('git notes show ' .. hash .. ' 2>/dev/null')
+  if not handle then
+    return false
+  end
+  
+  local notes = handle:read('*a')
+  handle:close()
+  
+  -- Check if notes contain "Reviewed" (case-insensitive)
+  return notes:lower():match('reviewed') ~= nil
+end
+
+function M.mark_commit_reviewed(hash)
+  -- Add review note to commit
+  local username = os.getenv('USER') or os.getenv('USERNAME') or 'user'
+  local review_message = string.format('Reviewed by %s on %s', username, os.date())
+  
+  local handle = io.popen(string.format('git notes add -m "%s" %s -f 2>/dev/null', review_message, hash))
+  if not handle then
+    return false
+  end
+  
+  local result = handle:read('*a')
+  local success = handle:close()
+  
+  return success
+end
+
+function M.mark_commit_unreviewed(hash)
+  -- Remove review note from commit
+  local handle = io.popen(string.format('git notes remove %s 2>/dev/null', hash))
+  if not handle then
+    return false
+  end
+  
+  local result = handle:read('*a')
+  local success = handle:close()
+  
+  return success
 end
 
 return M

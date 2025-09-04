@@ -40,10 +40,17 @@ function M.build_sections(config, is_git_repo, files)
       local commits_lines = {"Recent Commits:", ""}
       for i, commit in ipairs(commits) do
         local line
+        local review_icon = ""
+        
+        -- Add review status indicator if enabled
+        if config.show_commit_review and commit.is_reviewed ~= nil then
+          review_icon = commit.is_reviewed and "✓ " or "☐ "
+        end
+        
         if commit.decoration then
-          line = string.format("  %s (%s) %s", commit.hash, commit.decoration, commit.message)
+          line = string.format("  %s%s (%s) %s", review_icon, commit.hash, commit.decoration, commit.message)
         else
-          line = string.format("  %s %s", commit.hash, commit.message)
+          line = string.format("  %s%s %s", review_icon, commit.hash, commit.message)
         end
         table.insert(commits_lines, line)
       end

@@ -19,8 +19,8 @@ function M.show_commit_details(commit_line)
     return
   end
   
-  -- Get commit details using git show
-  local git_show_cmd = "git show --stat --pretty=format:'%C(yellow)%h%Creset %C(blue)%an%Creset %C(green)%ar%Creset%n%C(white)%s%Creset%n%n%b' " .. commit_hash
+  -- Get commit details using git show with notes
+  local git_show_cmd = "git show --stat --notes " .. commit_hash
   local commit_details = vim.fn.systemlist(git_show_cmd)
   
   if vim.v.shell_error ~= 0 then
@@ -234,6 +234,14 @@ function M.apply_commit_popup_highlighting(buf, lines, commit_hash)
       -- 6. Highlight commit message (usually the second or third line, not containing hash/author/date)
       if i <= 3 and not line:match('[a-f0-9]+') and not line:match('%d+ %w+ ago') and not line:match('|') and #line:gsub('^%s*(.-)%s*$', '%1') > 0 then
         vim.api.nvim_buf_add_highlight(buf, commit_ns, 'Title', i - 1, 0, -1)
+      end
+      
+      -- 7. Highlight Notes section
+      if line:match('^Notes:') then
+        vim.api.nvim_buf_add_highlight(buf, commit_ns, 'Keyword', i - 1, 0, -1)
+      elseif line:match('^%s*Reviewed by') then
+        -- Highlight "Reviewed by" lines specifically (may be indented)
+        vim.api.nvim_buf_add_highlight(buf, commit_ns, 'DiagnosticOk', i - 1, 0, -1)
       end
     end
   end

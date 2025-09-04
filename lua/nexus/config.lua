@@ -12,6 +12,7 @@ local default_config = {
   show_keyboard_shortcuts = true,    -- Show keyboard shortcuts section
   show_recent_commits = true,        -- Show git commits section
   recent_commits_count = 3,          -- Number of recent commits to show
+  show_commit_review = true,         -- Show commit review status indicators
   show_git_status = true,            -- Show git status section
   git_status_count = nil,            -- Limit git status files (nil = no limit)
   show_todos = true,                 -- Show todo section

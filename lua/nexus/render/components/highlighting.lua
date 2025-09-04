@@ -73,10 +73,27 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo)
   
   local commits_ns = vim.api.nvim_create_namespace('nexus_commits')
   for i, line in ipairs(lines) do
-    -- Look for commit hash pattern (7+ hex chars after spaces)
-    local hash_start, hash_end = line:find('%s+([a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+)')
+    -- Check for review status icons first
+    if config.show_commit_review then
+      local review_check = line:find('✓')
+      local review_box = line:find('☐')
+      
+      if review_check then
+        vim.api.nvim_buf_add_highlight(buf, commits_ns, 'DiagnosticOk', i - 1, review_check - 1, review_check)
+      elseif review_box then
+        vim.api.nvim_buf_add_highlight(buf, commits_ns, 'Comment', i - 1, review_box - 1, review_box)
+      end
+    end
+    
+    -- Look for commit hash pattern (7+ hex chars after spaces, accounting for review icons)
+    local hash_start, hash_end = line:find('%s+[☐✓]?%s*([a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+)')
     if hash_start and hash_end then
-      vim.api.nvim_buf_add_highlight(buf, commits_ns, 'Number', i - 1, hash_start, hash_end)
+      -- Find the actual hash position within the captured group
+      local actual_hash_start = line:find('[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+', hash_start)
+      if actual_hash_start then
+        local actual_hash_end = actual_hash_start + 6 -- 7 char hash - 1
+        vim.api.nvim_buf_add_highlight(buf, commits_ns, 'Number', i - 1, actual_hash_start - 1, actual_hash_end)
+      end
       
       -- Look for HEAD decoration
       local head_start, head_end = line:find('HEAD')
