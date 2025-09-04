@@ -62,7 +62,7 @@ function M.get_current_section(lines, line_num, config)
   return "unknown"
 end
 
---- Handle 'e' key press - context-sensitive editing (todo edit or commit review toggle)
+--- Handle 'e' key press - context-sensitive editing (todo edit or commit review status)
 ---@param buf number Buffer number
 ---@param config table Nexus configuration
 ---@param render_callback function Function to re-render the buffer
@@ -85,8 +85,8 @@ function M.handle_e_key(buf, config, render_callback)
     todo_keymaps.handle_edit(todo_id, buf, render_callback, config)
     
   elseif section == "commits" and config.show_commit_review then
-    -- Handle commit review toggle
-    M.handle_commit_review_toggle(current_line, buf, render_callback, config)
+    -- Handle commit review status
+    M.handle_commit_review_status(current_line, buf, render_callback, config)
     
   else
     logger.debug('KEYMAP', 'e key pressed in unsupported section', { 
@@ -427,12 +427,12 @@ function M.show_linear_issue_details(issue, config)
   linear_popup.show_linear_issue_details(issue, config)
 end
 
---- Handle commit review toggle
+--- Handle commit review status
 ---@param commit_line string The line containing commit information
 ---@param buf number Buffer number
 ---@param render_callback function Function to re-render the buffer
 ---@param config table Nexus configuration
-function M.handle_commit_review_toggle(commit_line, buf, render_callback, config)
+function M.handle_commit_review_status(commit_line, buf, render_callback, config)
   -- Extract commit hash from the line (accounting for review icons)
   local hash = commit_line:match("%s*[☐✓⚠]?%s*([a-f0-9]+)")
   if not hash then

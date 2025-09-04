@@ -21,7 +21,7 @@ local shortcuts_registry = {
   
   recent_commits = {
     {key = "<Enter>", action = "show commit"},
-    {key = "e", action = "review toggle"}
+    {key = "e", action = "review status"}
   },
   
   todos = {
