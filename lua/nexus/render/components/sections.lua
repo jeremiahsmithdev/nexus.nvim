@@ -10,6 +10,16 @@ local logger = require('nexus.logger')
 function M.build_sections(config, is_git_repo, files)
   local sections = {}
   
+  -- Project name section
+  local logo = require('nexus.ui.logo')
+  local project_name = logo._get_project_name()
+  if project_name then
+    -- Center the project name with padding
+    local padding = math.floor((48 - #project_name) / 2)  -- 48 is roughly the width of the NEXUS logo
+    local centered_project_name = string.rep(" ", padding) .. project_name
+    sections.project_name = {centered_project_name, ""}
+  end
+  
   -- Dashboard buttons section
   if config.show_dashboard_buttons then
     local button_lines = dashboard.get_dashboard_buttons(config)

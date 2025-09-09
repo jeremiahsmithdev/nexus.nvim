@@ -29,14 +29,17 @@ function M.layout_sections(sections, config, width)
     end_line = #centered_logo
   }
   
-  -- Separate button sections from git sections for different alignment
+  -- Separate different section types for different alignment
   local button_sections = {}
   local git_sections_data = {}
+  local project_name_section = nil
   
   for _, section_name in ipairs(config.section_order) do
     local section_data = sections[section_name]
     if section_data and #section_data > 0 then
-      if section_name == "dashboard_buttons" or section_name == "keyboard_shortcuts" then
+      if section_name == "project_name" then
+        project_name_section = section_data
+      elseif section_name == "dashboard_buttons" or section_name == "keyboard_shortcuts" then
         table.insert(button_sections, {data = section_data, name = section_name})
       else
         table.insert(git_sections_data, section_data)

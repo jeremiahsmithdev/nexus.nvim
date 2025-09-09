@@ -248,7 +248,8 @@ local alphabet = {
 }
 
 function M.get_nexus_ascii_logo()
-  return {
+  local project_name = M._get_project_name()
+  local logo_lines = {
     "",
     [[███╗   ██╗███████╗██╗  ██╗██╗   ██╗███████╗]],
     [[████╗  ██║██╔════╝╚██╗██╔╝██║   ██║██╔════╝]],
@@ -260,6 +261,15 @@ function M.get_nexus_ascii_logo()
     "[ The Developer's Mission Control Center ]",
     ""
   }
+  
+  if project_name then
+    local padding = math.floor((48 - #project_name) / 2)
+    local centered_project_name = string.rep(" ", padding) .. project_name
+    table.insert(logo_lines, centered_project_name)
+    table.insert(logo_lines, "")
+  end
+  
+  return logo_lines
 end
 
 -- Function to generate project logo using the alphabet

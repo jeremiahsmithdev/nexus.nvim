@@ -37,7 +37,17 @@ function M.apply_logo_highlighting(buf, lines, config, logo_section)
     for i = logo_section.start_line, logo_section.end_line do
       local line_content = lines[i]
       if line_content and #line_content > 0 then -- Only highlight non-empty lines
-        vim.api.nvim_buf_add_highlight(buf, logo_ns, logo_color, i - 1, 0, -1)
+        -- Check if this line is the project name (centered text without special characters)
+        local is_project_name = false
+        if line_content and not line_content:match("[%[%]{}=]") and not line_content:match("^%s*$") and line_content:match("^%s*[A-Za-z]") then
+          is_project_name = true
+        end
+        
+        if is_project_name then
+          vim.api.nvim_buf_add_highlight(buf, logo_ns, "DiagnosticWarn", i - 1, 0, -1)
+        else
+          vim.api.nvim_buf_add_highlight(buf, logo_ns, logo_color, i - 1, 0, -1)
+        end
       end
     end
   end

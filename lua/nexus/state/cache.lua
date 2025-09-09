@@ -180,14 +180,14 @@ function M.init()
     end
   end
   
-  -- Start periodic cleanup timer (every 5 minutes)
-  if vim.fn.has('nvim-0.5') == 1 then
-    vim.defer_fn(function()
-      M.cleanup_expired()
-      -- Schedule next cleanup
-      vim.defer_fn(M.cleanup_expired, 300000) -- 5 minutes
-    end, 300000)
-  end
+  -- Start periodic cleanup timer (every 5 minutes) - DISABLED to prevent infinite loops
+  -- if vim.fn.has('nvim-0.5') == 1 then
+  --   vim.defer_fn(function()
+  --     M.cleanup_expired()
+  --     -- Schedule next cleanup - THIS CAUSED INFINITE LOOPS
+  --     vim.defer_fn(M.cleanup_expired, 300000) -- 5 minutes
+  --   end, 300000)
+  -- end
 end
 
 return M

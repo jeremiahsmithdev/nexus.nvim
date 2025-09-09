@@ -354,14 +354,14 @@ function M.init()
   -- Ensure cache directory exists
   ensure_cache_dir()
   
-  -- Schedule periodic cleanup (every 5 minutes)
-  if vim.fn.has('nvim-0.5') == 1 then
-    local function schedule_cleanup()
-      M.cleanup_expired()
-      vim.defer_fn(schedule_cleanup, 300000) -- 5 minutes
-    end
-    vim.defer_fn(schedule_cleanup, 300000)
-  end
+  -- Schedule periodic cleanup (every 5 minutes) - DISABLED to prevent infinite loops
+  -- if vim.fn.has('nvim-0.5') == 1 then
+  --   local function schedule_cleanup()
+  --     M.cleanup_expired()
+  --     vim.defer_fn(schedule_cleanup, 300000) -- 5 minutes - THIS CAUSED INFINITE LOOPS
+  --   end
+  --   vim.defer_fn(schedule_cleanup, 300000)
+  -- end
   
   logger.debug('CACHE', 'Unified cache system initialized')
 end
