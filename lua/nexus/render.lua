@@ -17,11 +17,11 @@ function M.render_git_status(buf, config, cached_files)
   -- Update configuration in state
   ui_state.update_config(config or {})
   
-  -- Check if we're in a git repository and update state
+  -- Check if we're in a git repository and update state using BATCH operations (PERFORMANCE OPTIMIZATION)
   local git_state = require('nexus.state.git')
-  git_state.force_refresh(config) -- Ensure git data is current
+  local files, commits = git_state.update_git_data_batch(config, true) -- Use batch operations
   local is_git_repo = git_state.is_git_repo()
-  local files = cached_files or git_state.get_git_status()
+  files = cached_files or files
   
   -- Get display width
   local width = layout.get_display_width()
