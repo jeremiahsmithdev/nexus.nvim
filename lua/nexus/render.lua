@@ -26,8 +26,8 @@ function M.render_git_status(buf, config, cached_files)
   -- Get display width
   local width = layout.get_display_width()
   
-  -- Build sections using component
-  local sections = sections_component.build_sections(config, is_git_repo, files)
+  -- Build sections using component (pass commits data from batch operation)
+  local sections = sections_component.build_sections(config, is_git_repo, files, commits)
   
   -- Layout sections using component
   local lines, section_ranges, logo_section = layout.layout_sections(sections, config, width)

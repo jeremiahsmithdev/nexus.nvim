@@ -15,7 +15,7 @@ function M.render_git_status_fast(buf, config, cached_files)
   
   -- Use batched git operations
   local git_state = require('nexus.state.git')
-  local files, commits = git_state.update_git_status(config, not cached_files)
+  local files, commits = git_state.update_git_data_batch(config, not cached_files)
   local is_git_repo = git_state.is_git_repo()
   
   -- Use cached files if provided
@@ -27,7 +27,7 @@ function M.render_git_status_fast(buf, config, cached_files)
   local width = layout.get_display_width()
   
   -- Build sections using component (minimal allocation)
-  local sections = sections_component.build_sections(config, is_git_repo, files)
+  local sections = sections_component.build_sections(config, is_git_repo, files, commits)
   
   -- Pre-calculate total line count for buffer pre-allocation
   local total_lines = M.calculate_total_lines(sections, config, width)

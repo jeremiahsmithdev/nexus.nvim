@@ -176,7 +176,12 @@ function M.parse_batch_commits(commits_output)
   local commits = {}
   for line in commits_output:gmatch('[^\r\n]+') do
     if line ~= '' then
-      local hash, decoration, message = line:match('([%w]+)%s*(%([^%)]*%))?(.*)')
+      -- Try to match hash with decoration first, then without
+      local hash, decoration, message = line:match('([%w]+)%s+(%b())%s*(.*)')
+      if not hash then
+        -- No decoration, just hash and message
+        hash, message = line:match('([%w]+)%s+(.*)')
+      end
       if hash then
         table.insert(commits, {
           hash = hash,

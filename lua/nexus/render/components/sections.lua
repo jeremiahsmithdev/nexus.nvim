@@ -7,7 +7,7 @@ local folding = require('nexus.ui.folding')
 local logger = require('nexus.logger')
 
 -- Build all sections based on configuration
-function M.build_sections(config, is_git_repo, files)
+function M.build_sections(config, is_git_repo, files, commits)
   local sections = {}
   
   -- Project name section
@@ -44,11 +44,16 @@ function M.build_sections(config, is_git_repo, files)
   
   -- Recent commits section
   if is_git_repo and config.show_recent_commits then
-    local git_state = require('nexus.state.git')
-    local commits = git_state.get_git_commits()
-    if #commits > 0 then
+    -- Use passed commits from batch operation, or fallback to state
+    local commits_to_use = commits
+    if not commits_to_use or #commits_to_use == 0 then
+      local git_state = require('nexus.state.git')
+      commits_to_use = git_state.get_git_commits()
+    end
+    
+    if commits_to_use and #commits_to_use > 0 then
       local commits_lines = {"Recent Commits:", ""}
-      for i, commit in ipairs(commits) do
+      for i, commit in ipairs(commits_to_use) do
         local line
         local review_icon = ""
         
