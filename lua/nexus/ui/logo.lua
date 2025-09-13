@@ -264,7 +264,8 @@ function M.get_nexus_ascii_logo()
   
   if project_name then
     local padding = math.floor((48 - #project_name) / 2)
-    local centered_project_name = string.rep(" ", padding) .. project_name
+    -- Optimized: Use table concatenation for padding
+    local centered_project_name = table.concat({string.rep(" ", padding), project_name})
     table.insert(logo_lines, centered_project_name)
     table.insert(logo_lines, "")
   end

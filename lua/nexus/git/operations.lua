@@ -172,7 +172,8 @@ function M.create_commit_window(refresh_callback)
   local help_text = "<Enter>/<C-s>/:w: commit  <C-c>: cancel"
   local padding = math.floor((width - #help_text) / 2)
   vim.api.nvim_buf_set_extmark(bufnr, ns_id, height - 1, 0, {
-    virt_text = {{string.rep(" ", padding) .. help_text, "Comment"}},
+    -- Optimized: Use table concatenation for padding
+    virt_text = {{table.concat({string.rep(" ", padding), help_text}), "Comment"}},
     virt_text_pos = "overlay"
   })
   
@@ -357,7 +358,8 @@ function M.create_commit_amend_window(refresh_callback)
   local help_text = "<Enter>/<C-s>/:w: amend commit  <C-c>: cancel"
   local padding = math.floor((width - #help_text) / 2)
   vim.api.nvim_buf_set_extmark(bufnr, ns_id, height - 1, 0, {
-    virt_text = {{string.rep(" ", padding) .. help_text, "Comment"}},
+    -- Optimized: Use table concatenation for padding
+    virt_text = {{table.concat({string.rep(" ", padding), help_text}), "Comment"}},
     virt_text_pos = "overlay"
   })
   

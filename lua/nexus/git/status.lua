@@ -89,7 +89,15 @@ function M.create_diff_stat(added, deleted, max_width)
   local add_chars = math.floor(added * scale)
   local del_chars = math.floor(deleted * scale)
   
-  local bar = string.rep("+", add_chars) .. string.rep("-", del_chars)
+  -- Optimized: Use table concatenation instead of string concatenation
+  local bar_parts = {}
+  if add_chars > 0 then
+    bar_parts[#bar_parts + 1] = string.rep("+", add_chars)
+  end
+  if del_chars > 0 then
+    bar_parts[#bar_parts + 1] = string.rep("-", del_chars)
+  end
+  local bar = table.concat(bar_parts)
   local count_str = ""
   if added > 0 and deleted > 0 then
     count_str = string.format("+%-3d -%d", added, deleted)

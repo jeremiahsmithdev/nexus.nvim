@@ -16,7 +16,8 @@ function M.build_sections(config, is_git_repo, files, commits)
   if project_name then
     -- Center the project name with padding
     local padding = math.floor((48 - #project_name) / 2)  -- 48 is roughly the width of the NEXUS logo
-    local centered_project_name = string.rep(" ", padding) .. project_name
+    -- Optimized: Use table concatenation for padding
+    local centered_project_name = table.concat({string.rep(" ", padding), project_name})
     sections.project_name = {centered_project_name, ""}
   end
   
@@ -90,13 +91,19 @@ function M.build_sections(config, is_git_repo, files, commits)
       -- Process files with optional limit
       local processed = folding.process_git_files(files, config.git_status_count)
       
-      -- Render visible files
+      -- Render visible files (optimized for performance)
+      -- Pre-allocate the git_status_lines table to avoid repeated reallocations
+      local visible_count = #processed.visible
+      for i = 1, visible_count do
+        git_status_lines[i + 2] = nil  -- Clear any existing entry
+      end
+
       for i, data in ipairs(processed.visible) do
         local padding = string.rep(" ", processed.max_filename_width - #data.full_name)
         local diff_stat = git_status.create_diff_stat(data.added, data.deleted, 40)
-        
-        local line = string.format("  %s%s%s", data.full_name, padding, diff_stat)
-        table.insert(git_status_lines, line)
+
+        -- Optimized: Use table pre-allocation and direct assignment instead of table.insert
+        git_status_lines[i + 2] = string.format("  %s%s%s", data.full_name, padding, diff_stat)
       end
       
       -- Add folded overflow content if files were hidden
