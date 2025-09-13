@@ -354,16 +354,54 @@ function M.init()
   -- Ensure cache directory exists
   ensure_cache_dir()
   
-  -- Schedule periodic cleanup (every 5 minutes) - DISABLED to prevent infinite loops
-  -- if vim.fn.has('nvim-0.5') == 1 then
-  --   local function schedule_cleanup()
-  --     M.cleanup_expired()
-  --     vim.defer_fn(schedule_cleanup, 300000) -- 5 minutes - THIS CAUSED INFINITE LOOPS
-  --   end
-  --   vim.defer_fn(schedule_cleanup, 300000)
-  -- end
+  -- Schedule periodic cleanup using autocommands instead of recursive timers
+  -- This avoids infinite loops while ensuring memory cleanup
+  local cleanup_group = vim.api.nvim_create_augroup('NexusCacheCleanup', { clear = true })
+
+  -- Cleanup on various events that indicate plugin activity
+  vim.api.nvim_create_autocmd({'VimEnter', 'BufEnter'}, {
+    group = cleanup_group,
+    pattern = '*',
+    callback = function()
+      -- Throttle cleanup to max once every 5 minutes
+      local last_cleanup = M._last_cleanup_time or 0
+      local current_time = os.time()
+      if current_time - last_cleanup >= 300 then  -- 5 minutes
+        M._last_cleanup_time = current_time
+        M.cleanup_expired()
+      end
+    end
+  })
+
+  -- Also cleanup when exiting Neovim
+  vim.api.nvim_create_autocmd('VimLeavePre', {
+    group = cleanup_group,
+    callback = function()
+      M.cleanup_expired()
+    end
+  })
   
   logger.debug('CACHE', 'Unified cache system initialized')
+end
+
+-- Shutdown cleanup to prevent memory leaks
+function M.shutdown()
+  -- Clear all memory caches
+  memory_cache = {}
+  lru_order = {}
+
+  -- Final cleanup of expired files
+  M.cleanup_expired()
+
+  -- Reset stats
+  cache_stats = {
+    hits = 0,
+    misses = 0,
+    memory_entries = 0,
+    file_entries = 0
+  }
+
+  logger.debug('CACHE', 'Cache system shutdown complete')
 end
 
 return M
