@@ -1,0 +1,2954 @@
+{
+  "statistics": {
+    "detectionDate": "2025-08-29T15:41:38.299Z",
+    "formats": {
+      "lua": {
+        "sources": {
+          "lua/nexus/ui/popups/linear.lua": {
+            "lines": 541,
+            "tokens": 5222,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 45,
+            "duplicatedTokens": 521,
+            "percentage": 8.32,
+            "percentageTokens": 9.98,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/ui/popups/commit.lua": {
+            "lines": 189,
+            "tokens": 1952,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 45,
+            "duplicatedTokens": 521,
+            "percentage": 23.81,
+            "percentageTokens": 26.69,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/render/components/todo.lua": {
+            "lines": 222,
+            "tokens": 1660,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/render/components/sections.lua": {
+            "lines": 114,
+            "tokens": 978,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 12,
+            "duplicatedTokens": 188,
+            "percentage": 10.53,
+            "percentageTokens": 19.22,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/render/components/linear.lua": {
+            "lines": 255,
+            "tokens": 1970,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/render/components/highlighting.lua": {
+            "lines": 301,
+            "tokens": 2917,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/render/components/events.lua": {
+            "lines": 36,
+            "tokens": 321,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/todo/edit.lua": {
+            "lines": 91,
+            "tokens": 666,
+            "sources": 1,
+            "clones": 3,
+            "duplicatedLines": 46,
+            "duplicatedTokens": 300,
+            "percentage": 50.55,
+            "percentageTokens": 45.05,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/todo/done.lua": {
+            "lines": 81,
+            "tokens": 562,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 21,
+            "duplicatedTokens": 150,
+            "percentage": 25.93,
+            "percentageTokens": 26.69,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/todo/delete.lua": {
+            "lines": 74,
+            "tokens": 524,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 27,
+            "duplicatedTokens": 201,
+            "percentage": 36.49,
+            "percentageTokens": 38.36,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/todo/create.lua": {
+            "lines": 71,
+            "tokens": 494,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 14,
+            "duplicatedTokens": 85,
+            "percentage": 19.72,
+            "percentageTokens": 17.21,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/navigation/refresh.lua": {
+            "lines": 123,
+            "tokens": 1089,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 10,
+            "duplicatedTokens": 190,
+            "percentage": 8.13,
+            "percentageTokens": 17.45,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/navigation/open_file.lua": {
+            "lines": 120,
+            "tokens": 949,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 48,
+            "duplicatedTokens": 350,
+            "percentage": 40,
+            "percentageTokens": 36.88,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/linear/refresh.lua": {
+            "lines": 47,
+            "tokens": 321,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/linear/browse.lua": {
+            "lines": 63,
+            "tokens": 507,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/github/browse.lua": {
+            "lines": 99,
+            "tokens": 768,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/git/unstage.lua": {
+            "lines": 83,
+            "tokens": 551,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 16,
+            "duplicatedTokens": 97,
+            "percentage": 19.28,
+            "percentageTokens": 17.6,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/git/diff.lua": {
+            "lines": 121,
+            "tokens": 944,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/git/commit.lua": {
+            "lines": 84,
+            "tokens": 669,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/git/add.lua": {
+            "lines": 83,
+            "tokens": 551,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 16,
+            "duplicatedTokens": 97,
+            "percentage": 19.28,
+            "percentageTokens": 17.6,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/ui/shortcuts.lua": {
+            "lines": 78,
+            "tokens": 557,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/ui/logo.lua": {
+            "lines": 581,
+            "tokens": 3814,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/ui/folding.lua": {
+            "lines": 194,
+            "tokens": 1532,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/ui/dashboard.lua": {
+            "lines": 18,
+            "tokens": 82,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/ui/center.lua": {
+            "lines": 39,
+            "tokens": 397,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/state/ui.lua": {
+            "lines": 281,
+            "tokens": 2147,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/state/todo.lua": {
+            "lines": 333,
+            "tokens": 2459,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 50,
+            "duplicatedTokens": 348,
+            "percentage": 15.02,
+            "percentageTokens": 14.15,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/state/linear.lua": {
+            "lines": 414,
+            "tokens": 2727,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/state/init.lua": {
+            "lines": 181,
+            "tokens": 1233,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/state/git.lua": {
+            "lines": 153,
+            "tokens": 1169,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 20,
+            "duplicatedTokens": 150,
+            "percentage": 13.07,
+            "percentageTokens": 12.83,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/state/cache.lua": {
+            "lines": 192,
+            "tokens": 1566,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/render/layout.lua": {
+            "lines": 102,
+            "tokens": 819,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/providers/manager.lua": {
+            "lines": 247,
+            "tokens": 1522,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/providers/linear.lua": {
+            "lines": 738,
+            "tokens": 4584,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/providers/base.lua": {
+            "lines": 191,
+            "tokens": 997,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/keymaps/todo.lua": {
+            "lines": 156,
+            "tokens": 1348,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 10,
+            "duplicatedTokens": 126,
+            "percentage": 6.41,
+            "percentageTokens": 9.35,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/keymaps/linear.lua": {
+            "lines": 618,
+            "tokens": 5216,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 10,
+            "duplicatedTokens": 126,
+            "percentage": 1.62,
+            "percentageTokens": 2.42,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/keymaps/git.lua": {
+            "lines": 152,
+            "tokens": 1223,
+            "sources": 1,
+            "clones": 5,
+            "duplicatedLines": 46,
+            "duplicatedTokens": 481,
+            "percentage": 30.26,
+            "percentageTokens": 39.33,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/keymaps/dashboard.lua": {
+            "lines": 66,
+            "tokens": 552,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/keymaps/claude.lua": {
+            "lines": 18,
+            "tokens": 134,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/git/utils.lua": {
+            "lines": 16,
+            "tokens": 119,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/git/status.lua": {
+            "lines": 115,
+            "tokens": 1040,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/git/operations.lua": {
+            "lines": 552,
+            "tokens": 5201,
+            "sources": 1,
+            "clones": 16,
+            "duplicatedLines": 365,
+            "duplicatedTokens": 3933,
+            "percentage": 66.12,
+            "percentageTokens": 75.62,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/git/commits.lua": {
+            "lines": 49,
+            "tokens": 359,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/git/command.lua": {
+            "lines": 676,
+            "tokens": 5824,
+            "sources": 1,
+            "clones": 12,
+            "duplicatedLines": 181,
+            "duplicatedTokens": 1875,
+            "percentage": 26.78,
+            "percentageTokens": 32.19,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/init.lua": {
+            "lines": 303,
+            "tokens": 2198,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/actions/base.lua": {
+            "lines": 161,
+            "tokens": 1080,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/logger_spec.lua": {
+            "lines": 287,
+            "tokens": 2218,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 62,
+            "duplicatedTokens": 480,
+            "percentage": 21.6,
+            "percentageTokens": 21.64,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/git_utils_spec.lua": {
+            "lines": 184,
+            "tokens": 1229,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/git_status_spec.lua": {
+            "lines": 294,
+            "tokens": 2576,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/config_spec.lua": {
+            "lines": 204,
+            "tokens": 1560,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/buffer_spec.lua": {
+            "lines": 362,
+            "tokens": 2855,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 40,
+            "duplicatedTokens": 332,
+            "percentage": 11.05,
+            "percentageTokens": 11.63,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/performance/startup_performance_spec.lua": {
+            "lines": 339,
+            "tokens": 2660,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/integration/keymap_interactions_spec.lua": {
+            "lines": 437,
+            "tokens": 3139,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 16,
+            "duplicatedTokens": 146,
+            "percentage": 3.66,
+            "percentageTokens": 4.65,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/integration/dashboard_rendering_spec.lua": {
+            "lines": 327,
+            "tokens": 2445,
+            "sources": 1,
+            "clones": 8,
+            "duplicatedLines": 72,
+            "duplicatedTokens": 582,
+            "percentage": 22.02,
+            "percentageTokens": 23.8,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/helpers/mocks.lua": {
+            "lines": 583,
+            "tokens": 4466,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 22,
+            "duplicatedTokens": 164,
+            "percentage": 3.77,
+            "percentageTokens": 3.67,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/tmux.lua": {
+            "lines": 63,
+            "tokens": 548,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/shortcuts_registry.lua": {
+            "lines": 115,
+            "tokens": 871,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/render.lua": {
+            "lines": 66,
+            "tokens": 492,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/navigation.lua": {
+            "lines": 150,
+            "tokens": 1091,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 36,
+            "duplicatedTokens": 384,
+            "percentage": 24,
+            "percentageTokens": 35.2,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/logger.lua": {
+            "lines": 169,
+            "tokens": 1296,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/keymaps.lua": {
+            "lines": 393,
+            "tokens": 2950,
+            "sources": 1,
+            "clones": 5,
+            "duplicatedLines": 32,
+            "duplicatedTokens": 351,
+            "percentage": 8.14,
+            "percentageTokens": 11.9,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/init.lua": {
+            "lines": 139,
+            "tokens": 1080,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/global_keymaps.lua": {
+            "lines": 60,
+            "tokens": 488,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/config.lua": {
+            "lines": 233,
+            "tokens": 1862,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/claude.lua": {
+            "lines": 106,
+            "tokens": 965,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua/nexus/buffer.lua": {
+            "lines": 316,
+            "tokens": 2379,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/test_runner.lua": {
+            "lines": 152,
+            "tokens": 1058,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/minimal_init.lua": {
+            "lines": 46,
+            "tokens": 352,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "plugin/nexus.lua": {
+            "lines": 30,
+            "tokens": 223,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 14477,
+          "tokens": 112317,
+          "sources": 70,
+          "clones": 47,
+          "duplicatedLines": 631,
+          "duplicatedTokens": 6089,
+          "percentage": 4.36,
+          "percentageTokens": 5.42,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "markdown": {
+        "sources": {
+          "docs/linear/OAuth2.md": {
+            "lines": 123,
+            "tokens": 1393,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "docs/linear/Guide-linear.new.md": {
+            "lines": 61,
+            "tokens": 1143,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "docs/linear/GraphQL-API.md": {
+            "lines": 295,
+            "tokens": 2540,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          ".git/hooks/conventional-commits.md": {
+            "lines": 20,
+            "tokens": 294,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/README.md": {
+            "lines": 382,
+            "tokens": 2107,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua_docs/performance-optimization.md": {
+            "lines": 710,
+            "tokens": 3079,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua_docs/module-organization.md": {
+            "lines": 388,
+            "tokens": 1769,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua_docs/function-patterns.md": {
+            "lines": 460,
+            "tokens": 2063,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua_docs/configuration-systems.md": {
+            "lines": 566,
+            "tokens": 2425,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua_docs/api-design.md": {
+            "lines": 629,
+            "tokens": 2869,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lua_docs/README.md": {
+            "lines": 66,
+            "tokens": 900,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "docs/performance.md": {
+            "lines": 439,
+            "tokens": 2595,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "docs/linear-git-project-linking.md": {
+            "lines": 48,
+            "tokens": 289,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "docs/git-commands.md": {
+            "lines": 122,
+            "tokens": 1365,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "docs/TECHNICAL_SPECIFICATIONS.md": {
+            "lines": 516,
+            "tokens": 2965,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "docs/PRE_LINEAR_REFACTORING_PLAN.md": {
+            "lines": 379,
+            "tokens": 2899,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "docs/LINEAR_IMPLEMENTATION.md": {
+            "lines": 609,
+            "tokens": 3535,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "docs/IMPLEMENTATION_ROADMAP.md": {
+            "lines": 308,
+            "tokens": 2878,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "docs/CLAUDE-PLAN.md": {
+            "lines": 307,
+            "tokens": 1870,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "REFACTORING_PLAN.md": {
+            "lines": 203,
+            "tokens": 1920,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "README.md": {
+            "lines": 230,
+            "tokens": 2522,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "LUA-REFACTOR.md": {
+            "lines": 499,
+            "tokens": 2791,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "FUNCTIONALITY_AND_TESTING.md": {
+            "lines": 639,
+            "tokens": 3970,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "CLAUDE.md": {
+            "lines": 92,
+            "tokens": 1239,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 8091,
+          "tokens": 51420,
+          "sources": 24,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "bash": {
+        "sources": {
+          "scripts/test.sh": {
+            "lines": 303,
+            "tokens": 2000,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 303,
+          "tokens": 2000,
+          "sources": 1,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "json": {
+        "sources": {
+          ".history/20250827_104847-session.json": {
+            "lines": 462,
+            "tokens": 2458,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          ".claude/settings.local.json": {
+            "lines": 14,
+            "tokens": 56,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          ".luarc.json": {
+            "lines": 4,
+            "tokens": 14,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 480,
+          "tokens": 2528,
+          "sources": 3,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      }
+    },
+    "total": {
+      "lines": 23351,
+      "tokens": 168265,
+      "sources": 98,
+      "clones": 47,
+      "duplicatedLines": 631,
+      "duplicatedTokens": 6089,
+      "percentage": 2.7,
+      "percentageTokens": 3.62,
+      "newDuplicatedLines": 0,
+      "newClones": 0
+    }
+  },
+  "duplicates": [
+    {
+      "format": "lua",
+      "lines": 10,
+      "fragment": "end\n  \n  -- Create a new buffer for the popup\n  local popup_buf = vim.api.nvim_create_buf(false, true)\n  vim.api.nvim_buf_set_option(popup_buf, 'buftype', 'nofile')\n  vim.api.nvim_buf_set_option(popup_buf, 'swapfile', false)\n  vim.api.nvim_buf_set_option(popup_buf, 'modifiable', true)\n  \n  -- Set buffer content\n  vim.api.nvim_buf_set_lines(popup_buf, 0, -1, false, commit_details",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/ui/popups/commit.lua",
+        "start": 29,
+        "end": 38,
+        "startLoc": {
+          "line": 29,
+          "column": 3,
+          "position": 174
+        },
+        "endLoc": {
+          "line": 38,
+          "column": 15,
+          "position": 273
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/ui/popups/linear.lua",
+        "start": 106,
+        "end": 115,
+        "startLoc": {
+          "line": 106,
+          "column": 3,
+          "position": 1108
+        },
+        "endLoc": {
+          "line": 115,
+          "column": 14,
+          "position": 1207
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 18,
+      "fragment": "))\n  \n  -- Calculate popup position (center of screen)\n  local screen_width = vim.api.nvim_get_option('columns')\n  local screen_height = vim.api.nvim_get_option('lines')\n  local col = math.floor((screen_width - actual_width) / 2)\n  local row = math.floor((screen_height - actual_height) / 2)\n  \n  -- Create popup window\n  local popup_opts = {\n    relative = 'editor',\n    width = actual_width,\n    height = actual_height,\n    col = col,\n    row = row,\n    style = 'minimal',\n    border = 'rounded',\n    title = ' Commit Details: '",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/ui/popups/commit.lua",
+        "start": 49,
+        "end": 66,
+        "startLoc": {
+          "line": 49,
+          "column": 15,
+          "position": 423
+        },
+        "endLoc": {
+          "line": 66,
+          "column": 20,
+          "position": 586
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/ui/popups/linear.lua",
+        "start": 126,
+        "end": 143,
+        "startLoc": {
+          "line": 126,
+          "column": 14,
+          "position": 1357
+        },
+        "endLoc": {
+          "line": 143,
+          "column": 18,
+          "position": 1520
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 7,
+      "fragment": ")\n  vim.api.nvim_win_set_option(popup_win, 'number', false)\n  vim.api.nvim_win_set_option(popup_win, 'relativenumber', false)\n  vim.api.nvim_win_set_option(popup_win, 'cursorline', true)\n  \n  -- Add virtual text hint in top right corner\n  local hint_ns = vim.api.nvim_create_namespace('nexus_commit_hint'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/ui/popups/commit.lua",
+        "start": 73,
+        "end": 79,
+        "startLoc": {
+          "line": 73,
+          "column": 6,
+          "position": 650
+        },
+        "endLoc": {
+          "line": 79,
+          "column": 20,
+          "position": 718
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/ui/popups/linear.lua",
+        "start": 150,
+        "end": 156,
+        "startLoc": {
+          "line": 150,
+          "column": 5,
+          "position": 1586
+        },
+        "endLoc": {
+          "line": 156,
+          "column": 20,
+          "position": 1654
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 14,
+      "fragment": "local hint_col = actual_width - #hint_text\n  vim.api.nvim_buf_set_extmark(popup_buf, hint_ns, 0, 0, {\n    virt_text = {{ hint_text, 'Comment' }},\n    virt_text_pos = 'overlay',\n    virt_text_win_col = hint_col,\n    hl_mode = 'combine'\n  })\n  \n  -- Set up keymaps to close popup\n  vim.api.nvim_buf_set_keymap(popup_buf, 'n', 'q', '<cmd>close<CR>', {noremap = true, silent = true})\n  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<Esc>', '<cmd>close<CR>', {noremap = true, silent = true})\n  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '<CR>', '<cmd>close<CR>', {noremap = true, silent = true})\n  \n  -- Add keybinding to open commit in browser with gh",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/ui/popups/commit.lua",
+        "start": 81,
+        "end": 94,
+        "startLoc": {
+          "line": 81,
+          "column": 3,
+          "position": 731
+        },
+        "endLoc": {
+          "line": 94,
+          "column": 52,
+          "position": 922
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/ui/popups/linear.lua",
+        "start": 158,
+        "end": 171,
+        "startLoc": {
+          "line": 158,
+          "column": 3,
+          "position": 1667
+        },
+        "endLoc": {
+          "line": 171,
+          "column": 55,
+          "position": 1858
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 7,
+      "fragment": ") do\n          local padding = string.rep(\" \", processed.max_filename_width - #data.full_name)\n          local diff_stat = git_status.create_diff_stat(data.added, data.deleted, 40)\n          local line = string.format(\"  %s%s%s\", data.full_name, padding, diff_stat)\n          table.insert(git_status_lines, line)\n        end\n      end",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/render/components/sections.lua",
+        "start": 83,
+        "end": 89,
+        "startLoc": {
+          "line": 83,
+          "column": 7,
+          "position": 725
+        },
+        "endLoc": {
+          "line": 89,
+          "column": 4,
+          "position": 819
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/render/components/sections.lua",
+        "start": 66,
+        "end": 74,
+        "startLoc": {
+          "line": 66,
+          "column": 8,
+          "position": 544
+        },
+        "endLoc": {
+          "line": 74,
+          "column": 52,
+          "position": 642
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 14,
+      "fragment": ":validate(args)\n  if not args then\n    return false, \"Arguments required\"\n  end\n  \n  if not args.id then\n    return false, \"Todo ID is required\"\n  end\n  \n  if type(args.id) ~= \"string\" then\n    return false, \"Todo ID must be a string\"\n  end\n  \n  -- Check if todo exists",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/actions/todo/done.lua",
+        "start": 25,
+        "end": 38,
+        "startLoc": {
+          "line": 25,
+          "column": 15,
+          "position": 162
+        },
+        "endLoc": {
+          "line": 38,
+          "column": 24,
+          "position": 244
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/actions/todo/edit.lua",
+        "start": 25,
+        "end": 38,
+        "startLoc": {
+          "line": 25,
+          "column": 15,
+          "position": 162
+        },
+        "endLoc": {
+          "line": 38,
+          "column": 3,
+          "position": 244
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 20,
+      "fragment": ":validate(args)\n  if not args then\n    return false, \"Arguments required\"\n  end\n  \n  if not args.id then\n    return false, \"Todo ID is required\"\n  end\n  \n  if type(args.id) ~= \"string\" then\n    return false, \"Todo ID must be a string\"\n  end\n  \n  -- Check if todo exists\n  local todo = todo_state.get_todo_by_id(args.id)\n  if not todo then\n    return false, string.format(\"Todo with ID '%s' not found\", args.id)\n  end\n  \n  return",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/actions/todo/delete.lua",
+        "start": 25,
+        "end": 44,
+        "startLoc": {
+          "line": 25,
+          "column": 17,
+          "position": 162
+        },
+        "endLoc": {
+          "line": 44,
+          "column": 7,
+          "position": 295
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/actions/todo/edit.lua",
+        "start": 25,
+        "end": 44,
+        "startLoc": {
+          "line": 25,
+          "column": 15,
+          "position": 162
+        },
+        "endLoc": {
+          "line": 44,
+          "column": 30,
+          "position": 295
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 9,
+      "fragment": ":_execute(args)\n  local id = args.id\n  \n  -- Store original todo for context\n  local original_todo = todo_state.get_todo_by_id(id)\n  self.context.original_todo = vim.deepcopy(original_todo)\n  self.context.id = id\n  \n  local success",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/actions/todo/delete.lua",
+        "start": 50,
+        "end": 58,
+        "startLoc": {
+          "line": 50,
+          "column": 17,
+          "position": 314
+        },
+        "endLoc": {
+          "line": 58,
+          "column": 8,
+          "position": 382
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/actions/todo/done.lua",
+        "start": 55,
+        "end": 63,
+        "startLoc": {
+          "line": 55,
+          "column": 15,
+          "position": 339
+        },
+        "endLoc": {
+          "line": 63,
+          "column": 15,
+          "position": 407
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 15,
+      "fragment": "end\n  \n  if not args.text then\n    return false, \"Todo text is required\"\n  end\n  \n  if type(args.text) ~= \"string\" then\n    return false, \"Todo text must be a string\"\n  end\n  \n  if args.text:match(\"^%s*$\") then\n    return false, \"Todo text cannot be empty or only whitespace\"\n  end\n  \n  return",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/actions/todo/create.lua",
+        "start": 28,
+        "end": 42,
+        "startLoc": {
+          "line": 28,
+          "column": 3,
+          "position": 186
+        },
+        "endLoc": {
+          "line": 42,
+          "column": 7,
+          "position": 271
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/actions/todo/edit.lua",
+        "start": 36,
+        "end": 50,
+        "startLoc": {
+          "line": 36,
+          "column": 3,
+          "position": 239
+        },
+        "endLoc": {
+          "line": 50,
+          "column": 24,
+          "position": 324
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 6,
+      "fragment": "state:notify_observers('git_status_changed', { force = args.force })\n    state:notify_observers('git_commits_changed', { force = args.force })\n    state:notify_observers('providers_changed', { force = args.force })\n    state:notify_observers('ui_refresh_requested', { force = args.force })\n    refreshed_sections = { 'all' }\n  end",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/actions/navigation/refresh.lua",
+        "start": 98,
+        "end": 103,
+        "startLoc": {
+          "line": 98,
+          "column": 5,
+          "position": 817
+        },
+        "endLoc": {
+          "line": 103,
+          "column": 4,
+          "position": 912
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/actions/navigation/refresh.lua",
+        "start": 85,
+        "end": 90,
+        "startLoc": {
+          "line": 85,
+          "column": 9,
+          "position": 678
+        },
+        "endLoc": {
+          "line": 90,
+          "column": 6,
+          "position": 773
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 9,
+      "fragment": "-- Resolve relative paths to absolute paths using git root\n  if not filename:match(\"^/\") then\n    local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]\n    if git_root and vim.v.shell_error == 0 then\n      filename = git_root .. '/' .. filename\n    end\n  end\n  \n  -- Open the file based on split preference",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/actions/navigation/open_file.lua",
+        "start": 82,
+        "end": 90,
+        "startLoc": {
+          "line": 82,
+          "column": 3,
+          "position": 574
+        },
+        "endLoc": {
+          "line": 90,
+          "column": 43,
+          "position": 652
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/actions/navigation/open_file.lua",
+        "start": 52,
+        "end": 60,
+        "startLoc": {
+          "line": 52,
+          "column": 3,
+          "position": 320
+        },
+        "endLoc": {
+          "line": 60,
+          "column": 24,
+          "position": 398
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 17,
+      "fragment": ":validate(args)\n  if not args.filename then\n    return false, \"filename is required\"\n  end\n  \n  if type(args.filename) ~= \"string\" then\n    return false, \"filename must be a string\"\n  end\n  \n  if args.filename:match(\"^%s*$\") then\n    return false, \"filename cannot be empty or whitespace only\"\n  end\n  \n  return true, nil\nend\n\n---Execute git unstage action",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/actions/git/unstage.lua",
+        "start": 25,
+        "end": 41,
+        "startLoc": {
+          "line": 25,
+          "column": 17,
+          "position": 162
+        },
+        "endLoc": {
+          "line": 41,
+          "column": 30,
+          "position": 259
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/actions/navigation/open_file.lua",
+        "start": 24,
+        "end": 40,
+        "startLoc": {
+          "line": 24,
+          "column": 15,
+          "position": 153
+        },
+        "endLoc": {
+          "line": 40,
+          "column": 31,
+          "position": 250
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 17,
+      "fragment": ":validate(args)\n  if not args.filename then\n    return false, \"filename is required\"\n  end\n  \n  if type(args.filename) ~= \"string\" then\n    return false, \"filename must be a string\"\n  end\n  \n  if args.filename:match(\"^%s*$\") then\n    return false, \"filename cannot be empty or whitespace only\"\n  end\n  \n  return true, nil\nend\n\n---Execute git add action",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/actions/git/add.lua",
+        "start": 25,
+        "end": 41,
+        "startLoc": {
+          "line": 25,
+          "column": 13,
+          "position": 162
+        },
+        "endLoc": {
+          "line": 41,
+          "column": 26,
+          "position": 259
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/actions/navigation/open_file.lua",
+        "start": 24,
+        "end": 40,
+        "startLoc": {
+          "line": 24,
+          "column": 15,
+          "position": 153
+        },
+        "endLoc": {
+          "line": 40,
+          "column": 31,
+          "position": 250
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 17,
+      "fragment": "end\n  \n  local todos = M.get_todos()\n  local todo_index = nil\n  \n  for i, todo in ipairs(todos) do\n    if todo.id == id then\n      todo_index = i\n      break\n    end\n  end\n  \n  if not todo_index then\n    return nil, 'Todo not found'\n  end\n  \n  todos",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/state/todo.lua",
+        "start": 180,
+        "end": 196,
+        "startLoc": {
+          "line": 180,
+          "column": 3,
+          "position": 1378
+        },
+        "endLoc": {
+          "line": 196,
+          "column": 6,
+          "position": 1477
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/state/todo.lua",
+        "start": 139,
+        "end": 155,
+        "startLoc": {
+          "line": 139,
+          "column": 3,
+          "position": 1080
+        },
+        "endLoc": {
+          "line": 155,
+          "column": 6,
+          "position": 1179
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 10,
+      "fragment": "todos[todo_index].updated_at = os.time()\n  \n  state.set('todo', 'items', todos)\n  \n  local success = save_todos_to_file(todos)\n  if not success then\n    return nil, 'Failed to save todo changes'\n  end\n  \n  logger.info('TODO', 'Marked todo as done'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/state/todo.lua",
+        "start": 197,
+        "end": 206,
+        "startLoc": {
+          "line": 197,
+          "column": 3,
+          "position": 1489
+        },
+        "endLoc": {
+          "line": 206,
+          "column": 22,
+          "position": 1564
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/state/todo.lua",
+        "start": 157,
+        "end": 166,
+        "startLoc": {
+          "line": 157,
+          "column": 3,
+          "position": 1205
+        },
+        "endLoc": {
+          "line": 166,
+          "column": 14,
+          "position": 1280
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 11,
+      "fragment": ") or {}\n  end\n  \n  local is_git_repo = state.get('git', 'is_git_repo')\n  if not is_git_repo then\n    M.update_git_repository_info()\n    is_git_repo = state.get('git', 'is_git_repo')\n  end\n  \n  if is_git_repo then\n    local commits",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/state/git.lua",
+        "start": 64,
+        "end": 74,
+        "startLoc": {
+          "line": 64,
+          "column": 10,
+          "position": 538
+        },
+        "endLoc": {
+          "line": 74,
+          "column": 8,
+          "position": 613
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/state/git.lua",
+        "start": 31,
+        "end": 41,
+        "startLoc": {
+          "line": 31,
+          "column": 8,
+          "position": 240
+        },
+        "endLoc": {
+          "line": 41,
+          "column": 6,
+          "position": 315
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 11,
+      "fragment": "-- Center the popup\n  local ui = vim.api.nvim_list_uis()[1]\n  local popup_win = vim.api.nvim_open_win(popup_buf, true, {\n    relative = 'editor',\n    width = width,\n    height = height,\n    row = (ui.height - height) / 2,\n    col = (ui.width - width) / 2,\n    style = 'minimal',\n    border = 'rounded',\n    title = ' Linear Issue '",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/keymaps/linear.lua",
+        "start": 184,
+        "end": 194,
+        "startLoc": {
+          "line": 184,
+          "column": 3,
+          "position": 1633
+        },
+        "endLoc": {
+          "line": 194,
+          "column": 17,
+          "position": 1759
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/keymaps/todo.lua",
+        "start": 134,
+        "end": 144,
+        "startLoc": {
+          "line": 134,
+          "column": 3,
+          "position": 1087
+        },
+        "endLoc": {
+          "line": 144,
+          "column": 17,
+          "position": 1213
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 9,
+      "fragment": "(buf, render_callback)\n  local cursor = vim.api.nvim_win_get_cursor(0)\n  local line_num = cursor[1]\n  \n  -- Get all lines in the buffer\n  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)\n  local current_line = lines[line_num]\n  \n  logger.debug('GIT_UNSTAGE'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/keymaps/git.lua",
+        "start": 70,
+        "end": 78,
+        "startLoc": {
+          "line": 70,
+          "column": 15,
+          "position": 597
+        },
+        "endLoc": {
+          "line": 78,
+          "column": 14,
+          "position": 682
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/keymaps/git.lua",
+        "start": 38,
+        "end": 46,
+        "startLoc": {
+          "line": 38,
+          "column": 11,
+          "position": 318
+        },
+        "endLoc": {
+          "line": 46,
+          "column": 10,
+          "position": 403
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 12,
+      "fragment": ", string.format('Cursor at line %d: \"%s\"', line_num, current_line or 'nil'))\n  \n  -- Check if it's a git status line\n  if current_line and current_line:match(\"%s*  [MADRCU?][MADRCU?]? \") then\n    local filename = current_line:match(\"%s*  [MADRCU?][MADRCU?]? (.-)%s+%+\") or \n                    current_line:match(\"%s*  [MADRCU?][MADRCU?]? (.-)%s+%-\") or\n                    current_line:match(\"%s*  [MADRCU?][MADRCU?]? (.+)$\")\n    if filename then\n      filename = filename:gsub(\"^%s+\", \"\"):gsub(\"%s+$\", \"\")\n      \n      -- Use action system\n      actions.execute('git.unstage'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/keymaps/git.lua",
+        "start": 78,
+        "end": 89,
+        "startLoc": {
+          "line": 78,
+          "column": 14,
+          "position": 683
+        },
+        "endLoc": {
+          "line": 89,
+          "column": 14,
+          "position": 799
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/keymaps/git.lua",
+        "start": 46,
+        "end": 57,
+        "startLoc": {
+          "line": 46,
+          "column": 10,
+          "position": 404
+        },
+        "endLoc": {
+          "line": 57,
+          "column": 10,
+          "position": 520
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 6,
+      "fragment": "= vim.api.nvim_create_buf(false, true)\n  \n  -- Calculate position to center the window\n  local win_width = vim.api.nvim_get_option('columns')\n  local win_height = vim.api.nvim_get_option('lines')\n  local row = math.ceil((win_height - height",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 131,
+        "end": 136,
+        "startLoc": {
+          "line": 131,
+          "column": 2,
+          "position": 1274
+        },
+        "endLoc": {
+          "line": 136,
+          "column": 7,
+          "position": 1341
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 67,
+        "end": 72,
+        "startLoc": {
+          "line": 67,
+          "column": 2,
+          "position": 636
+        },
+        "endLoc": {
+          "line": 72,
+          "column": 14,
+          "position": 703
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 20,
+      "fragment": "-- Create floating window for commit message\n  local width = 60\n  local height = 15\n  local bufnr = vim.api.nvim_create_buf(false, true)\n  \n  -- Calculate position to center the window\n  local win_width = vim.api.nvim_get_option('columns')\n  local win_height = vim.api.nvim_get_option('lines')\n  local row = math.ceil((win_height - height) / 2 - 1)\n  local col = math.ceil((win_width - width) / 2)\n  \n  local opts = {\n    style = \"minimal\",\n    relative = \"editor\",\n    width = width,\n    height = height,\n    row = row,\n    col = col,\n    border = \"rounded\",\n    title = \" Git Commit --amend \"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 303,
+        "end": 322,
+        "startLoc": {
+          "line": 303,
+          "column": 3,
+          "position": 2809
+        },
+        "endLoc": {
+          "line": 322,
+          "column": 23,
+          "position": 3009
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 128,
+        "end": 147,
+        "startLoc": {
+          "line": 128,
+          "column": 3,
+          "position": 1249
+        },
+        "endLoc": {
+          "line": 147,
+          "column": 15,
+          "position": 1449
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 11,
+      "fragment": ",\n    title_pos = \"center\"\n  }\n  \n  local win = vim.api.nvim_open_win(bufnr, true, opts)\n  \n  -- Set buffer options\n  vim.api.nvim_buf_set_option(bufnr, 'buftype', 'acwrite') -- Allow custom write behavior\n  vim.api.nvim_buf_set_option(bufnr, 'swapfile', false)\n  vim.api.nvim_buf_set_option(bufnr, 'filetype', 'gitcommit')\n  vim.api.nvim_buf_set_name(bufnr, 'git-commit-amend-'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 322,
+        "end": 332,
+        "startLoc": {
+          "line": 322,
+          "column": 23,
+          "position": 3010
+        },
+        "endLoc": {
+          "line": 332,
+          "column": 20,
+          "position": 3111
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 147,
+        "end": 157,
+        "startLoc": {
+          "line": 147,
+          "column": 15,
+          "position": 1450
+        },
+        "endLoc": {
+          "line": 157,
+          "column": 14,
+          "position": 1551
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 7,
+      "fragment": "local padding = math.floor((width - #help_text) / 2)\n  vim.api.nvim_buf_set_extmark(bufnr, ns_id, height - 1, 0, {\n    virt_text = {{string.rep(\" \", padding) .. help_text, \"Comment\"}},\n    virt_text_pos = \"overlay\"\n  })\n  \n  -- Position cursor at the beginning of first line",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 358,
+        "end": 364,
+        "startLoc": {
+          "line": 358,
+          "column": 3,
+          "position": 3337
+        },
+        "endLoc": {
+          "line": 364,
+          "column": 50,
+          "position": 3427
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 173,
+        "end": 179,
+        "startLoc": {
+          "line": 173,
+          "column": 3,
+          "position": 1696
+        },
+        "endLoc": {
+          "line": 179,
+          "column": 36,
+          "position": 1786
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 30,
+      "fragment": "()\n    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)\n    local commit_msg = \"\"\n    \n    -- Get commit message (everything before comment lines)\n    -- Preserve empty lines as they're important for commit message formatting\n    for _, line in ipairs(lines) do\n      if not line:match(\"^#\") then\n        commit_msg = commit_msg .. line .. \"\\n\"\n      end\n    end\n    \n    commit_msg = commit_msg:gsub(\"^%s*\", \"\"):gsub(\"%s*$\", \"\") -- trim\n    \n    if commit_msg ~= \"\" then\n      -- Clean up the commit buffer completely\n      pcall(vim.api.nvim_buf_set_name, bufnr, '')\n      pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')\n      \n      vim.api.nvim_win_close(win, true)\n      \n      -- Schedule buffer deletion to avoid issues\n      vim.schedule(function()\n        pcall(vim.api.nvim_buf_delete, bufnr, { force = true })\n      end)\n      \n      -- Ensure we're in normal mode when returning to Nexus\n      vim.cmd('stopinsert')\n      \n      -- Execute git commit --amend with proper newline handling",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 368,
+        "end": 397,
+        "startLoc": {
+          "line": 368,
+          "column": 16,
+          "position": 3458
+        },
+        "endLoc": {
+          "line": 397,
+          "column": 59,
+          "position": 3707
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 183,
+        "end": 212,
+        "startLoc": {
+          "line": 183,
+          "column": 10,
+          "position": 1817
+        },
+        "endLoc": {
+          "line": 212,
+          "column": 2,
+          "position": 2066
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 65,
+      "fragment": ".. result)\n        -- Show error output in floating window like <leader>g commands do\n        local git_command = require('nexus.git.command')\n        local show_output_window = git_command.show_output_window or function(title, content, is_error)\n          -- Fallback implementation if show_output_window is not available\n          local output_width = math.min(80, vim.api.nvim_get_option('columns') - 4)\n          local lines = vim.split(content, '\\n')\n          local output_height = math.min(20, math.max(5, #lines + 2))\n          \n          local output_bufnr = vim.api.nvim_create_buf(false, true)\n          \n          -- Calculate position to center the window\n          local win_width = vim.api.nvim_get_option('columns')\n          local win_height = vim.api.nvim_get_option('lines')\n          local row = math.ceil((win_height - output_height) / 2 - 1)\n          local col = math.ceil((win_width - output_width) / 2)\n          \n          local opts = {\n            style = \"minimal\",\n            relative = \"editor\",\n            width = output_width,\n            height = output_height,\n            row = row,\n            col = col,\n            border = \"rounded\",\n            title = title,\n            title_pos = \"center\"\n          }\n          \n          local output_win = vim.api.nvim_open_win(output_bufnr, true, opts)\n          \n          -- Set buffer options\n          vim.api.nvim_buf_set_option(output_bufnr, 'buftype', 'nofile')\n          vim.api.nvim_buf_set_option(output_bufnr, 'swapfile', false)\n          vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)\n          vim.api.nvim_buf_set_option(output_bufnr, 'filetype', 'gitcommit')\n          \n          -- Set content\n          vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', true)\n          vim.api.nvim_buf_set_lines(output_bufnr, 0, -1, false, lines)\n          vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)\n          \n          -- Highlight error content if it's an error\n          if is_error then\n            local ns_id = vim.api.nvim_create_namespace('gboard_git_output_error')\n            for i = 0, #lines - 1 do\n              vim.api.nvim_buf_add_highlight(output_bufnr, ns_id, 'DiagnosticError', i, 0, -1)\n            end\n          end\n          \n          -- Set up keymaps to close the window\n          for _, key in ipairs({'<Esc>', 'q', '<CR>', '<C-c>'}) do\n            vim.api.nvim_buf_set_keymap(output_bufnr, 'n', key, '<cmd>q<CR>', { noremap = true, silent = true })\n          end\n          \n          -- Add help text\n          local help_text = \"Press q, <Esc>, or <Enter> to close\"\n          local help_ns = vim.api.nvim_create_namespace('gboard_git_output_help')\n          vim.api.nvim_buf_set_extmark(output_bufnr, help_ns, #lines, 0, {\n            virt_text = {{help_text, \"Comment\"}},\n            virt_text_pos = \"eol\"\n          })\n        end\n        \n        show_output_window(\" Git Commit Amend Error \"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 420,
+        "end": 484,
+        "startLoc": {
+          "line": 420,
+          "column": 2,
+          "position": 3924
+        },
+        "endLoc": {
+          "line": 484,
+          "column": 27,
+          "position": 4632
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 58,
+        "end": 122,
+        "startLoc": {
+          "line": 58,
+          "column": 2,
+          "position": 507
+        },
+        "endLoc": {
+          "line": 122,
+          "column": 21,
+          "position": 1215
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 13,
+      "fragment": "()\n    pcall(vim.api.nvim_buf_set_name, bufnr, '')\n    pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')\n    vim.cmd('q')\n    vim.schedule(function()\n      pcall(vim.api.nvim_buf_delete, bufnr, { force = true })\n    end)\n  end\n  \n  vim.api.nvim_buf_set_keymap(bufnr, 'n', '<C-c>', '', { \n    noremap = true, \n    silent = true, \n    callback = cleanup_amend_and_quit",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 492,
+        "end": 504,
+        "startLoc": {
+          "line": 492,
+          "column": 23,
+          "position": 4679
+        },
+        "endLoc": {
+          "line": 504,
+          "column": 23,
+          "position": 4812
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 219,
+        "end": 231,
+        "startLoc": {
+          "line": 219,
+          "column": 17,
+          "position": 2107
+        },
+        "endLoc": {
+          "line": 231,
+          "column": 17,
+          "position": 2240
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 17,
+      "fragment": "local bufnr = vim.api.nvim_create_buf(false, true)\n  \n  -- Calculate position to center the window\n  local win_width = vim.api.nvim_get_option('columns')\n  local win_height = vim.api.nvim_get_option('lines')\n  local row = math.ceil((win_height - height) / 2 - 1)\n  local col = math.ceil((win_width - width) / 2)\n  \n  local opts = {\n    style = \"minimal\",\n    relative = \"editor\",\n    width = width,\n    height = height,\n    row = row,\n    col = col,\n    border = \"rounded\",\n    title = \" Git Command \"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 43,
+        "end": 59,
+        "startLoc": {
+          "line": 43,
+          "column": 3,
+          "position": 182
+        },
+        "endLoc": {
+          "line": 59,
+          "column": 16,
+          "position": 361
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 131,
+        "end": 147,
+        "startLoc": {
+          "line": 131,
+          "column": 3,
+          "position": 1270
+        },
+        "endLoc": {
+          "line": 147,
+          "column": 15,
+          "position": 1449
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 60,
+      "fragment": "local output_width = math.min(80, vim.api.nvim_get_option('columns') - 4)\n    local lines = vim.split(content, '\\n')\n    local output_height = math.min(20, math.max(5, #lines + 2))\n    \n    local output_bufnr = vim.api.nvim_create_buf(false, true)\n    \n    -- Calculate position to center the window\n    local win_width = vim.api.nvim_get_option('columns')\n    local win_height = vim.api.nvim_get_option('lines')\n    local row = math.ceil((win_height - output_height) / 2 - 1)\n    local col = math.ceil((win_width - output_width) / 2)\n    \n    local opts = {\n      style = \"minimal\",\n      relative = \"editor\",\n      width = output_width,\n      height = output_height,\n      row = row,\n      col = col,\n      border = \"rounded\",\n      title = title,\n      title_pos = \"center\"\n    }\n    \n    local output_win = vim.api.nvim_open_win(output_bufnr, true, opts)\n    \n    -- Set buffer options\n    vim.api.nvim_buf_set_option(output_bufnr, 'buftype', 'nofile')\n    vim.api.nvim_buf_set_option(output_bufnr, 'swapfile', false)\n    vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)\n    vim.api.nvim_buf_set_option(output_bufnr, 'filetype', 'gitcommit')\n    \n    -- Set content\n    vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', true)\n    vim.api.nvim_buf_set_lines(output_bufnr, 0, -1, false, lines)\n    vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)\n    \n    -- Highlight error content if it's an error\n    if is_error then\n      local ns_id = vim.api.nvim_create_namespace('gboard_git_output_error')\n      for i = 0, #lines - 1 do\n        vim.api.nvim_buf_add_highlight(output_bufnr, ns_id, 'DiagnosticError', i, 0, -1)\n      end\n    end\n    \n    -- Set up keymaps to close the window\n    for _, key in ipairs({'<Esc>', 'q', '<CR>', '<C-c>'}) do\n      vim.api.nvim_buf_set_keymap(output_bufnr, 'n', key, '<cmd>q<CR>', { noremap = true, silent = true })\n    end\n    \n    -- Add help text\n    local help_text = \"Press q, <Esc>, or <Enter> to close\"\n    local help_ns = vim.api.nvim_create_namespace('gboard_git_output_help')\n    vim.api.nvim_buf_set_extmark(output_bufnr, help_ns, #lines, 0, {\n      virt_text = {{help_text, \"Comment\"}},\n      virt_text_pos = \"eol\"\n    })\n  end\n  \n  -- Function to show git log for checkout selection",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 191,
+        "end": 250,
+        "startLoc": {
+          "line": 191,
+          "column": 5,
+          "position": 1568
+        },
+        "endLoc": {
+          "line": 250,
+          "column": 51,
+          "position": 2226
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/operations.lua",
+        "start": 63,
+        "end": 122,
+        "startLoc": {
+          "line": 63,
+          "column": 7,
+          "position": 555
+        },
+        "endLoc": {
+          "line": 122,
+          "column": 19,
+          "position": 1213
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 18,
+      "fragment": "if #lines >= height - 3 then\n          break\n        end\n      end\n      \n      -- Fill remaining lines\n      while #lines < height do\n        table.insert(lines, \"\")\n      end\n      \n      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)\n      \n      -- Highlight selected item and arrow\n      local ns_id = vim.api.nvim_create_namespace('gboard_git_command')\n      vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)\n      \n      if selected_index <= #filtered_commands and selected_index > 0 then\n        vim",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 307,
+        "end": 324,
+        "startLoc": {
+          "line": 307,
+          "column": 9,
+          "position": 2672
+        },
+        "endLoc": {
+          "line": 324,
+          "column": 4,
+          "position": 2816
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 150,
+        "end": 167,
+        "startLoc": {
+          "line": 150,
+          "column": 7,
+          "position": 1194
+        },
+        "endLoc": {
+          "line": 167,
+          "column": 31,
+          "position": 1338
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 12,
+      "fragment": "()\n      end\n    end\n  })\n  \n  vim.api.nvim_buf_set_keymap(bufnr, 'n', 'k', '', {\n    noremap = true,\n    silent = true,\n    callback = function()\n      if selected_index > 1 then\n        selected_index = selected_index - 1\n        update_display",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 534,
+        "end": 545,
+        "startLoc": {
+          "line": 534,
+          "column": 15,
+          "position": 4658
+        },
+        "endLoc": {
+          "line": 545,
+          "column": 15,
+          "position": 4742
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 354,
+        "end": 364,
+        "startLoc": {
+          "line": 354,
+          "column": 22,
+          "position": 3130
+        },
+        "endLoc": {
+          "line": 364,
+          "column": 22,
+          "position": 3213
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 8,
+      "fragment": "for _, key in ipairs({'<Down>', '<C-n>'}) do\n      vim.api.nvim_buf_set_keymap(bufnr, mode, key, '', {\n        noremap = true,\n        silent = true,\n        callback = function()\n          if selected_index < #filtered_commands then\n            selected_index = selected_index + 1\n            update_display",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 553,
+        "end": 560,
+        "startLoc": {
+          "line": 553,
+          "column": 5,
+          "position": 4787
+        },
+        "endLoc": {
+          "line": 560,
+          "column": 15,
+          "position": 4878
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 372,
+        "end": 378,
+        "startLoc": {
+          "line": 372,
+          "column": 7,
+          "position": 3258
+        },
+        "endLoc": {
+          "line": 378,
+          "column": 22,
+          "position": 3348
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 8,
+      "fragment": "for _, key in ipairs({'<Up>', '<C-p>'}) do\n      vim.api.nvim_buf_set_keymap(bufnr, mode, key, '', {\n        noremap = true,\n        silent = true,\n        callback = function()\n          if selected_index > 1 then\n            selected_index = selected_index - 1\n            update_display",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 567,
+        "end": 574,
+        "startLoc": {
+          "line": 567,
+          "column": 5,
+          "position": 4901
+        },
+        "endLoc": {
+          "line": 574,
+          "column": 15,
+          "position": 4991
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 385,
+        "end": 391,
+        "startLoc": {
+          "line": 385,
+          "column": 7,
+          "position": 3371
+        },
+        "endLoc": {
+          "line": 391,
+          "column": 22,
+          "position": 3460
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 12,
+      "fragment": "vim.api.nvim_create_autocmd({\"CursorMovedI\", \"CursorMoved\"}, {\n    buffer = bufnr,\n    callback = function()\n      local cursor = vim.api.nvim_win_get_cursor(win)\n      local row, col = cursor[1], cursor[2]\n      \n      -- Keep cursor on first line\n      if row ~= 1 then\n        vim.api.nvim_win_set_cursor(win, {1, col})\n      end\n      \n      -- Keep cursor after \"git \" (position 4)",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 648,
+        "end": 659,
+        "startLoc": {
+          "line": 648,
+          "column": 3,
+          "position": 5606
+        },
+        "endLoc": {
+          "line": 659,
+          "column": 41,
+          "position": 5716
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/git/command.lua",
+        "start": 433,
+        "end": 443,
+        "startLoc": {
+          "line": 433,
+          "column": 5,
+          "position": 3773
+        },
+        "endLoc": {
+          "line": 443,
+          "column": 4,
+          "position": 3881
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 32,
+      "fragment": "io.open = function(path, mode)\n        if not mock_file_operations[path] then\n          mock_file_operations[path] = {\n            content = \"\",\n            writes = {}\n          }\n        end\n        \n        -- Handle \"w\" mode (write/overwrite) vs \"a\" mode (append)\n        if mode == \"w\" then\n          mock_file_operations[path] = {\n            content = \"\",\n            writes = {}\n          }\n        end\n        \n        return {\n          write = function(self, data)\n            if mode == \"w\" or not mock_file_operations[path] then\n              mock_file_operations[path].content = data\n            else\n              mock_file_operations[path].content = mock_file_operations[path].content .. data\n            end\n            table.insert(mock_file_operations[path].writes, data)\n            return self\n          end,\n          close = function() end\n        }\n      end\n      \n      logger = require('nexus.logger')\n      logger",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests/unit/logger_spec.lua",
+        "start": 157,
+        "end": 188,
+        "startLoc": {
+          "line": 157,
+          "column": 7,
+          "position": 1169
+        },
+        "endLoc": {
+          "line": 188,
+          "column": 7,
+          "position": 1409
+        }
+      },
+      "secondFile": {
+        "name": "tests/unit/logger_spec.lua",
+        "start": 20,
+        "end": 51,
+        "startLoc": {
+          "line": 20,
+          "column": 5,
+          "position": 101
+        },
+        "endLoc": {
+          "line": 51,
+          "column": 4,
+          "position": 341
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 8,
+      "fragment": "(mocks._mock_buffers[buf].scratch)\n      \n      -- Check buffer options\n      local options = mocks._mock_buffers[buf].options\n      assert.equals('nexus', options.filetype)\n      assert.equals('nofile', options.buftype)\n      assert.is_false(options.swapfile)\n      assert.equals('wipe'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests/unit/buffer_spec.lua",
+        "start": 82,
+        "end": 89,
+        "startLoc": {
+          "line": 82,
+          "column": 8,
+          "position": 608
+        },
+        "endLoc": {
+          "line": 89,
+          "column": 7,
+          "position": 681
+        }
+      },
+      "secondFile": {
+        "name": "tests/unit/buffer_spec.lua",
+        "start": 65,
+        "end": 72,
+        "startLoc": {
+          "line": 65,
+          "column": 9,
+          "position": 448
+        },
+        "endLoc": {
+          "line": 72,
+          "column": 7,
+          "position": 521
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 14,
+      "fragment": "} \n      end\n      \n      local win_set_buf_called = false\n      local buf_delete_called = false\n      \n      vim.api.nvim_win_set_buf = function(win, buffer)\n        win_set_buf_called = true\n        assert.equals(buf, buffer)\n      end\n      \n      vim.api.nvim_buf_delete = function(buffer, opts)\n        buf_delete_called = true\n      end",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests/unit/buffer_spec.lua",
+        "start": 153,
+        "end": 166,
+        "startLoc": {
+          "line": 153,
+          "column": 8,
+          "position": 1262
+        },
+        "endLoc": {
+          "line": 166,
+          "column": 4,
+          "position": 1355
+        }
+      },
+      "secondFile": {
+        "name": "tests/unit/buffer_spec.lua",
+        "start": 122,
+        "end": 135,
+        "startLoc": {
+          "line": 122,
+          "column": 10,
+          "position": 1000
+        },
+        "endLoc": {
+          "line": 135,
+          "column": 7,
+          "position": 1093
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 9,
+      "fragment": ", function()\n      config.setup({ show_dashboard_buttons = true })\n      nexus.setup()\n      nexus.open(true)\n      \n      local buf_id = mocks._mock_buffer_counter - 1\n      local buffer_lines = mocks._mock_buffers[buf_id].lines\n      \n      -- Find new file button",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests/integration/keymap_interactions_spec.lua",
+        "start": 110,
+        "end": 118,
+        "startLoc": {
+          "line": 110,
+          "column": 43,
+          "position": 829
+        },
+        "endLoc": {
+          "line": 118,
+          "column": 24,
+          "position": 902
+        }
+      },
+      "secondFile": {
+        "name": "tests/integration/keymap_interactions_spec.lua",
+        "start": 77,
+        "end": 85,
+        "startLoc": {
+          "line": 77,
+          "column": 44,
+          "position": 589
+        },
+        "endLoc": {
+          "line": 85,
+          "column": 36,
+          "position": 662
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 10,
+      "fragment": "})\n      \n      nexus.setup()\n      nexus.open(true)\n      \n      local buf_id = mocks._mock_buffer_counter - 1\n      local buffer_lines = mocks._mock_buffers[buf_id].lines\n      local content = table.concat(buffer_lines, '\\n')\n      \n      -- Should contain logo",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests/integration/dashboard_rendering_spec.lua",
+        "start": 122,
+        "end": 131,
+        "startLoc": {
+          "line": 122,
+          "column": 7,
+          "position": 917
+        },
+        "endLoc": {
+          "line": 131,
+          "column": 23,
+          "position": 990
+        }
+      },
+      "secondFile": {
+        "name": "tests/integration/dashboard_rendering_spec.lua",
+        "start": 90,
+        "end": 99,
+        "startLoc": {
+          "line": 90,
+          "column": 7,
+          "position": 699
+        },
+        "endLoc": {
+          "line": 99,
+          "column": 42,
+          "position": 772
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 10,
+      "fragment": "})\n      \n      nexus.setup()\n      nexus.open(true)\n      \n      local buf_id = mocks._mock_buffer_counter - 1\n      local buffer_lines = mocks._mock_buffers[buf_id].lines\n      local content = table.concat(buffer_lines, '\\n')\n      \n      -- Find positions of sections",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests/integration/dashboard_rendering_spec.lua",
+        "start": 153,
+        "end": 162,
+        "startLoc": {
+          "line": 153,
+          "column": 7,
+          "position": 1125
+        },
+        "endLoc": {
+          "line": 162,
+          "column": 30,
+          "position": 1198
+        }
+      },
+      "secondFile": {
+        "name": "tests/integration/dashboard_rendering_spec.lua",
+        "start": 90,
+        "end": 99,
+        "startLoc": {
+          "line": 90,
+          "column": 7,
+          "position": 699
+        },
+        "endLoc": {
+          "line": 99,
+          "column": 42,
+          "position": 772
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 10,
+      "fragment": ")\n      \n      nexus.setup()\n      nexus.open(true)\n      \n      local buf_id = mocks._mock_buffer_counter - 1\n      local buffer_lines = mocks._mock_buffers[buf_id].lines\n      local content = table.concat(buffer_lines, '\\n')\n      \n      -- Should contain git status section",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests/integration/dashboard_rendering_spec.lua",
+        "start": 237,
+        "end": 246,
+        "startLoc": {
+          "line": 237,
+          "column": 11,
+          "position": 1792
+        },
+        "endLoc": {
+          "line": 246,
+          "column": 37,
+          "position": 1864
+        }
+      },
+      "secondFile": {
+        "name": "tests/integration/dashboard_rendering_spec.lua",
+        "start": 90,
+        "end": 99,
+        "startLoc": {
+          "line": 90,
+          "column": 2,
+          "position": 700
+        },
+        "endLoc": {
+          "line": 99,
+          "column": 42,
+          "position": 772
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 10,
+      "fragment": "})\n      \n      nexus.setup()\n      nexus.open(true)\n      \n      local buf_id = mocks._mock_buffer_counter - 1\n      local buffer_lines = mocks._mock_buffers[buf_id].lines\n      local content = table.concat(buffer_lines, '\\n')\n      \n      assert",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests/integration/dashboard_rendering_spec.lua",
+        "start": 255,
+        "end": 264,
+        "startLoc": {
+          "line": 255,
+          "column": 2,
+          "position": 1926
+        },
+        "endLoc": {
+          "line": 264,
+          "column": 7,
+          "position": 1999
+        }
+      },
+      "secondFile": {
+        "name": "tests/integration/dashboard_rendering_spec.lua",
+        "start": 90,
+        "end": 99,
+        "startLoc": {
+          "line": 90,
+          "column": 7,
+          "position": 699
+        },
+        "endLoc": {
+          "line": 99,
+          "column": 42,
+          "position": 772
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 12,
+      "fragment": "M._state = {\n    git_status = {},\n    git_commits = {},\n    git_repo = true,\n    tmux_env = false,\n    tmux_panes = {},\n    filesystem = {},\n    system_commands = {},\n    mock_shell_error = 0\n  }\n  \n  M",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests/helpers/mocks.lua",
+        "start": 570,
+        "end": 581,
+        "startLoc": {
+          "line": 570,
+          "column": 3,
+          "position": 4370
+        },
+        "endLoc": {
+          "line": 581,
+          "column": 2,
+          "position": 4452
+        }
+      },
+      "secondFile": {
+        "name": "tests/helpers/mocks.lua",
+        "start": 10,
+        "end": 21,
+        "startLoc": {
+          "line": 10,
+          "column": 1,
+          "position": 29
+        },
+        "endLoc": {
+          "line": 21,
+          "column": 16,
+          "position": 108
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 6,
+      "fragment": "(get_current_section, config, logo_end_line, section_ranges)\n  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)\n  local current_line = vim.api.nvim_win_get_cursor(0)[1]\n  local current_section = get_current_section(lines, current_line, config)\n  \n  -- Find next section header",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/navigation.lua",
+        "start": 111,
+        "end": 116,
+        "startLoc": {
+          "line": 111,
+          "column": 25,
+          "position": 769
+        },
+        "endLoc": {
+          "line": 116,
+          "column": 28,
+          "position": 848
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/navigation.lua",
+        "start": 83,
+        "end": 88,
+        "startLoc": {
+          "line": 83,
+          "column": 29,
+          "position": 527
+        },
+        "endLoc": {
+          "line": 88,
+          "column": 32,
+          "position": 606
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 14,
+      "fragment": "do\n    local line = lines[i]\n    if line and line:match(\"^%s*[^%s].*:%s*$\") then\n      local section = get_current_section(lines, i, config)\n      if section ~= current_section then\n        -- Found different section, move to its first actionable line\n        vim.api.nvim_win_set_cursor(0, {i + 1, 0})\n        M.move_to_next_actionable(1, logo_end_line, section_ranges)\n        return\n      end\n    end\n  end\n  \n  -- No next section, go to end",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/navigation.lua",
+        "start": 117,
+        "end": 130,
+        "startLoc": {
+          "line": 117,
+          "column": 2,
+          "position": 867
+        },
+        "endLoc": {
+          "line": 130,
+          "column": 30,
+          "position": 980
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/navigation.lua",
+        "start": 89,
+        "end": 102,
+        "startLoc": {
+          "line": 89,
+          "column": 2,
+          "position": 628
+        },
+        "endLoc": {
+          "line": 102,
+          "column": 34,
+          "position": 741
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 9,
+      "fragment": ", render_callback)\n  local cursor = vim.api.nvim_win_get_cursor(0)\n  local line_num = cursor[1]\n  \n  -- Get all lines in the buffer\n  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)\n  local current_line = lines[line_num]\n  \n  if",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/keymaps.lua",
+        "start": 71,
+        "end": 79,
+        "startLoc": {
+          "line": 71,
+          "column": 12,
+          "position": 480
+        },
+        "endLoc": {
+          "line": 79,
+          "column": 3,
+          "position": 559
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/keymaps/git.lua",
+        "start": 38,
+        "end": 46,
+        "startLoc": {
+          "line": 38,
+          "column": 4,
+          "position": 320
+        },
+        "endLoc": {
+          "line": 46,
+          "column": 7,
+          "position": 399
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 7,
+      "fragment": ", '', {\n    noremap = true,\n    silent = true,\n    callback = function()\n      local line_num = vim.api.nvim_win_get_cursor(0)[1]\n      local todo_id = todo_component.get_todo_id_from_line_num(line_num)\n      todo_keymaps.handle_done",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/keymaps.lua",
+        "start": 246,
+        "end": 252,
+        "startLoc": {
+          "line": 246,
+          "column": 4,
+          "position": 1908
+        },
+        "endLoc": {
+          "line": 252,
+          "column": 12,
+          "position": 1976
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/keymaps.lua",
+        "start": 236,
+        "end": 242,
+        "startLoc": {
+          "line": 236,
+          "column": 4,
+          "position": 1803
+        },
+        "endLoc": {
+          "line": 242,
+          "column": 12,
+          "position": 1871
+        }
+      }
+    },
+    {
+      "format": "lua",
+      "lines": 7,
+      "fragment": ", '', {\n    noremap = true,\n    silent = true,\n    callback = function()\n      local line_num = vim.api.nvim_win_get_cursor(0)[1]\n      local todo_id = todo_component.get_todo_id_from_line_num(line_num)\n      todo_keymaps.handle_delete",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lua/nexus/keymaps.lua",
+        "start": 256,
+        "end": 262,
+        "startLoc": {
+          "line": 256,
+          "column": 4,
+          "position": 2013
+        },
+        "endLoc": {
+          "line": 262,
+          "column": 14,
+          "position": 2081
+        }
+      },
+      "secondFile": {
+        "name": "lua/nexus/keymaps.lua",
+        "start": 236,
+        "end": 242,
+        "startLoc": {
+          "line": 236,
+          "column": 4,
+          "position": 1803
+        },
+        "endLoc": {
+          "line": 242,
+          "column": 12,
+          "position": 1871
+        }
+      }
+    }
+  ],
+  "filename": "/Users/admin/.npm/_npx/652ead47bf63fe99/node_modules/@jscpd/html-reporter/dist/templates/main.pug"
+}

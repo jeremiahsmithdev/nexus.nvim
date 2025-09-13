@@ -9,8 +9,9 @@ local logger = require('nexus.logger')
 -- Build all sections based on configuration
 function M.build_sections(config, is_git_repo, files, commits)
   local sections = {}
-  
-  -- Project name section
+  local config_module = require('nexus.config')
+
+  -- Project name section (always enabled)
   local logo = require('nexus.ui.logo')
   local project_name = logo._get_project_name()
   if project_name then
@@ -20,31 +21,31 @@ function M.build_sections(config, is_git_repo, files, commits)
     local centered_project_name = table.concat({string.rep(" ", padding), project_name})
     sections.project_name = {centered_project_name, ""}
   end
-  
+
   -- Dashboard buttons section
-  if config.show_dashboard_buttons then
+  if config_module.is_section_enabled("dashboard_buttons") then
     local button_lines = dashboard.get_dashboard_buttons(config)
     if #button_lines > 0 then
       sections.dashboard_buttons = button_lines
     end
   end
-  
+
   -- Keyboard shortcuts section
-  if config.show_keyboard_shortcuts then
+  if config_module.is_section_enabled("keyboard_shortcuts") then
     local shortcut_lines = shortcuts.get_keyboard_shortcuts(config, is_git_repo)
     if #shortcut_lines > 0 then
       sections.keyboard_shortcuts = shortcut_lines
     end
   end
-  
+
   -- Todo section
-  if config.show_todos then
+  if config_module.is_section_enabled("todos") then
     local todo_component = require('nexus.render.components.todo')
     sections.todos = todo_component.build_todo_section(config)
   end
   
   -- Recent commits section
-  if is_git_repo and config.show_recent_commits then
+  if is_git_repo and config_module.is_section_enabled("recent_commits") then
     -- Use passed commits from batch operation, or fallback to state
     local commits_to_use = commits
     if not commits_to_use or #commits_to_use == 0 then
@@ -81,7 +82,7 @@ function M.build_sections(config, is_git_repo, files, commits)
   end
   
   -- Git status section
-  if is_git_repo and config.show_git_status then
+  if is_git_repo and config_module.is_section_enabled("git_status") then
     if #files == 0 then
       local no_changes_lines = {"No changes detected"}
       sections.git_status = no_changes_lines
@@ -128,13 +129,13 @@ function M.build_sections(config, is_git_repo, files, commits)
   end
   
   -- Linear issues section
-  if config.linear and config.linear.enabled then
+  if config_module.is_section_enabled("linear_issues") and config.linear and config.linear.enabled then
     local linear_component = require('nexus.render.components.linear')
     sections.linear_issues = linear_component.build_linear_section(config)
   end
   
   -- Claude conversations section (placeholder for future implementation)
-  if config.show_claude_conversations then
+  if config_module.is_section_enabled("claude_conversations") then
     -- This would be implemented when the feature is added
     sections.claude_conversations = {"Claude Conversations:", "", "  (Feature not yet implemented)"}
   end

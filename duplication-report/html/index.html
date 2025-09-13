@@ -1,0 +1,640 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Copy/Paste Detector Report</title><link href="styles/tailwind.css" rel="stylesheet"><link href="styles/prism.css" rel="stylesheet"></head><body class="bg-gray-100"><header class="bg-white shadow py-4"><div class="container mx-auto px-4"><h1 class="text-3xl font-semibold text-gray-800">jscpd - copy/paste report</h1></div></header><main class="container mx-auto my-8 p-4 bg-white shadow rounded"><section class="mb-8" id="dashboard"><h2 class="text-2xl font-semibold text-gray-700 mb-4">Dashboard</h2><div class="grid grid-cols-4 gap-4"><div class="bg-blue-200 p-4 rounded text-center"><h3 class="text-lg font-semibold text-blue-800 mb-2">Total Files</h3><span class="text-4xl font-bold text-blue-800">98</span></div><div class="bg-green-200 p-4 rounded text-center"><h3 class="text-lg font-semibold text-green-800 mb-2">Total Lines of Code</h3><span class="text-4xl font-bold text-green-800">23351</span></div><div class="bg-yellow-200 p-4 rounded text-center"><h3 class="text-lg font-semibold text-yellow-800 mb-2">Number of Clones</h3><span class="text-4xl font-bold text-yellow-800">47</span></div><div class="bg-red-200 p-4 rounded text-center"><h3 class="text-lg font-semibold text-red-800 mb-2">Duplicated Lines</h3><span class="text-4xl font-bold text-red-800">631 (2.70%)</span></div></div></section><section class="mb-8" id="formats"><h2 class="text-2xl font-semibold text-gray-700 mb-4">Formats with Duplications</h2><table class="w-full table-auto"><thead><tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal"><th class="py-3 px-6 text-left">Format</th><th class="py-3 px-6 text-left">Files</th><th class="py-3 px-6 text-left">Lines</th><th class="py-3 px-6 text-left">Clones</th><th class="py-3 px-6 text-left">Duplicated Lines</th><th class="py-3 px-6 text-left">Duplicated Tokens</th></tr></thead><tbody><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#lua-clones">lua</a></td><td class="py-3 px-6">70</td><td class="py-3 px-6">14477</td><td class="py-3 px-6">47</td><td class="py-3 px-6">631</td><td class="py-3 px-6">6089</td></tr><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#markdown-clones">markdown</a></td><td class="py-3 px-6">24</td><td class="py-3 px-6">8091</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td></tr><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#bash-clones">bash</a></td><td class="py-3 px-6">1</td><td class="py-3 px-6">303</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td></tr><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#json-clones">json</a></td><td class="py-3 px-6">3</td><td class="py-3 px-6">480</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td></tr></tbody></table></section><section class="mb-8" id="txt-clones"><a name="lua-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">lua</h2><div class="divide-y divide-gray-200 border-b-2"><div class="py-4"><p class="text-gray-600">lua/nexus/ui/popups/commit.lua (Line 29:3 - Line 38:15), lua/nexus/ui/popups/linear.lua (Line 106:3 - Line 115:14)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn0" onclick="toggleCodeBlock('cloneGroup0', 'expandBtn0', 'collapseBtn0')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn0" onclick="toggleCodeBlock('cloneGroup0', 'expandBtn0', 'collapseBtn0')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup0"><code class="language-lua text-sm text-gray-800">end
+  
+  -- Create a new buffer for the popup
+  local popup_buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_option(popup_buf, 'buftype', 'nofile')
+  vim.api.nvim_buf_set_option(popup_buf, 'swapfile', false)
+  vim.api.nvim_buf_set_option(popup_buf, 'modifiable', true)
+  
+  -- Set buffer content
+  vim.api.nvim_buf_set_lines(popup_buf, 0, -1, false, commit_details</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/ui/popups/commit.lua (Line 49:15 - Line 66:20), lua/nexus/ui/popups/linear.lua (Line 126:14 - Line 143:18)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn1" onclick="toggleCodeBlock('cloneGroup1', 'expandBtn1', 'collapseBtn1')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn1" onclick="toggleCodeBlock('cloneGroup1', 'expandBtn1', 'collapseBtn1')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup1"><code class="language-lua text-sm text-gray-800">))
+  
+  -- Calculate popup position (center of screen)
+  local screen_width = vim.api.nvim_get_option('columns')
+  local screen_height = vim.api.nvim_get_option('lines')
+  local col = math.floor((screen_width - actual_width) / 2)
+  local row = math.floor((screen_height - actual_height) / 2)
+  
+  -- Create popup window
+  local popup_opts = {
+    relative = 'editor',
+    width = actual_width,
+    height = actual_height,
+    col = col,
+    row = row,
+    style = 'minimal',
+    border = 'rounded',
+    title = ' Commit Details: '</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/ui/popups/commit.lua (Line 73:6 - Line 79:20), lua/nexus/ui/popups/linear.lua (Line 150:5 - Line 156:20)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn2" onclick="toggleCodeBlock('cloneGroup2', 'expandBtn2', 'collapseBtn2')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn2" onclick="toggleCodeBlock('cloneGroup2', 'expandBtn2', 'collapseBtn2')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup2"><code class="language-lua text-sm text-gray-800">)
+  vim.api.nvim_win_set_option(popup_win, 'number', false)
+  vim.api.nvim_win_set_option(popup_win, 'relativenumber', false)
+  vim.api.nvim_win_set_option(popup_win, 'cursorline', true)
+  
+  -- Add virtual text hint in top right corner
+  local hint_ns = vim.api.nvim_create_namespace('nexus_commit_hint'</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/ui/popups/commit.lua (Line 81:3 - Line 94:52), lua/nexus/ui/popups/linear.lua (Line 158:3 - Line 171:55)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn3" onclick="toggleCodeBlock('cloneGroup3', 'expandBtn3', 'collapseBtn3')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn3" onclick="toggleCodeBlock('cloneGroup3', 'expandBtn3', 'collapseBtn3')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup3"><code class="language-lua text-sm text-gray-800">local hint_col = actual_width - #hint_text
+  vim.api.nvim_buf_set_extmark(popup_buf, hint_ns, 0, 0, {
+    virt_text = {{ hint_text, 'Comment' }},
+    virt_text_pos = 'overlay',
+    virt_text_win_col = hint_col,
+    hl_mode = 'combine'
+  })
+  
+  -- Set up keymaps to close popup
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', 'q', '&lt;cmd&gt;close&lt;CR&gt;', {noremap = true, silent = true})
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '&lt;Esc&gt;', '&lt;cmd&gt;close&lt;CR&gt;', {noremap = true, silent = true})
+  vim.api.nvim_buf_set_keymap(popup_buf, 'n', '&lt;CR&gt;', '&lt;cmd&gt;close&lt;CR&gt;', {noremap = true, silent = true})
+  
+  -- Add keybinding to open commit in browser with gh</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/render/components/sections.lua (Line 83:7 - Line 89:4), lua/nexus/render/components/sections.lua (Line 66:8 - Line 74:52)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn4" onclick="toggleCodeBlock('cloneGroup4', 'expandBtn4', 'collapseBtn4')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn4" onclick="toggleCodeBlock('cloneGroup4', 'expandBtn4', 'collapseBtn4')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup4"><code class="language-lua text-sm text-gray-800">) do
+          local padding = string.rep(&quot; &quot;, processed.max_filename_width - #data.full_name)
+          local diff_stat = git_status.create_diff_stat(data.added, data.deleted, 40)
+          local line = string.format(&quot;  %s%s%s&quot;, data.full_name, padding, diff_stat)
+          table.insert(git_status_lines, line)
+        end
+      end</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/actions/todo/done.lua (Line 25:15 - Line 38:24), lua/nexus/actions/todo/edit.lua (Line 25:15 - Line 38:3)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn5" onclick="toggleCodeBlock('cloneGroup5', 'expandBtn5', 'collapseBtn5')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn5" onclick="toggleCodeBlock('cloneGroup5', 'expandBtn5', 'collapseBtn5')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup5"><code class="language-lua text-sm text-gray-800">:validate(args)
+  if not args then
+    return false, &quot;Arguments required&quot;
+  end
+  
+  if not args.id then
+    return false, &quot;Todo ID is required&quot;
+  end
+  
+  if type(args.id) ~= &quot;string&quot; then
+    return false, &quot;Todo ID must be a string&quot;
+  end
+  
+  -- Check if todo exists</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/actions/todo/delete.lua (Line 25:17 - Line 44:7), lua/nexus/actions/todo/edit.lua (Line 25:15 - Line 44:30)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn6" onclick="toggleCodeBlock('cloneGroup6', 'expandBtn6', 'collapseBtn6')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn6" onclick="toggleCodeBlock('cloneGroup6', 'expandBtn6', 'collapseBtn6')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup6"><code class="language-lua text-sm text-gray-800">:validate(args)
+  if not args then
+    return false, &quot;Arguments required&quot;
+  end
+  
+  if not args.id then
+    return false, &quot;Todo ID is required&quot;
+  end
+  
+  if type(args.id) ~= &quot;string&quot; then
+    return false, &quot;Todo ID must be a string&quot;
+  end
+  
+  -- Check if todo exists
+  local todo = todo_state.get_todo_by_id(args.id)
+  if not todo then
+    return false, string.format(&quot;Todo with ID '%s' not found&quot;, args.id)
+  end
+  
+  return</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/actions/todo/delete.lua (Line 50:17 - Line 58:8), lua/nexus/actions/todo/done.lua (Line 55:15 - Line 63:15)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn7" onclick="toggleCodeBlock('cloneGroup7', 'expandBtn7', 'collapseBtn7')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn7" onclick="toggleCodeBlock('cloneGroup7', 'expandBtn7', 'collapseBtn7')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup7"><code class="language-lua text-sm text-gray-800">:_execute(args)
+  local id = args.id
+  
+  -- Store original todo for context
+  local original_todo = todo_state.get_todo_by_id(id)
+  self.context.original_todo = vim.deepcopy(original_todo)
+  self.context.id = id
+  
+  local success</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/actions/todo/create.lua (Line 28:3 - Line 42:7), lua/nexus/actions/todo/edit.lua (Line 36:3 - Line 50:24)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn8" onclick="toggleCodeBlock('cloneGroup8', 'expandBtn8', 'collapseBtn8')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn8" onclick="toggleCodeBlock('cloneGroup8', 'expandBtn8', 'collapseBtn8')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup8"><code class="language-lua text-sm text-gray-800">end
+  
+  if not args.text then
+    return false, &quot;Todo text is required&quot;
+  end
+  
+  if type(args.text) ~= &quot;string&quot; then
+    return false, &quot;Todo text must be a string&quot;
+  end
+  
+  if args.text:match(&quot;^%s*$&quot;) then
+    return false, &quot;Todo text cannot be empty or only whitespace&quot;
+  end
+  
+  return</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/actions/navigation/refresh.lua (Line 98:5 - Line 103:4), lua/nexus/actions/navigation/refresh.lua (Line 85:9 - Line 90:6)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn9" onclick="toggleCodeBlock('cloneGroup9', 'expandBtn9', 'collapseBtn9')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn9" onclick="toggleCodeBlock('cloneGroup9', 'expandBtn9', 'collapseBtn9')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup9"><code class="language-lua text-sm text-gray-800">state:notify_observers('git_status_changed', { force = args.force })
+    state:notify_observers('git_commits_changed', { force = args.force })
+    state:notify_observers('providers_changed', { force = args.force })
+    state:notify_observers('ui_refresh_requested', { force = args.force })
+    refreshed_sections = { 'all' }
+  end</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/actions/navigation/open_file.lua (Line 82:3 - Line 90:43), lua/nexus/actions/navigation/open_file.lua (Line 52:3 - Line 60:24)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn10" onclick="toggleCodeBlock('cloneGroup10', 'expandBtn10', 'collapseBtn10')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn10" onclick="toggleCodeBlock('cloneGroup10', 'expandBtn10', 'collapseBtn10')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup10"><code class="language-lua text-sm text-gray-800">-- Resolve relative paths to absolute paths using git root
+  if not filename:match(&quot;^/&quot;) then
+    local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+    if git_root and vim.v.shell_error == 0 then
+      filename = git_root .. '/' .. filename
+    end
+  end
+  
+  -- Open the file based on split preference</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/actions/git/unstage.lua (Line 25:17 - Line 41:30), lua/nexus/actions/navigation/open_file.lua (Line 24:15 - Line 40:31)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn11" onclick="toggleCodeBlock('cloneGroup11', 'expandBtn11', 'collapseBtn11')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn11" onclick="toggleCodeBlock('cloneGroup11', 'expandBtn11', 'collapseBtn11')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup11"><code class="language-lua text-sm text-gray-800">:validate(args)
+  if not args.filename then
+    return false, &quot;filename is required&quot;
+  end
+  
+  if type(args.filename) ~= &quot;string&quot; then
+    return false, &quot;filename must be a string&quot;
+  end
+  
+  if args.filename:match(&quot;^%s*$&quot;) then
+    return false, &quot;filename cannot be empty or whitespace only&quot;
+  end
+  
+  return true, nil
+end
+
+---Execute git unstage action</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/actions/git/add.lua (Line 25:13 - Line 41:26), lua/nexus/actions/navigation/open_file.lua (Line 24:15 - Line 40:31)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn12" onclick="toggleCodeBlock('cloneGroup12', 'expandBtn12', 'collapseBtn12')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn12" onclick="toggleCodeBlock('cloneGroup12', 'expandBtn12', 'collapseBtn12')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup12"><code class="language-lua text-sm text-gray-800">:validate(args)
+  if not args.filename then
+    return false, &quot;filename is required&quot;
+  end
+  
+  if type(args.filename) ~= &quot;string&quot; then
+    return false, &quot;filename must be a string&quot;
+  end
+  
+  if args.filename:match(&quot;^%s*$&quot;) then
+    return false, &quot;filename cannot be empty or whitespace only&quot;
+  end
+  
+  return true, nil
+end
+
+---Execute git add action</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/state/todo.lua (Line 180:3 - Line 196:6), lua/nexus/state/todo.lua (Line 139:3 - Line 155:6)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn13" onclick="toggleCodeBlock('cloneGroup13', 'expandBtn13', 'collapseBtn13')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn13" onclick="toggleCodeBlock('cloneGroup13', 'expandBtn13', 'collapseBtn13')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup13"><code class="language-lua text-sm text-gray-800">end
+  
+  local todos = M.get_todos()
+  local todo_index = nil
+  
+  for i, todo in ipairs(todos) do
+    if todo.id == id then
+      todo_index = i
+      break
+    end
+  end
+  
+  if not todo_index then
+    return nil, 'Todo not found'
+  end
+  
+  todos</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/state/todo.lua (Line 197:3 - Line 206:22), lua/nexus/state/todo.lua (Line 157:3 - Line 166:14)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn14" onclick="toggleCodeBlock('cloneGroup14', 'expandBtn14', 'collapseBtn14')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn14" onclick="toggleCodeBlock('cloneGroup14', 'expandBtn14', 'collapseBtn14')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup14"><code class="language-lua text-sm text-gray-800">todos[todo_index].updated_at = os.time()
+  
+  state.set('todo', 'items', todos)
+  
+  local success = save_todos_to_file(todos)
+  if not success then
+    return nil, 'Failed to save todo changes'
+  end
+  
+  logger.info('TODO', 'Marked todo as done'</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/state/git.lua (Line 64:10 - Line 74:8), lua/nexus/state/git.lua (Line 31:8 - Line 41:6)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn15" onclick="toggleCodeBlock('cloneGroup15', 'expandBtn15', 'collapseBtn15')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn15" onclick="toggleCodeBlock('cloneGroup15', 'expandBtn15', 'collapseBtn15')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup15"><code class="language-lua text-sm text-gray-800">) or {}
+  end
+  
+  local is_git_repo = state.get('git', 'is_git_repo')
+  if not is_git_repo then
+    M.update_git_repository_info()
+    is_git_repo = state.get('git', 'is_git_repo')
+  end
+  
+  if is_git_repo then
+    local commits</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/keymaps/linear.lua (Line 184:3 - Line 194:17), lua/nexus/keymaps/todo.lua (Line 134:3 - Line 144:17)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn16" onclick="toggleCodeBlock('cloneGroup16', 'expandBtn16', 'collapseBtn16')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn16" onclick="toggleCodeBlock('cloneGroup16', 'expandBtn16', 'collapseBtn16')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup16"><code class="language-lua text-sm text-gray-800">-- Center the popup
+  local ui = vim.api.nvim_list_uis()[1]
+  local popup_win = vim.api.nvim_open_win(popup_buf, true, {
+    relative = 'editor',
+    width = width,
+    height = height,
+    row = (ui.height - height) / 2,
+    col = (ui.width - width) / 2,
+    style = 'minimal',
+    border = 'rounded',
+    title = ' Linear Issue '</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/keymaps/git.lua (Line 70:15 - Line 78:14), lua/nexus/keymaps/git.lua (Line 38:11 - Line 46:10)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn17" onclick="toggleCodeBlock('cloneGroup17', 'expandBtn17', 'collapseBtn17')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn17" onclick="toggleCodeBlock('cloneGroup17', 'expandBtn17', 'collapseBtn17')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup17"><code class="language-lua text-sm text-gray-800">(buf, render_callback)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  
+  -- Get all lines in the buffer
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  logger.debug('GIT_UNSTAGE'</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/keymaps/git.lua (Line 78:14 - Line 89:14), lua/nexus/keymaps/git.lua (Line 46:10 - Line 57:10)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn18" onclick="toggleCodeBlock('cloneGroup18', 'expandBtn18', 'collapseBtn18')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn18" onclick="toggleCodeBlock('cloneGroup18', 'expandBtn18', 'collapseBtn18')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup18"><code class="language-lua text-sm text-gray-800">, string.format('Cursor at line %d: &quot;%s&quot;', line_num, current_line or 'nil'))
+  
+  -- Check if it's a git status line
+  if current_line and current_line:match(&quot;%s*  [MADRCU?][MADRCU?]? &quot;) then
+    local filename = current_line:match(&quot;%s*  [MADRCU?][MADRCU?]? (.-)%s+%+&quot;) or 
+                    current_line:match(&quot;%s*  [MADRCU?][MADRCU?]? (.-)%s+%-&quot;) or
+                    current_line:match(&quot;%s*  [MADRCU?][MADRCU?]? (.+)$&quot;)
+    if filename then
+      filename = filename:gsub(&quot;^%s+&quot;, &quot;&quot;):gsub(&quot;%s+$&quot;, &quot;&quot;)
+      
+      -- Use action system
+      actions.execute('git.unstage'</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/operations.lua (Line 131:2 - Line 136:7), lua/nexus/git/operations.lua (Line 67:2 - Line 72:14)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn19" onclick="toggleCodeBlock('cloneGroup19', 'expandBtn19', 'collapseBtn19')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn19" onclick="toggleCodeBlock('cloneGroup19', 'expandBtn19', 'collapseBtn19')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup19"><code class="language-lua text-sm text-gray-800">= vim.api.nvim_create_buf(false, true)
+  
+  -- Calculate position to center the window
+  local win_width = vim.api.nvim_get_option('columns')
+  local win_height = vim.api.nvim_get_option('lines')
+  local row = math.ceil((win_height - height</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/operations.lua (Line 303:3 - Line 322:23), lua/nexus/git/operations.lua (Line 128:3 - Line 147:15)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn20" onclick="toggleCodeBlock('cloneGroup20', 'expandBtn20', 'collapseBtn20')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn20" onclick="toggleCodeBlock('cloneGroup20', 'expandBtn20', 'collapseBtn20')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup20"><code class="language-lua text-sm text-gray-800">-- Create floating window for commit message
+  local width = 60
+  local height = 15
+  local bufnr = vim.api.nvim_create_buf(false, true)
+  
+  -- Calculate position to center the window
+  local win_width = vim.api.nvim_get_option('columns')
+  local win_height = vim.api.nvim_get_option('lines')
+  local row = math.ceil((win_height - height) / 2 - 1)
+  local col = math.ceil((win_width - width) / 2)
+  
+  local opts = {
+    style = &quot;minimal&quot;,
+    relative = &quot;editor&quot;,
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    border = &quot;rounded&quot;,
+    title = &quot; Git Commit --amend &quot;</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/operations.lua (Line 322:23 - Line 332:20), lua/nexus/git/operations.lua (Line 147:15 - Line 157:14)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn21" onclick="toggleCodeBlock('cloneGroup21', 'expandBtn21', 'collapseBtn21')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn21" onclick="toggleCodeBlock('cloneGroup21', 'expandBtn21', 'collapseBtn21')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup21"><code class="language-lua text-sm text-gray-800">,
+    title_pos = &quot;center&quot;
+  }
+  
+  local win = vim.api.nvim_open_win(bufnr, true, opts)
+  
+  -- Set buffer options
+  vim.api.nvim_buf_set_option(bufnr, 'buftype', 'acwrite') -- Allow custom write behavior
+  vim.api.nvim_buf_set_option(bufnr, 'swapfile', false)
+  vim.api.nvim_buf_set_option(bufnr, 'filetype', 'gitcommit')
+  vim.api.nvim_buf_set_name(bufnr, 'git-commit-amend-'</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/operations.lua (Line 358:3 - Line 364:50), lua/nexus/git/operations.lua (Line 173:3 - Line 179:36)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn22" onclick="toggleCodeBlock('cloneGroup22', 'expandBtn22', 'collapseBtn22')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn22" onclick="toggleCodeBlock('cloneGroup22', 'expandBtn22', 'collapseBtn22')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup22"><code class="language-lua text-sm text-gray-800">local padding = math.floor((width - #help_text) / 2)
+  vim.api.nvim_buf_set_extmark(bufnr, ns_id, height - 1, 0, {
+    virt_text = {{string.rep(&quot; &quot;, padding) .. help_text, &quot;Comment&quot;}},
+    virt_text_pos = &quot;overlay&quot;
+  })
+  
+  -- Position cursor at the beginning of first line</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/operations.lua (Line 368:16 - Line 397:59), lua/nexus/git/operations.lua (Line 183:10 - Line 212:2)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn23" onclick="toggleCodeBlock('cloneGroup23', 'expandBtn23', 'collapseBtn23')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn23" onclick="toggleCodeBlock('cloneGroup23', 'expandBtn23', 'collapseBtn23')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup23"><code class="language-lua text-sm text-gray-800">()
+    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+    local commit_msg = &quot;&quot;
+    
+    -- Get commit message (everything before comment lines)
+    -- Preserve empty lines as they're important for commit message formatting
+    for _, line in ipairs(lines) do
+      if not line:match(&quot;^#&quot;) then
+        commit_msg = commit_msg .. line .. &quot;\n&quot;
+      end
+    end
+    
+    commit_msg = commit_msg:gsub(&quot;^%s*&quot;, &quot;&quot;):gsub(&quot;%s*$&quot;, &quot;&quot;) -- trim
+    
+    if commit_msg ~= &quot;&quot; then
+      -- Clean up the commit buffer completely
+      pcall(vim.api.nvim_buf_set_name, bufnr, '')
+      pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')
+      
+      vim.api.nvim_win_close(win, true)
+      
+      -- Schedule buffer deletion to avoid issues
+      vim.schedule(function()
+        pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+      end)
+      
+      -- Ensure we're in normal mode when returning to Nexus
+      vim.cmd('stopinsert')
+      
+      -- Execute git commit --amend with proper newline handling</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/operations.lua (Line 420:2 - Line 484:27), lua/nexus/git/operations.lua (Line 58:2 - Line 122:21)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn24" onclick="toggleCodeBlock('cloneGroup24', 'expandBtn24', 'collapseBtn24')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn24" onclick="toggleCodeBlock('cloneGroup24', 'expandBtn24', 'collapseBtn24')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup24"><code class="language-lua text-sm text-gray-800">.. result)
+        -- Show error output in floating window like &lt;leader&gt;g commands do
+        local git_command = require('nexus.git.command')
+        local show_output_window = git_command.show_output_window or function(title, content, is_error)
+          -- Fallback implementation if show_output_window is not available
+          local output_width = math.min(80, vim.api.nvim_get_option('columns') - 4)
+          local lines = vim.split(content, '\n')
+          local output_height = math.min(20, math.max(5, #lines + 2))
+          
+          local output_bufnr = vim.api.nvim_create_buf(false, true)
+          
+          -- Calculate position to center the window
+          local win_width = vim.api.nvim_get_option('columns')
+          local win_height = vim.api.nvim_get_option('lines')
+          local row = math.ceil((win_height - output_height) / 2 - 1)
+          local col = math.ceil((win_width - output_width) / 2)
+          
+          local opts = {
+            style = &quot;minimal&quot;,
+            relative = &quot;editor&quot;,
+            width = output_width,
+            height = output_height,
+            row = row,
+            col = col,
+            border = &quot;rounded&quot;,
+            title = title,
+            title_pos = &quot;center&quot;
+          }
+          
+          local output_win = vim.api.nvim_open_win(output_bufnr, true, opts)
+          
+          -- Set buffer options
+          vim.api.nvim_buf_set_option(output_bufnr, 'buftype', 'nofile')
+          vim.api.nvim_buf_set_option(output_bufnr, 'swapfile', false)
+          vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)
+          vim.api.nvim_buf_set_option(output_bufnr, 'filetype', 'gitcommit')
+          
+          -- Set content
+          vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', true)
+          vim.api.nvim_buf_set_lines(output_bufnr, 0, -1, false, lines)
+          vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)
+          
+          -- Highlight error content if it's an error
+          if is_error then
+            local ns_id = vim.api.nvim_create_namespace('gboard_git_output_error')
+            for i = 0, #lines - 1 do
+              vim.api.nvim_buf_add_highlight(output_bufnr, ns_id, 'DiagnosticError', i, 0, -1)
+            end
+          end
+          
+          -- Set up keymaps to close the window
+          for _, key in ipairs({'&lt;Esc&gt;', 'q', '&lt;CR&gt;', '&lt;C-c&gt;'}) do
+            vim.api.nvim_buf_set_keymap(output_bufnr, 'n', key, '&lt;cmd&gt;q&lt;CR&gt;', { noremap = true, silent = true })
+          end
+          
+          -- Add help text
+          local help_text = &quot;Press q, &lt;Esc&gt;, or &lt;Enter&gt; to close&quot;
+          local help_ns = vim.api.nvim_create_namespace('gboard_git_output_help')
+          vim.api.nvim_buf_set_extmark(output_bufnr, help_ns, #lines, 0, {
+            virt_text = {{help_text, &quot;Comment&quot;}},
+            virt_text_pos = &quot;eol&quot;
+          })
+        end
+        
+        show_output_window(&quot; Git Commit Amend Error &quot;</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/operations.lua (Line 492:23 - Line 504:23), lua/nexus/git/operations.lua (Line 219:17 - Line 231:17)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn25" onclick="toggleCodeBlock('cloneGroup25', 'expandBtn25', 'collapseBtn25')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn25" onclick="toggleCodeBlock('cloneGroup25', 'expandBtn25', 'collapseBtn25')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup25"><code class="language-lua text-sm text-gray-800">()
+    pcall(vim.api.nvim_buf_set_name, bufnr, '')
+    pcall(vim.api.nvim_buf_set_option, bufnr, 'buftype', 'nofile')
+    vim.cmd('q')
+    vim.schedule(function()
+      pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+    end)
+  end
+  
+  vim.api.nvim_buf_set_keymap(bufnr, 'n', '&lt;C-c&gt;', '', { 
+    noremap = true, 
+    silent = true, 
+    callback = cleanup_amend_and_quit</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/command.lua (Line 43:3 - Line 59:16), lua/nexus/git/operations.lua (Line 131:3 - Line 147:15)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn26" onclick="toggleCodeBlock('cloneGroup26', 'expandBtn26', 'collapseBtn26')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn26" onclick="toggleCodeBlock('cloneGroup26', 'expandBtn26', 'collapseBtn26')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup26"><code class="language-lua text-sm text-gray-800">local bufnr = vim.api.nvim_create_buf(false, true)
+  
+  -- Calculate position to center the window
+  local win_width = vim.api.nvim_get_option('columns')
+  local win_height = vim.api.nvim_get_option('lines')
+  local row = math.ceil((win_height - height) / 2 - 1)
+  local col = math.ceil((win_width - width) / 2)
+  
+  local opts = {
+    style = &quot;minimal&quot;,
+    relative = &quot;editor&quot;,
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    border = &quot;rounded&quot;,
+    title = &quot; Git Command &quot;</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/command.lua (Line 191:5 - Line 250:51), lua/nexus/git/operations.lua (Line 63:7 - Line 122:19)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn27" onclick="toggleCodeBlock('cloneGroup27', 'expandBtn27', 'collapseBtn27')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn27" onclick="toggleCodeBlock('cloneGroup27', 'expandBtn27', 'collapseBtn27')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup27"><code class="language-lua text-sm text-gray-800">local output_width = math.min(80, vim.api.nvim_get_option('columns') - 4)
+    local lines = vim.split(content, '\n')
+    local output_height = math.min(20, math.max(5, #lines + 2))
+    
+    local output_bufnr = vim.api.nvim_create_buf(false, true)
+    
+    -- Calculate position to center the window
+    local win_width = vim.api.nvim_get_option('columns')
+    local win_height = vim.api.nvim_get_option('lines')
+    local row = math.ceil((win_height - output_height) / 2 - 1)
+    local col = math.ceil((win_width - output_width) / 2)
+    
+    local opts = {
+      style = &quot;minimal&quot;,
+      relative = &quot;editor&quot;,
+      width = output_width,
+      height = output_height,
+      row = row,
+      col = col,
+      border = &quot;rounded&quot;,
+      title = title,
+      title_pos = &quot;center&quot;
+    }
+    
+    local output_win = vim.api.nvim_open_win(output_bufnr, true, opts)
+    
+    -- Set buffer options
+    vim.api.nvim_buf_set_option(output_bufnr, 'buftype', 'nofile')
+    vim.api.nvim_buf_set_option(output_bufnr, 'swapfile', false)
+    vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)
+    vim.api.nvim_buf_set_option(output_bufnr, 'filetype', 'gitcommit')
+    
+    -- Set content
+    vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', true)
+    vim.api.nvim_buf_set_lines(output_bufnr, 0, -1, false, lines)
+    vim.api.nvim_buf_set_option(output_bufnr, 'modifiable', false)
+    
+    -- Highlight error content if it's an error
+    if is_error then
+      local ns_id = vim.api.nvim_create_namespace('gboard_git_output_error')
+      for i = 0, #lines - 1 do
+        vim.api.nvim_buf_add_highlight(output_bufnr, ns_id, 'DiagnosticError', i, 0, -1)
+      end
+    end
+    
+    -- Set up keymaps to close the window
+    for _, key in ipairs({'&lt;Esc&gt;', 'q', '&lt;CR&gt;', '&lt;C-c&gt;'}) do
+      vim.api.nvim_buf_set_keymap(output_bufnr, 'n', key, '&lt;cmd&gt;q&lt;CR&gt;', { noremap = true, silent = true })
+    end
+    
+    -- Add help text
+    local help_text = &quot;Press q, &lt;Esc&gt;, or &lt;Enter&gt; to close&quot;
+    local help_ns = vim.api.nvim_create_namespace('gboard_git_output_help')
+    vim.api.nvim_buf_set_extmark(output_bufnr, help_ns, #lines, 0, {
+      virt_text = {{help_text, &quot;Comment&quot;}},
+      virt_text_pos = &quot;eol&quot;
+    })
+  end
+  
+  -- Function to show git log for checkout selection</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/command.lua (Line 307:9 - Line 324:4), lua/nexus/git/command.lua (Line 150:7 - Line 167:31)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn28" onclick="toggleCodeBlock('cloneGroup28', 'expandBtn28', 'collapseBtn28')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn28" onclick="toggleCodeBlock('cloneGroup28', 'expandBtn28', 'collapseBtn28')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup28"><code class="language-lua text-sm text-gray-800">if #lines &gt;= height - 3 then
+          break
+        end
+      end
+      
+      -- Fill remaining lines
+      while #lines &lt; height do
+        table.insert(lines, &quot;&quot;)
+      end
+      
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+      
+      -- Highlight selected item and arrow
+      local ns_id = vim.api.nvim_create_namespace('gboard_git_command')
+      vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+      
+      if selected_index &lt;= #filtered_commands and selected_index &gt; 0 then
+        vim</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/command.lua (Line 534:15 - Line 545:15), lua/nexus/git/command.lua (Line 354:22 - Line 364:22)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn29" onclick="toggleCodeBlock('cloneGroup29', 'expandBtn29', 'collapseBtn29')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn29" onclick="toggleCodeBlock('cloneGroup29', 'expandBtn29', 'collapseBtn29')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup29"><code class="language-lua text-sm text-gray-800">()
+      end
+    end
+  })
+  
+  vim.api.nvim_buf_set_keymap(bufnr, 'n', 'k', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      if selected_index &gt; 1 then
+        selected_index = selected_index - 1
+        update_display</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/command.lua (Line 553:5 - Line 560:15), lua/nexus/git/command.lua (Line 372:7 - Line 378:22)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn30" onclick="toggleCodeBlock('cloneGroup30', 'expandBtn30', 'collapseBtn30')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn30" onclick="toggleCodeBlock('cloneGroup30', 'expandBtn30', 'collapseBtn30')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup30"><code class="language-lua text-sm text-gray-800">for _, key in ipairs({'&lt;Down&gt;', '&lt;C-n&gt;'}) do
+      vim.api.nvim_buf_set_keymap(bufnr, mode, key, '', {
+        noremap = true,
+        silent = true,
+        callback = function()
+          if selected_index &lt; #filtered_commands then
+            selected_index = selected_index + 1
+            update_display</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/command.lua (Line 567:5 - Line 574:15), lua/nexus/git/command.lua (Line 385:7 - Line 391:22)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn31" onclick="toggleCodeBlock('cloneGroup31', 'expandBtn31', 'collapseBtn31')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn31" onclick="toggleCodeBlock('cloneGroup31', 'expandBtn31', 'collapseBtn31')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup31"><code class="language-lua text-sm text-gray-800">for _, key in ipairs({'&lt;Up&gt;', '&lt;C-p&gt;'}) do
+      vim.api.nvim_buf_set_keymap(bufnr, mode, key, '', {
+        noremap = true,
+        silent = true,
+        callback = function()
+          if selected_index &gt; 1 then
+            selected_index = selected_index - 1
+            update_display</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/git/command.lua (Line 648:3 - Line 659:41), lua/nexus/git/command.lua (Line 433:5 - Line 443:4)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn32" onclick="toggleCodeBlock('cloneGroup32', 'expandBtn32', 'collapseBtn32')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn32" onclick="toggleCodeBlock('cloneGroup32', 'expandBtn32', 'collapseBtn32')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup32"><code class="language-lua text-sm text-gray-800">vim.api.nvim_create_autocmd({&quot;CursorMovedI&quot;, &quot;CursorMoved&quot;}, {
+    buffer = bufnr,
+    callback = function()
+      local cursor = vim.api.nvim_win_get_cursor(win)
+      local row, col = cursor[1], cursor[2]
+      
+      -- Keep cursor on first line
+      if row ~= 1 then
+        vim.api.nvim_win_set_cursor(win, {1, col})
+      end
+      
+      -- Keep cursor after &quot;git &quot; (position 4)</code></pre></div><div class="py-4"><p class="text-gray-600">tests/unit/logger_spec.lua (Line 157:7 - Line 188:7), tests/unit/logger_spec.lua (Line 20:5 - Line 51:4)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn33" onclick="toggleCodeBlock('cloneGroup33', 'expandBtn33', 'collapseBtn33')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn33" onclick="toggleCodeBlock('cloneGroup33', 'expandBtn33', 'collapseBtn33')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup33"><code class="language-lua text-sm text-gray-800">io.open = function(path, mode)
+        if not mock_file_operations[path] then
+          mock_file_operations[path] = {
+            content = &quot;&quot;,
+            writes = {}
+          }
+        end
+        
+        -- Handle &quot;w&quot; mode (write/overwrite) vs &quot;a&quot; mode (append)
+        if mode == &quot;w&quot; then
+          mock_file_operations[path] = {
+            content = &quot;&quot;,
+            writes = {}
+          }
+        end
+        
+        return {
+          write = function(self, data)
+            if mode == &quot;w&quot; or not mock_file_operations[path] then
+              mock_file_operations[path].content = data
+            else
+              mock_file_operations[path].content = mock_file_operations[path].content .. data
+            end
+            table.insert(mock_file_operations[path].writes, data)
+            return self
+          end,
+          close = function() end
+        }
+      end
+      
+      logger = require('nexus.logger')
+      logger</code></pre></div><div class="py-4"><p class="text-gray-600">tests/unit/buffer_spec.lua (Line 82:8 - Line 89:7), tests/unit/buffer_spec.lua (Line 65:9 - Line 72:7)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn34" onclick="toggleCodeBlock('cloneGroup34', 'expandBtn34', 'collapseBtn34')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn34" onclick="toggleCodeBlock('cloneGroup34', 'expandBtn34', 'collapseBtn34')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup34"><code class="language-lua text-sm text-gray-800">(mocks._mock_buffers[buf].scratch)
+      
+      -- Check buffer options
+      local options = mocks._mock_buffers[buf].options
+      assert.equals('nexus', options.filetype)
+      assert.equals('nofile', options.buftype)
+      assert.is_false(options.swapfile)
+      assert.equals('wipe'</code></pre></div><div class="py-4"><p class="text-gray-600">tests/unit/buffer_spec.lua (Line 153:8 - Line 166:4), tests/unit/buffer_spec.lua (Line 122:10 - Line 135:7)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn35" onclick="toggleCodeBlock('cloneGroup35', 'expandBtn35', 'collapseBtn35')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn35" onclick="toggleCodeBlock('cloneGroup35', 'expandBtn35', 'collapseBtn35')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup35"><code class="language-lua text-sm text-gray-800">} 
+      end
+      
+      local win_set_buf_called = false
+      local buf_delete_called = false
+      
+      vim.api.nvim_win_set_buf = function(win, buffer)
+        win_set_buf_called = true
+        assert.equals(buf, buffer)
+      end
+      
+      vim.api.nvim_buf_delete = function(buffer, opts)
+        buf_delete_called = true
+      end</code></pre></div><div class="py-4"><p class="text-gray-600">tests/integration/keymap_interactions_spec.lua (Line 110:43 - Line 118:24), tests/integration/keymap_interactions_spec.lua (Line 77:44 - Line 85:36)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn36" onclick="toggleCodeBlock('cloneGroup36', 'expandBtn36', 'collapseBtn36')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn36" onclick="toggleCodeBlock('cloneGroup36', 'expandBtn36', 'collapseBtn36')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup36"><code class="language-lua text-sm text-gray-800">, function()
+      config.setup({ show_dashboard_buttons = true })
+      nexus.setup()
+      nexus.open(true)
+      
+      local buf_id = mocks._mock_buffer_counter - 1
+      local buffer_lines = mocks._mock_buffers[buf_id].lines
+      
+      -- Find new file button</code></pre></div><div class="py-4"><p class="text-gray-600">tests/integration/dashboard_rendering_spec.lua (Line 122:7 - Line 131:23), tests/integration/dashboard_rendering_spec.lua (Line 90:7 - Line 99:42)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn37" onclick="toggleCodeBlock('cloneGroup37', 'expandBtn37', 'collapseBtn37')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn37" onclick="toggleCodeBlock('cloneGroup37', 'expandBtn37', 'collapseBtn37')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup37"><code class="language-lua text-sm text-gray-800">})
+      
+      nexus.setup()
+      nexus.open(true)
+      
+      local buf_id = mocks._mock_buffer_counter - 1
+      local buffer_lines = mocks._mock_buffers[buf_id].lines
+      local content = table.concat(buffer_lines, '\n')
+      
+      -- Should contain logo</code></pre></div><div class="py-4"><p class="text-gray-600">tests/integration/dashboard_rendering_spec.lua (Line 153:7 - Line 162:30), tests/integration/dashboard_rendering_spec.lua (Line 90:7 - Line 99:42)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn38" onclick="toggleCodeBlock('cloneGroup38', 'expandBtn38', 'collapseBtn38')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn38" onclick="toggleCodeBlock('cloneGroup38', 'expandBtn38', 'collapseBtn38')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup38"><code class="language-lua text-sm text-gray-800">})
+      
+      nexus.setup()
+      nexus.open(true)
+      
+      local buf_id = mocks._mock_buffer_counter - 1
+      local buffer_lines = mocks._mock_buffers[buf_id].lines
+      local content = table.concat(buffer_lines, '\n')
+      
+      -- Find positions of sections</code></pre></div><div class="py-4"><p class="text-gray-600">tests/integration/dashboard_rendering_spec.lua (Line 237:11 - Line 246:37), tests/integration/dashboard_rendering_spec.lua (Line 90:2 - Line 99:42)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn39" onclick="toggleCodeBlock('cloneGroup39', 'expandBtn39', 'collapseBtn39')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn39" onclick="toggleCodeBlock('cloneGroup39', 'expandBtn39', 'collapseBtn39')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup39"><code class="language-lua text-sm text-gray-800">)
+      
+      nexus.setup()
+      nexus.open(true)
+      
+      local buf_id = mocks._mock_buffer_counter - 1
+      local buffer_lines = mocks._mock_buffers[buf_id].lines
+      local content = table.concat(buffer_lines, '\n')
+      
+      -- Should contain git status section</code></pre></div><div class="py-4"><p class="text-gray-600">tests/integration/dashboard_rendering_spec.lua (Line 255:2 - Line 264:7), tests/integration/dashboard_rendering_spec.lua (Line 90:7 - Line 99:42)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn40" onclick="toggleCodeBlock('cloneGroup40', 'expandBtn40', 'collapseBtn40')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn40" onclick="toggleCodeBlock('cloneGroup40', 'expandBtn40', 'collapseBtn40')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup40"><code class="language-lua text-sm text-gray-800">})
+      
+      nexus.setup()
+      nexus.open(true)
+      
+      local buf_id = mocks._mock_buffer_counter - 1
+      local buffer_lines = mocks._mock_buffers[buf_id].lines
+      local content = table.concat(buffer_lines, '\n')
+      
+      assert</code></pre></div><div class="py-4"><p class="text-gray-600">tests/helpers/mocks.lua (Line 570:3 - Line 581:2), tests/helpers/mocks.lua (Line 10:1 - Line 21:16)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn41" onclick="toggleCodeBlock('cloneGroup41', 'expandBtn41', 'collapseBtn41')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn41" onclick="toggleCodeBlock('cloneGroup41', 'expandBtn41', 'collapseBtn41')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup41"><code class="language-lua text-sm text-gray-800">M._state = {
+    git_status = {},
+    git_commits = {},
+    git_repo = true,
+    tmux_env = false,
+    tmux_panes = {},
+    filesystem = {},
+    system_commands = {},
+    mock_shell_error = 0
+  }
+  
+  M</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/navigation.lua (Line 111:25 - Line 116:28), lua/nexus/navigation.lua (Line 83:29 - Line 88:32)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn42" onclick="toggleCodeBlock('cloneGroup42', 'expandBtn42', 'collapseBtn42')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn42" onclick="toggleCodeBlock('cloneGroup42', 'expandBtn42', 'collapseBtn42')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup42"><code class="language-lua text-sm text-gray-800">(get_current_section, config, logo_end_line, section_ranges)
+  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  local current_line = vim.api.nvim_win_get_cursor(0)[1]
+  local current_section = get_current_section(lines, current_line, config)
+  
+  -- Find next section header</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/navigation.lua (Line 117:2 - Line 130:30), lua/nexus/navigation.lua (Line 89:2 - Line 102:34)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn43" onclick="toggleCodeBlock('cloneGroup43', 'expandBtn43', 'collapseBtn43')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn43" onclick="toggleCodeBlock('cloneGroup43', 'expandBtn43', 'collapseBtn43')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup43"><code class="language-lua text-sm text-gray-800">do
+    local line = lines[i]
+    if line and line:match(&quot;^%s*[^%s].*:%s*$&quot;) then
+      local section = get_current_section(lines, i, config)
+      if section ~= current_section then
+        -- Found different section, move to its first actionable line
+        vim.api.nvim_win_set_cursor(0, {i + 1, 0})
+        M.move_to_next_actionable(1, logo_end_line, section_ranges)
+        return
+      end
+    end
+  end
+  
+  -- No next section, go to end</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/keymaps.lua (Line 71:12 - Line 79:3), lua/nexus/keymaps/git.lua (Line 38:4 - Line 46:7)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn44" onclick="toggleCodeBlock('cloneGroup44', 'expandBtn44', 'collapseBtn44')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn44" onclick="toggleCodeBlock('cloneGroup44', 'expandBtn44', 'collapseBtn44')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup44"><code class="language-lua text-sm text-gray-800">, render_callback)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line_num = cursor[1]
+  
+  -- Get all lines in the buffer
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local current_line = lines[line_num]
+  
+  if</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/keymaps.lua (Line 246:4 - Line 252:12), lua/nexus/keymaps.lua (Line 236:4 - Line 242:12)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn45" onclick="toggleCodeBlock('cloneGroup45', 'expandBtn45', 'collapseBtn45')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn45" onclick="toggleCodeBlock('cloneGroup45', 'expandBtn45', 'collapseBtn45')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup45"><code class="language-lua text-sm text-gray-800">, '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local line_num = vim.api.nvim_win_get_cursor(0)[1]
+      local todo_id = todo_component.get_todo_id_from_line_num(line_num)
+      todo_keymaps.handle_done</code></pre></div><div class="py-4"><p class="text-gray-600">lua/nexus/keymaps.lua (Line 256:4 - Line 262:14), lua/nexus/keymaps.lua (Line 236:4 - Line 242:12)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn46" onclick="toggleCodeBlock('cloneGroup46', 'expandBtn46', 'collapseBtn46')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn46" onclick="toggleCodeBlock('cloneGroup46', 'expandBtn46', 'collapseBtn46')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup46"><code class="language-lua text-sm text-gray-800">, '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local line_num = vim.api.nvim_win_get_cursor(0)[1]
+      local todo_id = todo_component.get_todo_id_from_line_num(line_num)
+      todo_keymaps.handle_delete</code></pre></div><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div><a name="markdown-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">markdown</h2><div class="divide-y divide-gray-200 border-b-2"><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div><a name="bash-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">bash</h2><div class="divide-y divide-gray-200 border-b-2"><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div><a name="json-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">json</h2><div class="divide-y divide-gray-200 border-b-2"><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div></section><!-- Add more sections for other formats and clone groups as needed--></main><footer class="bg-white shadow mt-8 py-4"><div class="container mx-auto px-4 text-center"><p class="text-sm text-gray-600">This report is generated by jscpd, an open-source copy/paste detector.</p><p class="text-sm text-gray-600">jscpd is licensed under the MIT License.</p><a class="text-blue-500 text-sm" href="https://github.com/kucherenko/jscpd" target="_blank" rel="noopener noreferrer">View jscpd on GitHub</a></div></footer><script src="js/prism.js"></script><script>function toggleCodeBlock(codeBlockId, expandBtnId, collapseBtnId) {
+  const codeBlock = document.getElementById(codeBlockId);
+  const expandBtn = document.getElementById(expandBtnId);
+  const collapseBtn = document.getElementById(collapseBtnId);
+
+  codeBlock.classList.toggle('hidden');
+  expandBtn.classList.toggle('hidden');
+  collapseBtn.classList.toggle('hidden');
+}</script></body></html>

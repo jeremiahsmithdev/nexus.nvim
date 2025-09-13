@@ -6,25 +6,18 @@ local default_config = {
   open_on_startup = true,            -- Open Nexus automatically on startup (when no files specified)
   keep_open_after_startup = false,   -- Keep Nexus buffer open after opening other files from dashboard
   
-  -- Section visibility
-  show_claude_conversations = false, -- Disabled by default
-  show_dashboard_buttons = true,     -- Show dashboard-style buttons
-  show_keyboard_shortcuts = true,    -- Show keyboard shortcuts section
-  show_recent_commits = true,        -- Show git commits section
+  -- Section configuration (sections are enabled by being in section_order)
   recent_commits_count = 3,          -- Number of recent commits to show
   show_commit_review = true,         -- Show commit review status indicators
-  show_git_status = true,            -- Show git status section
   git_status_count = nil,            -- Limit git status files (nil = no limit)
-  show_todos = true,                 -- Show todo section
   max_todos = 10,                    -- Maximum todos to show (nil = no limit)
-  section_order = {                  -- Order of sections after logo
+  section_order = {                  -- Order of sections after logo (only sections in this list are enabled)
     "dashboard_buttons",
     "keyboard_shortcuts",
     "todos",
-    "recent_commits", 
+    "recent_commits",
     "git_status",
-    "linear_issues",
-    "claude_conversations"
+    "linear_issues"
   },
   
   -- Logo configuration
@@ -230,6 +223,36 @@ end
 
 function M.get()
   return config
+end
+
+-- Check if a section is enabled (based on being in section_order)
+function M.is_section_enabled(section_name)
+  if not config.section_order then
+    return false
+  end
+
+  for _, section in ipairs(config.section_order) do
+    if section == section_name then
+      return true
+    end
+  end
+
+  return false
+end
+
+-- Get the order index of a section (for sorting)
+function M.get_section_order_index(section_name)
+  if not config.section_order then
+    return 999  -- Put at end if no order defined
+  end
+
+  for i, section in ipairs(config.section_order) do
+    if section == section_name then
+      return i
+    end
+  end
+
+  return 999  -- Put at end if not in order
 end
 
 return M
