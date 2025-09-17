@@ -239,10 +239,11 @@ local function setup_git_keymaps(buf, config, render_callback)
       local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
       local line_num = vim.api.nvim_win_get_cursor(0)[1]
       local section = M.get_current_section(lines, line_num, config)
-      
+      local config_module = require('nexus.config')
+
       if section == "linear" then
         linear_keymaps.handle_create(buf, render_callback, config)
-      elseif section == "todo" or (config.show_todos and section == "unknown") then
+      elseif section == "todo" or (config_module.is_section_enabled("todos") and section == "unknown") then
         todo_keymaps.handle_create(buf, render_callback, config)
       else
         -- Default to git commit
@@ -265,8 +266,10 @@ end
 ---@param config table Nexus configuration
 ---@param render_callback function Function to re-render the buffer
 local function setup_context_keymaps(buf, config, render_callback)
+  local config_module = require('nexus.config')
+
   -- Set up 'e' key if either todos or commit review are enabled
-  if config.show_todos or config.show_commit_review then
+  if config_module.is_section_enabled("todos") or config.show_commit_review then
     vim.api.nvim_buf_set_keymap(buf, 'n', 'e', '', {
       noremap = true,
       silent = true,
@@ -275,9 +278,9 @@ local function setup_context_keymaps(buf, config, render_callback)
       end
     })
   end
-  
+
   -- Set up todo-specific keymaps only if todos are enabled
-  if not config.show_todos then return end
+  if not config_module.is_section_enabled("todos") then return end
   
   vim.api.nvim_buf_set_keymap(buf, 'n', 'd', '', {
     noremap = true,

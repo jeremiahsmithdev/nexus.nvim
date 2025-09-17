@@ -62,6 +62,7 @@ function M.handle_done(todo_id, buf, render_callback, config)
     id = todo_id
   })
   -- Refresh the buffer after marking done
+  vim.api.nvim_buf_set_option(buf, 'modifiable', true)
   render_callback(buf)
 end
 
@@ -82,6 +83,7 @@ function M.handle_delete(todo_id, buf, render_callback, config)
         id = todo_id
       })
       -- Refresh the buffer after deleting
+      vim.api.nvim_buf_set_option(buf, 'modifiable', true)
       render_callback(buf)
     end
   end)

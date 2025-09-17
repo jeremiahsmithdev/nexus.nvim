@@ -54,7 +54,8 @@ function M.render_git_status(buf, config, cached_files)
   ui_state.update_section_ranges(section_ranges)
   
   -- Set up dynamic shortcut updating on cursor movement (only if shortcuts are enabled)
-  if config.show_keyboard_shortcuts then
+  local config_module = require('nexus.config')
+  if config_module.is_section_enabled("keyboard_shortcuts") then
     events.setup_dynamic_shortcuts(buf, config, is_git_repo, section_ranges)
   end
   
