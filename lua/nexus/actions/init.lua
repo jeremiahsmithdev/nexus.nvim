@@ -222,8 +222,17 @@ function M.dispatch(name, args, context)
   return M.execute(name, args)
 end
 
+-- Track initialization state to prevent double initialization
+local initialized = false
+
 ---Initialize the action system and register core actions
 function M.init()
+  if initialized then
+    logger.debug('ACTION_REGISTRY', 'Action system already initialized, skipping')
+    return
+  end
+
+  initialized = true
   logger.debug('ACTION_REGISTRY', 'Initializing action system')
   
   -- Import and register git actions

@@ -29,7 +29,8 @@ function M.render_immediate_ui(buf, config)
   table.insert(lines, "")
   
   -- Add dashboard buttons if enabled
-  if config.show_dashboard_buttons then
+  local config_module = require('nexus.config')
+  if config_module.is_section_enabled("dashboard_buttons") then
     local buttons = {
       "  Find file",
       "  Recently opened files", 
@@ -48,13 +49,13 @@ function M.render_immediate_ui(buf, config)
   end
   
   -- Add loading placeholders for git data
-  if config.show_recent_commits then
+  if config_module.is_section_enabled("recent_commits") then
     table.insert(lines, "Recent Commits:")
     table.insert(lines, "  Loading commits...")
     table.insert(lines, "")
   end
   
-  if config.show_git_status then
+  if config_module.is_section_enabled("git_status") then
     table.insert(lines, "Git Status:")
     table.insert(lines, "  Loading git status...")
     table.insert(lines, "")
@@ -296,12 +297,12 @@ function M.update_buffer_with_git_data(buf, config, git_data)
     return
   end
   
-  -- Use the regular render system but with pre-loaded data
+  -- Use the regular render system with pre-loaded data
   local render = require('nexus.render')
-  
+
   -- Create a temporary git state for rendering
   local cached_files = git_data.files
-  
+
   -- Re-render with actual data
   render.render_git_status(buf, config, cached_files)
   

@@ -4,7 +4,9 @@ local ui_state = require('nexus.state.ui')
 local shortcuts_registry = require('nexus.shortcuts_registry')
 
 function M.get_keyboard_shortcuts(config, is_git_repo)
-  if not config.show_keyboard_shortcuts then
+  -- Check if keyboard shortcuts section is enabled via order-based system
+  local config_module = require('nexus.config')
+  if not config_module.is_section_enabled("keyboard_shortcuts") then
     return {}
   end
   
@@ -18,7 +20,9 @@ end
 
 -- Get current contextual shortcuts based on cursor position
 function M.get_current_contextual_shortcuts(buf, config, is_git_repo)
-  if not config.show_keyboard_shortcuts then
+  -- Check if keyboard shortcuts section is enabled via order-based system
+  local config_module = require('nexus.config')
+  if not config_module.is_section_enabled("keyboard_shortcuts") then
     return ""
   end
   
@@ -37,7 +41,8 @@ end
 
 -- Update the contextual shortcuts line in the buffer
 function M.update_contextual_shortcuts(buf, config, is_git_repo, section_ranges)
-  if not config.show_keyboard_shortcuts or not section_ranges.keyboard_shortcuts then
+  local config_module = require('nexus.config')
+  if not config_module.is_section_enabled("keyboard_shortcuts") or not section_ranges.keyboard_shortcuts then
     return
   end
   

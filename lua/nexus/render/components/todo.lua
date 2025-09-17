@@ -22,9 +22,11 @@ local ICONS = {
 ---@param config table Nexus configuration
 ---@return table section
 function M.build_todo_section(config)
-  logger.debug("TODO", "Building Todo section", { enabled = config.show_todos })
-  
-  if not config.show_todos then
+  local config_module = require('nexus.config')
+  local is_enabled = config_module.is_section_enabled("todos")
+  logger.debug("TODO", "Building Todo section", { enabled = is_enabled })
+
+  if not is_enabled then
     return {}
   end
   
@@ -110,10 +112,7 @@ function M.build_todo_section(config)
     end
     table.insert(lines, string.format("  ... and %s", table.concat(summary_parts, ", ")))
   end
-  
-  -- Add spacing after section
-  table.insert(lines, "")
-  
+
   return lines
 end
 

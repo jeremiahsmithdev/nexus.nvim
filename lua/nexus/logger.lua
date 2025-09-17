@@ -161,10 +161,74 @@ function M.set_console_output(enabled)
   CONSOLE_OUTPUT = enabled
 end
 
+-- Timing tracking for performance analysis
+local timing_start_time = nil
+local timing_events = {}
+
+-- Start timing session
+function M.start_timing_session()
+  timing_start_time = vim.uv.hrtime()
+  timing_events = {}
+  M.info("TIMING", "=== STARTUP TIMING SESSION STARTED ===")
+end
+
+-- Log timing event with high precision
+function M.log_timing_event(event_name, additional_data)
+  if not timing_start_time then
+    M.warn("TIMING", "Timing event logged before session start: " .. event_name)
+    return
+  end
+
+  local current_time = vim.uv.hrtime()
+  local elapsed_ms = (current_time - timing_start_time) / 1000000
+
+  local timing_entry = {
+    event = event_name,
+    timestamp_ms = elapsed_ms,
+    additional_data = additional_data
+  }
+
+  table.insert(timing_events, timing_entry)
+
+  M.info("TIMING", string.format("[%.2fms] %s", elapsed_ms, event_name), additional_data)
+
+  -- Also log to console for immediate feedback during development
+  if CONSOLE_OUTPUT then
+    print(string.format("[NEXUS TIMING] [%.2fms] %s", elapsed_ms, event_name))
+  end
+end
+
+-- End timing session and show summary
+function M.end_timing_session()
+  if not timing_start_time then
+    M.warn("TIMING", "Timing session ended without being started")
+    return
+  end
+
+  local total_time = vim.uv.hrtime()
+  local total_ms = (total_time - timing_start_time) / 1000000
+
+  M.info("TIMING", "=== STARTUP TIMING SESSION COMPLETED ===")
+  M.info("TIMING", string.format("Total startup time: %.2fms", total_ms))
+  M.info("TIMING", string.format("Total events tracked: %d", #timing_events))
+
+  -- Show event breakdown
+  for i, event in ipairs(timing_events) do
+    local prev_time = i > 1 and timing_events[i-1].timestamp_ms or 0
+    local delta_ms = event.timestamp_ms - prev_time
+    M.info("TIMING", string.format("  Event %d: %s (%.2fms from start, +%.2fms from previous)",
+      i, event.event, event.timestamp_ms, delta_ms))
+  end
+
+  timing_start_time = nil
+  timing_events = {}
+end
+
 -- Initialize logger
 function M.init()
   M.clear_log()
   M.info("SYSTEM", "Nexus logger initialized")
+  M.start_timing_session()
 end
 
 return M

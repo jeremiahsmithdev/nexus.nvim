@@ -55,7 +55,8 @@ end
 
 -- Button highlighting
 function M.apply_button_highlighting(buf, lines, config)
-  if not config.show_dashboard_buttons then
+  local config_module = require('nexus.config')
+  if not config_module.is_section_enabled("dashboard_buttons") then
     return
   end
   
@@ -77,7 +78,8 @@ end
 
 -- Commits highlighting
 function M.apply_commits_highlighting(buf, lines, config, is_git_repo)
-  if not is_git_repo or not config.show_recent_commits then
+  local config_module = require('nexus.config')
+  if not is_git_repo or not config_module.is_section_enabled("recent_commits") then
     return
   end
   
@@ -128,7 +130,8 @@ end
 
 -- Git status highlighting that works with processed data
 function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
-  if not is_git_repo or not config.show_git_status or not files or #files == 0 then
+  local config_module = require('nexus.config')
+  if not is_git_repo or not config_module.is_section_enabled("git_status") or not files or #files == 0 then
     return
   end
 
@@ -296,7 +299,8 @@ end
 
 -- Keyboard shortcuts highlighting
 function M.apply_shortcuts_highlighting(buf, lines, config, section_ranges)
-  if not config.show_keyboard_shortcuts or not section_ranges or not section_ranges.keyboard_shortcuts then
+  local config_module = require('nexus.config')
+  if not config_module.is_section_enabled("keyboard_shortcuts") or not section_ranges or not section_ranges.keyboard_shortcuts then
     return
   end
   
@@ -314,7 +318,8 @@ end
 
 -- Todo highlighting
 function M.apply_todo_highlighting(buf, lines, config)
-  if not config.show_todos then
+  local config_module = require('nexus.config')
+  if not config_module.is_section_enabled("todos") then
     return
   end
   

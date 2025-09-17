@@ -102,12 +102,20 @@ function M.get_todos()
   return state.get('todo', 'items') or {}
 end
 
+-- Ensure todo state is initialized (lazy loading)
+local function ensure_initialized()
+  if not state.get('todo', 'loaded') then
+    M.init()
+  end
+end
+
 -- Add a new todo item
 function M.add_todo(text)
   if not text or text == '' then
     return nil, 'Todo text cannot be empty'
   end
-  
+
+  ensure_initialized()
   local todos = M.get_todos()
   local new_todo = {
     id = tostring(os.time() .. math.random(1000, 9999)), -- Simple ID generation
@@ -137,7 +145,8 @@ function M.edit_todo(id, new_text)
   if not id or not new_text or new_text == '' then
     return nil, 'Invalid todo ID or text'
   end
-  
+
+  ensure_initialized()
   local todos = M.get_todos()
   local todo_index = nil
   
@@ -178,7 +187,8 @@ function M.mark_todo_done(id)
   if not id then
     return nil, 'Invalid todo ID'
   end
-  
+
+  ensure_initialized()
   local todos = M.get_todos()
   local todo_index = nil
   
@@ -214,6 +224,7 @@ end
 
 -- Remove completed todos
 function M.clear_completed()
+  ensure_initialized()
   local todos = M.get_todos()
   local active_todos = {}
   local removed_count = 0
@@ -241,6 +252,7 @@ end
 
 -- Get todo by ID
 function M.get_todo_by_id(id)
+  ensure_initialized()
   local todos = M.get_todos()
   for _, todo in ipairs(todos) do
     if todo.id == id then
@@ -260,6 +272,7 @@ end
 
 -- Update display positions and save to file
 function M.update_display_positions(display_order)
+  ensure_initialized()
   local todos = M.get_todos()
   
   -- Clear all positions first
@@ -281,6 +294,7 @@ end
 
 -- Get todo by display position
 function M.get_todo_by_position(position)
+  ensure_initialized()
   local todos = M.get_todos()
   for _, todo in ipairs(todos) do
     if todo.display_position == position then
@@ -295,7 +309,8 @@ function M.delete_todo(id)
   if not id then
     return false, 'Invalid todo ID'
   end
-  
+
+  ensure_initialized()
   local todos = M.get_todos()
   local todo_index = nil
   local todo_to_delete = nil

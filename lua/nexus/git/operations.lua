@@ -2,29 +2,60 @@ local M = {}
 local logger = require('nexus.logger')
 
 function M.git_add_file(filename, refresh_callback)
-  local result = vim.fn.system('git add "' .. filename .. '"')
+  print(string.format('Executing: git add "%s"', filename))
+
+  -- Get git repository root to ensure we run commands from the correct directory
+  local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+  if vim.v.shell_error ~= 0 then
+    print('Failed to get git root directory')
+    return false
+  end
+
+  -- Change to git root directory and execute command
+  local cmd = string.format('cd "%s" && git add "%s"', git_root, filename)
+  local result = vim.fn.system(cmd)
+  print(string.format('Git command result: error=%d, output="%s"', vim.v.shell_error, result))
   if vim.v.shell_error == 0 then
     logger.info('GIT', 'Added: ' .. filename)
+    print('Git add succeeded!')
     if refresh_callback then
+      print('Calling refresh callback')
       refresh_callback()
     end
     return true
   else
     logger.error('GIT', 'Failed to add: ' .. filename .. ' - ' .. result)
+    print('Git add failed! Error: ' .. result)
     return false
   end
 end
 
 function M.git_unstage_file(filename, refresh_callback)
-  local result = vim.fn.system('git reset HEAD "' .. filename .. '"')
+  print(string.format('Executing: git reset HEAD "%s"', filename))
+
+  -- Get git repository root to ensure we run commands from the correct directory
+  local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+  if vim.v.shell_error ~= 0 then
+    print('Failed to get git root directory')
+    return false
+  end
+
+  -- Change to git root directory and execute command
+  -- Use git restore --staged for unstaging (more reliable than reset HEAD)
+  local cmd = string.format('cd "%s" && git restore --staged "%s"', git_root, filename)
+  local result = vim.fn.system(cmd)
+  print(string.format('Git unstage result: error=%d, output="%s"', vim.v.shell_error, result))
   if vim.v.shell_error == 0 then
     logger.info('GIT', 'Unstaged: ' .. filename)
+    print('Git unstage succeeded!')
     if refresh_callback then
+      print('Calling refresh callback')
       refresh_callback()
     end
     return true
   else
     logger.error('GIT', 'Failed to unstage: ' .. filename .. ' - ' .. result)
+    print('Git unstage failed! Error: ' .. result)
     return false
   end
 end

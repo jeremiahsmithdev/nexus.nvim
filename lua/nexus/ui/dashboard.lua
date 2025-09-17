@@ -1,7 +1,8 @@
 local M = {}
 
 function M.get_dashboard_buttons(config)
-  if not config.show_dashboard_buttons then
+  local config_module = require('nexus.config')
+  if not config_module.is_section_enabled("dashboard_buttons") then
     return {}
   end
   

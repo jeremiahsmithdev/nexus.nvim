@@ -217,16 +217,18 @@ local function setup_git_keymaps(buf, config, render_callback)
   
   vim.api.nvim_buf_set_keymap(buf, 'n', 'a', '', {
     noremap = true,
-    silent = true,
+    silent = false,
     callback = function()
+      print("'a' keymap triggered! Calling git add...")
       git_keymaps.handle_add(buf, render_callback)
     end
   })
   
   vim.api.nvim_buf_set_keymap(buf, 'n', 'u', '', {
     noremap = true,
-    silent = true,
+    silent = false,
     callback = function()
+      print("'u' keymap triggered! Calling git unstage...")
       git_keymaps.handle_unstage(buf, render_callback)
     end
   })
@@ -242,7 +244,7 @@ local function setup_git_keymaps(buf, config, render_callback)
       
       if section == "linear" then
         linear_keymaps.handle_create(buf, render_callback, config)
-      elseif section == "todo" or (config.show_todos and section == "unknown") then
+      elseif section == "todo" or (require('nexus.config').is_section_enabled("todos") and section == "unknown") then
         todo_keymaps.handle_create(buf, render_callback, config)
       else
         -- Default to git commit
@@ -266,7 +268,8 @@ end
 ---@param render_callback function Function to re-render the buffer
 local function setup_context_keymaps(buf, config, render_callback)
   -- Set up 'e' key if either todos or commit review are enabled
-  if config.show_todos or config.show_commit_review then
+  local config_module = require('nexus.config')
+  if config_module.is_section_enabled("todos") or config.show_commit_review then
     vim.api.nvim_buf_set_keymap(buf, 'n', 'e', '', {
       noremap = true,
       silent = true,
@@ -277,7 +280,7 @@ local function setup_context_keymaps(buf, config, render_callback)
   end
   
   -- Set up todo-specific keymaps only if todos are enabled
-  if not config.show_todos then return end
+  if not config_module.is_section_enabled("todos") then return end
   
   vim.api.nvim_buf_set_keymap(buf, 'n', 'd', '', {
     noremap = true,

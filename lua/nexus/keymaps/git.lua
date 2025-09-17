@@ -38,15 +38,17 @@ end
 function M.handle_add(buf, render_callback)
   local cursor = vim.api.nvim_win_get_cursor(0)
   local line_num = cursor[1]
-  
+
   -- Get all lines in the buffer
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local current_line = lines[line_num]
-  
+
   logger.debug('GIT_ADD', string.format('Cursor at line %d: "%s"', line_num, current_line or 'nil'))
-  
+  print(string.format('Git add handler called! Line: "%s"', current_line or 'nil'))
+
   -- Check if it's a git status line
   if current_line and current_line:match("%s*  [MADRCU?][MADRCU?]? ") then
+    print('Line matches git status pattern!')
     local filename = current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%+") or 
                     current_line:match("%s*  [MADRCU?][MADRCU?]? (.-)%s+%-") or
                     current_line:match("%s*  [MADRCU?][MADRCU?]? (.+)$")
