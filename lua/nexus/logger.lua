@@ -164,9 +164,13 @@ end
 -- Timing tracking for performance analysis
 local timing_start_time = nil
 local timing_events = {}
+local TIMING_ENABLED = false  -- Disable timing by default to prevent slowdown
 
 -- Start timing session
 function M.start_timing_session()
+  if not TIMING_ENABLED then
+    return
+  end
   timing_start_time = vim.uv.hrtime()
   timing_events = {}
   M.info("TIMING", "=== STARTUP TIMING SESSION STARTED ===")
@@ -174,8 +178,7 @@ end
 
 -- Log timing event with high precision
 function M.log_timing_event(event_name, additional_data)
-  if not timing_start_time then
-    M.warn("TIMING", "Timing event logged before session start: " .. event_name)
+  if not TIMING_ENABLED or not timing_start_time then
     return
   end
 
@@ -200,8 +203,7 @@ end
 
 -- End timing session and show summary
 function M.end_timing_session()
-  if not timing_start_time then
-    M.warn("TIMING", "Timing session ended without being started")
+  if not TIMING_ENABLED or not timing_start_time then
     return
   end
 
@@ -224,11 +226,21 @@ function M.end_timing_session()
   timing_events = {}
 end
 
+-- Enable timing for debugging performance
+function M.enable_timing()
+  TIMING_ENABLED = true
+end
+
+-- Disable timing to improve performance
+function M.disable_timing()
+  TIMING_ENABLED = false
+end
+
 -- Initialize logger
 function M.init()
   M.clear_log()
   M.info("SYSTEM", "Nexus logger initialized")
-  M.start_timing_session()
+  -- Don't start timing by default - it slows down startup
 end
 
 return M
