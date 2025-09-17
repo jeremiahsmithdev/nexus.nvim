@@ -207,6 +207,8 @@ local function setup_git_keymaps(buf, config, render_callback)
     noremap = true,
     silent = true,
     callback = function()
+      -- Refresh git state first
+      git_state.force_refresh(config)
       -- Refresh Linear data if enabled
       if config.linear and config.linear.enabled then
         linear_state.refresh_data(config)

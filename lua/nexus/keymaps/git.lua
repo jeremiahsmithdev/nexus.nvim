@@ -105,6 +105,7 @@ function M.handle_commit(buf, render_callback, config)
   actions.execute('git.commit', {
     interactive = true,
     refresh_callback = function()
+      git_state.force_refresh(config) -- Force refresh all git data after commit
       render_callback(buf)
     end
   })
