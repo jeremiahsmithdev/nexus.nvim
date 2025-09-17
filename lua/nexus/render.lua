@@ -13,129 +13,53 @@ local ui_state = require('nexus.state.ui')
 -- Legacy imports still needed
 local logo = require('nexus.ui.logo')
 
--- Cache for performance optimization
-local render_cache = {
-  last_sections = nil,
-  last_cache_key = nil,
-  last_files_hash = nil,
-  last_commits_hash = nil
-}
-
--- Simple hash function for tables
-local function simple_hash(tbl)
-  if not tbl or #tbl == 0 then return "empty" end
-  local hash = #tbl
-  for i, item in ipairs(tbl) do
-    if type(item) == "table" then
-      hash = hash + i * (item.status and #item.status or 0) + (item.file and #item.file or 0) + (item.added or 0) + (item.deleted or 0)
-    elseif type(item) == "string" then
-      hash = hash + i * #item
-    end
-  end
-  return tostring(hash)
-end
-
--- Clear render cache to force fresh rendering
-function M.clear_cache()
-  render_cache.last_sections = nil
-  render_cache.last_cache_key = nil
-  render_cache.last_files_hash = nil
-  render_cache.last_commits_hash = nil
-end
-
 function M.render_git_status(buf, config, cached_files)
-  local logger = require('nexus.logger')
-
-  logger.log_timing_event("RENDER_CONFIG_UPDATE_START")
   -- Update configuration in state
   ui_state.update_config(config or {})
-  logger.log_timing_event("RENDER_CONFIG_UPDATE_COMPLETE")
-
-  logger.log_timing_event("RENDER_GIT_BATCH_START")
-  -- Check if we're in a git repository and update state using BATCH operations (PERFORMANCE OPTIMIZATION)
+  
+  -- Check if we're in a git repository and update state
   local git_state = require('nexus.state.git')
-  local files, commits = git_state.update_git_data_batch(config, true) -- Use batch operations
+  git_state.force_refresh(config) -- Ensure git data is current
   local is_git_repo = git_state.is_git_repo()
-  files = cached_files or files
-  logger.log_timing_event("RENDER_GIT_BATCH_COMPLETE")
-
-  logger.log_timing_event("RENDER_WIDTH_CALC_START")
+  local files = cached_files or git_state.get_git_status()
+  
   -- Get display width
   local width = layout.get_display_width()
-  logger.log_timing_event("RENDER_WIDTH_CALC_COMPLETE")
-
-  logger.log_timing_event("RENDER_CACHE_CHECK_START")
-  -- Check if we can use cached sections
-  local files_hash = simple_hash(files)
-  local commits_hash = simple_hash(commits)
-  local cache_key = string.format("%s_%s_%d", files_hash, commits_hash, width)
-
-  local sections
-  if render_cache.last_sections and render_cache.last_cache_key == cache_key then
-    logger.log_timing_event("RENDER_CACHE_HIT")
-    -- Use cached sections
-    sections = render_cache.last_sections
-  else
-    logger.log_timing_event("RENDER_CACHE_MISS_START")
-    -- Build sections using component (pass commits data from batch operation)
-    sections = sections_component.build_sections(config, is_git_repo, files, commits)
-    -- Update cache
-    render_cache.last_sections = sections
-    render_cache.last_cache_key = cache_key
-    render_cache.last_files_hash = files_hash
-    render_cache.last_commits_hash = commits_hash
-    logger.log_timing_event("RENDER_CACHE_MISS_COMPLETE")
-  end
-  logger.log_timing_event("RENDER_CACHE_CHECK_COMPLETE")
-
-  logger.log_timing_event("RENDER_LAYOUT_START")
+  
+  -- Build sections using component
+  local sections = sections_component.build_sections(config, is_git_repo, files)
+  
   -- Layout sections using component
   local lines, section_ranges, logo_section = layout.layout_sections(sections, config, width)
-  logger.log_timing_event("RENDER_LAYOUT_COMPLETE")
-
-  logger.log_timing_event("RENDER_BUFFER_SET_START")
+  
   vim.api.nvim_buf_set_option(buf, 'modifiable', true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  logger.log_timing_event("RENDER_BUFFER_SET_COMPLETE")
-
+  
   -- Render image logo if enabled (after buffer content is set)
   if config.logo_selection == "image" then
-    logger.log_timing_event("RENDER_IMAGE_LOGO_START")
     logo.render_image_logo(buf, config, 0, 0)
-    logger.log_timing_event("RENDER_IMAGE_LOGO_COMPLETE")
   end
-
-  logger.log_timing_event("RENDER_FOLDING_START")
+  
   -- Set up folding for git status overflow
   sections_component.setup_folding(buf, lines, config, files)
-  logger.log_timing_event("RENDER_FOLDING_COMPLETE")
-
-  logger.log_timing_event("RENDER_STATE_UPDATE_START")
+  
   -- Update state with section ranges and logo info
   ui_state.update_section_ranges(section_ranges)
   ui_state.update_logo_section(logo_section)
-  logger.log_timing_event("RENDER_STATE_UPDATE_COMPLETE")
-
-  logger.log_timing_event("RENDER_HIGHLIGHTING_START")
+  
   -- Add syntax highlighting using component
   highlighting.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
-  logger.log_timing_event("RENDER_HIGHLIGHTING_COMPLETE")
-
-  logger.log_timing_event("RENDER_SHORTCUTS_SETUP_START")
+  
   -- Update UI state with section ranges for dynamic shortcuts
   ui_state.update_section_ranges(section_ranges)
-
+  
   -- Set up dynamic shortcut updating on cursor movement (only if shortcuts are enabled)
-  local config_module = require('nexus.config')
-  if config_module.is_section_enabled("keyboard_shortcuts") then
+  if config.show_keyboard_shortcuts then
     events.setup_dynamic_shortcuts(buf, config, is_git_repo, section_ranges)
   end
-  logger.log_timing_event("RENDER_SHORTCUTS_SETUP_COMPLETE")
-
-  logger.log_timing_event("RENDER_FINALIZE_START")
+  
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
-  logger.log_timing_event("RENDER_FINALIZE_COMPLETE")
-
+  
   return files, section_ranges
 end
 

@@ -4,7 +4,6 @@ local state = require('nexus.state')
 local git_utils = require('nexus.git.utils')
 local git_status = require('nexus.git.status')
 local git_commits = require('nexus.git.commits')
-local git_batch = require('nexus.git.batch')
 
 -- Git state management
 function M.update_git_repository_info()
@@ -50,44 +49,6 @@ function M.update_git_status(force_refresh)
   end
   
   return state.get('git', 'files') or {}
-end
-
--- Update both git status and commits using batch operations (PERFORMANCE OPTIMIZATION)
-function M.update_git_data_batch(config, force_refresh)
-  local cache = state.get('cache')
-  local current_time = os.time()
-  
-  -- Check if we need to refresh based on TTL (use shorter TTL for batch since it's faster)
-  local should_refresh = force_refresh or 
-    (current_time - (cache.git_batch_timestamp or 0)) > (cache.ttl.git_batch or 15)
-  
-  if not should_refresh then
-    return state.get('git', 'files') or {}, state.get('git', 'commits') or {}
-  end
-  
-  -- Use batch operations to get all git data at once
-  local files, commits, is_git_repo = git_batch.get_git_data_batch(config)
-  
-  -- Update state with batch results
-  state.set('git', {
-    files = files,
-    commits = commits,
-    is_git_repo = is_git_repo,
-    git_root = git_utils.get_git_root()  -- Still need individual call for git root
-  })
-  
-  -- Update cache timestamps
-  state.set('cache', {
-    git_batch_timestamp = current_time,
-    git_status_timestamp = current_time,  -- Also update individual timestamps
-    git_commits_timestamp = current_time
-  })
-  
-  -- Emit events for reactive updates
-  state.notify('git', 'status_updated', files, state.get('git', 'files'))
-  state.notify('git', 'commits_updated', commits, state.get('git', 'commits'))
-  
-  return files, commits
 end
 
 -- Update git commits in state
@@ -157,20 +118,17 @@ end
 function M.invalidate_cache()
   state.update('cache', {
     git_status_timestamp = 0,
-    git_commits_timestamp = 0,
-    git_batch_timestamp = 0
+    git_commits_timestamp = 0
   })
-  
-  -- Also invalidate the batch cache
-  git_batch.invalidate_cache()
   
   state.notify('cache', 'git_invalidated', {}, nil)
 end
 
--- Force refresh all git data (ignores cache) - OPTIMIZED to use batch
+-- Force refresh all git data (ignores cache)
 function M.force_refresh(config)
   M.update_git_repository_info()
-  M.update_git_data_batch(config, true)  -- Use batch operations for better performance
+  M.update_git_status(true)  -- force_refresh = true
+  M.update_git_commits(config, true)  -- force_refresh = true
   
   -- Notify that git data was refreshed
   state.notify('git', 'force_refreshed', {
