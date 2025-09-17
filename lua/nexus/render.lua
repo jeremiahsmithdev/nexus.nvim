@@ -35,6 +35,14 @@ local function simple_hash(tbl)
   return tostring(hash)
 end
 
+-- Clear render cache to force fresh rendering
+function M.clear_cache()
+  render_cache.last_sections = nil
+  render_cache.last_cache_key = nil
+  render_cache.last_files_hash = nil
+  render_cache.last_commits_hash = nil
+end
+
 function M.render_git_status(buf, config, cached_files)
   local logger = require('nexus.logger')
 

@@ -207,6 +207,9 @@ local function setup_git_keymaps(buf, config, render_callback)
     noremap = true,
     silent = true,
     callback = function()
+      -- Clear render cache to force fresh rendering
+      local render = require('nexus.render')
+      render.clear_cache()
       -- Refresh git state first
       git_state.force_refresh(config)
       -- Refresh Linear data if enabled
