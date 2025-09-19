@@ -310,14 +310,6 @@ end
 local function setup_linear_keymaps(buf, config, render_callback)
   if not (config.linear and config.linear.enabled) then return end
   
-  vim.api.nvim_buf_set_keymap(buf, 'n', 's', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      linear_keymaps.handle_status_update(buf, render_callback, config)
-    end
-  })
-  
   vim.api.nvim_buf_set_keymap(buf, 'n', 'p', '', {
     noremap = true,
     silent = true,
