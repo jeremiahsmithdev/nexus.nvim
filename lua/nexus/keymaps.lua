@@ -215,7 +215,7 @@ local function setup_git_keymaps(buf, config, render_callback)
     end
   })
   
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'a', '', {
+  vim.api.nvim_buf_set_keymap(buf, 'n', 's', '', {
     noremap = true,
     silent = true,
     callback = function()

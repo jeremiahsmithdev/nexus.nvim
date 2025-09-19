@@ -9,7 +9,7 @@ local shortcuts_registry = {
   
   git_status = {
     {key = "<Enter>", action = "open file"},
-    {key = "a", action = "stage"},
+    {key = "s", action = "stage"},
     {key = "u", action = "unstage"}
   },
   
