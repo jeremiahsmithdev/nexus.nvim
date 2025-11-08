@@ -21,6 +21,7 @@ local shortcuts_registry = {
   
   recent_commits = {
     {key = "<Enter>", action = "show commit"},
+    {key = "v", action = "open in vgit"},
     {key = "e", action = "review status"}
   },
   

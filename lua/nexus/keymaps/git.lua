@@ -15,6 +15,26 @@ function M.handle_enter_commits(current_line)
   commit_popup.show_commit_details(current_line)
 end
 
+--- Handle 'v' key in commits section - open commit in vgit
+function M.handle_vgit_commit(current_line)
+  -- Extract commit hash from the line (accounting for review icons)
+  local hash = current_line:match("%s*[☐✓⚠]?%s*([a-f0-9]+)")
+  if not hash then
+    vim.notify("Could not extract commit hash from line", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Check if vgit is available
+  local ok, vgit = pcall(require, 'vgit')
+  if not ok then
+    vim.notify("vgit plugin not found. Please install it first.", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Open commit in vgit
+  vgit.project_diff_preview(hash)
+end
+
 --- Handle Enter key in git status section  
 function M.handle_enter_git_status(current_line, config)
   local filename = current_line:match("^%s*[MADRCU?][MADRCU?]? (.-)%s+%+") or 

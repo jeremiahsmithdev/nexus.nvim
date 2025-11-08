@@ -259,6 +259,27 @@ local function setup_git_keymaps(buf, config, render_callback)
       git_keymaps.handle_command_window(buf, render_callback, config)
     end
   })
+
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'v', '', {
+    noremap = false,
+    silent = true,
+    callback = function()
+      -- Only handle 'v' in commits section, otherwise use default visual mode
+      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      local line_num = vim.api.nvim_win_get_cursor(0)[1]
+      local section = M.get_current_section(lines, line_num, config)
+
+      if section == "commits" then
+        local current_line = lines[line_num]
+        if current_line then
+          git_keymaps.handle_vgit_commit(current_line)
+        end
+      else
+        -- Fall back to default visual mode behavior
+        vim.cmd('normal! v')
+      end
+    end
+  })
 end
 
 --- Set up context-sensitive keymaps (todo/commit review)
