@@ -35,6 +35,35 @@ function M.handle_vgit_commit(current_line)
   vgit.project_diff_preview(hash)
 end
 
+--- Handle 'v' key in git status section - open file diff in vgit
+function M.handle_vgit_file_diff(current_line)
+  -- Extract filename from the git status line
+  local filename = current_line:match("^%s*[MADRCU?][MADRCU?]? (.-)%s+%+") or
+                  current_line:match("^%s*[MADRCU?][MADRCU?]? (.-)%s+%-") or
+                  current_line:match("^%s*[MADRCU?][MADRCU?]? (.+)$")
+
+  if not filename then
+    vim.notify("Could not extract filename from line", vim.log.levels.ERROR)
+    return
+  end
+
+  filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
+
+  -- Check if vgit is available
+  local ok, vgit = pcall(require, 'vgit')
+  if not ok then
+    vim.notify("vgit plugin not found. Please install it first.", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Get full path
+  local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+  local full_path = git_root and (git_root .. '/' .. filename) or filename
+
+  -- Open file diff in vgit
+  vgit.buffer_diff_preview(full_path)
+end
+
 --- Handle Enter key in git status section  
 function M.handle_enter_git_status(current_line, config)
   local filename = current_line:match("^%s*[MADRCU?][MADRCU?]? (.-)%s+%+") or 
