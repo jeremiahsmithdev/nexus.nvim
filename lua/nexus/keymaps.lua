@@ -454,8 +454,35 @@ local function setup_exit_keymaps(buf)
       M.async_quit()
     end
   })
-  
+
   -- Note: <Esc> keymap removed to prevent accidental quitting
+end
+
+--- Set up minimal keymaps for immediate interaction (before git data loads)
+--- Only includes quit and refresh - no file navigation or context-sensitive keys
+---@param buf number Buffer number
+---@param config table Nexus configuration
+function M.setup_minimal_keymaps(buf, config)
+  -- Exit keymap - available immediately
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'q', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      M.async_quit()
+    end
+  })
+
+  -- Refresh keymap - triggers full async reload
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'r', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local nexus = require('nexus')
+      nexus.refresh_buffer(buf)
+    end
+  })
+
+  logger.debug('KEYMAPS', 'Minimal keymaps set up for buffer ' .. buf)
 end
 
 --- Set up main Enter keymap

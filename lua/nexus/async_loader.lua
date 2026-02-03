@@ -48,17 +48,38 @@ function M.render_immediate_ui(buf, config)
     table.insert(lines, "")
   end
   
-  -- Add loading placeholders for git data
+  -- Add loading placeholders for git data (with centering to match final layout)
+  local loading_sections = {}
+
   if config_module.is_section_enabled("recent_commits") then
-    table.insert(lines, "Recent Commits:")
-    table.insert(lines, "  Loading commits...")
-    table.insert(lines, "")
+    table.insert(loading_sections, "Recent Commits:")
+    table.insert(loading_sections, "")
+    table.insert(loading_sections, "  Loading commits...")
+    table.insert(loading_sections, "")
   end
-  
+
   if config_module.is_section_enabled("git_status") then
-    table.insert(lines, "Git Status:")
-    table.insert(lines, "  Loading git status...")
-    table.insert(lines, "")
+    table.insert(loading_sections, "Git Status:")
+    table.insert(loading_sections, "")
+    table.insert(loading_sections, "  Loading git status...")
+    table.insert(loading_sections, "")
+  end
+
+  -- Apply centering to loading sections (similar to layout.lua git sections)
+  if #loading_sections > 0 then
+    local max_loading_line = 0
+    for _, line in ipairs(loading_sections) do
+      max_loading_line = math.max(max_loading_line, #line)
+    end
+
+    -- Estimate typical git section width for better alignment (status lines are ~40-60 chars)
+    local estimated_width = math.max(max_loading_line, 50)
+    local left_padding = math.max(0, math.floor((width - estimated_width) / 2))
+    local padding_str = string.rep(" ", left_padding)
+
+    for _, line in ipairs(loading_sections) do
+      table.insert(lines, padding_str .. line)
+    end
   end
   
   -- Set buffer content immediately

@@ -75,34 +75,66 @@ function M.open(is_manual_open)
   buffer_mod.open_buffer(buf, is_manual_open)
   logger.log_timing_event("BUFFER_OPEN_COMPLETE")
 
-  -- Use regular render system without delays
-  local render = registry.get('nexus.render')
-  local files, section_ranges
-
-  -- Render immediately - enhanced width detection handles tmux correctly
-  logger.log_timing_event("RENDER_START")
-  files, section_ranges = render.render_git_status(buf, current_config)
-  logger.log_timing_event("RENDER_COMPLETE")
-
-  logger.log_timing_event("GIT_STATE_CHECK_START")
-  local git_state = registry.get('nexus.state.git')
-  local is_git_repo = git_state.is_git_repo()
-  logger.log_timing_event("GIT_STATE_CHECK_COMPLETE")
-
-  -- Lazy-load keymaps system (using registry for performance)
-  logger.log_timing_event("KEYMAPS_SETUP_START")
+  -- Phase 1: Immediate render (logo + loading placeholders) - must complete fast
+  local async_loader = registry.get('nexus.async_loader')
   local keymaps = registry.get('nexus.keymaps')
-  keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(buf, cached_files)
-    logger.log_timing_event("REFRESH_CALLBACK_START")
-    render.render_git_status(buf, current_config, cached_files)
-    logger.log_timing_event("REFRESH_CALLBACK_COMPLETE")
-  end, section_ranges)
-  logger.log_timing_event("KEYMAPS_SETUP_COMPLETE")
 
-  -- Position cursor on first actionable line (dashboard buttons)
-  logger.log_timing_event("CURSOR_POSITIONING_START")
-  M.position_cursor_on_actionable_line(buf, section_ranges)
-  logger.log_timing_event("CURSOR_POSITIONING_COMPLETE")
+  logger.log_timing_event("RENDER_IMMEDIATE_START")
+  async_loader.render_immediate_ui(buf, current_config)
+  logger.log_timing_event("RENDER_IMMEDIATE_COMPLETE")
+
+  -- Set up minimal keymaps immediately (quit, refresh)
+  logger.log_timing_event("KEYMAPS_MINIMAL_START")
+  keymaps.setup_minimal_keymaps(buf, current_config)
+  logger.log_timing_event("KEYMAPS_MINIMAL_COMPLETE")
+
+  -- Phase 2: Async load git data and update buffer when ready
+  logger.log_timing_event("ASYNC_LOAD_START")
+  async_loader.load_git_data_async(buf, current_config, function(git_data)
+    logger.log_timing_event("ASYNC_LOAD_CALLBACK_START")
+
+    -- Verify buffer is still valid
+    if not vim.api.nvim_buf_is_valid(buf) then
+      logger.log_timing_event("ASYNC_LOAD_BUFFER_INVALID")
+      return
+    end
+
+    -- IMPORTANT: Update git_state cache with async data BEFORE rendering
+    -- This ensures any re-renders or callbacks that access git_state get the correct data
+    local state = require('nexus.state')
+    state.set('git', 'files', git_data.files or {})
+    state.set('git', 'commits', git_data.commits or {})
+    state.set('git', 'is_git_repo', git_data.is_git_repo)
+    state.set('cache', 'git_status_timestamp', os.time())
+    state.set('cache', 'git_commits_timestamp', os.time())
+    logger.log_timing_event("GIT_STATE_CACHE_UPDATED")
+
+    -- Full render with actual git data
+    local render = registry.get('nexus.render')
+    logger.log_timing_event("FULL_RENDER_START")
+    local files, section_ranges = render.render_git_status(buf, current_config, git_data.files)
+    logger.log_timing_event("FULL_RENDER_COMPLETE")
+
+    -- Get git repo status from async data
+    local is_git_repo = git_data.is_git_repo
+
+    -- Set up full keymaps with file navigation
+    logger.log_timing_event("KEYMAPS_FULL_START")
+    keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(refresh_buf, cached_files)
+      logger.log_timing_event("REFRESH_CALLBACK_START")
+      render.render_git_status(refresh_buf, current_config, cached_files)
+      logger.log_timing_event("REFRESH_CALLBACK_COMPLETE")
+    end, section_ranges)
+    logger.log_timing_event("KEYMAPS_FULL_COMPLETE")
+
+    -- Position cursor on first actionable line
+    logger.log_timing_event("CURSOR_POSITIONING_START")
+    M.position_cursor_on_actionable_line(buf, section_ranges)
+    logger.log_timing_event("CURSOR_POSITIONING_COMPLETE")
+
+    logger.log_timing_event("ASYNC_LOAD_CALLBACK_COMPLETE")
+  end)
+
   logger.log_timing_event("OPEN_COMPLETE")
   logger.end_timing_session()
 end
@@ -165,16 +197,19 @@ function M.refresh_buffer(buf)
   end
   logger.log_timing_event("REFRESH_BUFFER_VALIDATION_COMPLETE")
 
-  logger.log_timing_event("REFRESH_RENDER_START")
   local current_config = config.get()
+
+  -- Force refresh git data before re-rendering (user expects fresh data on manual refresh)
+  logger.log_timing_event("REFRESH_GIT_STATE_START")
+  local git_state = registry.get('nexus.state.git')
+  git_state.force_refresh(current_config)
+  local is_git_repo = git_state.is_git_repo()
+  logger.log_timing_event("REFRESH_GIT_STATE_COMPLETE")
+
+  logger.log_timing_event("REFRESH_RENDER_START")
   local render = registry.get('nexus.render')
   local files, section_ranges = render.render_git_status(buf, current_config)
   logger.log_timing_event("REFRESH_RENDER_COMPLETE")
-
-  logger.log_timing_event("REFRESH_GIT_STATE_START")
-  local git_state = registry.get('nexus.state.git')
-  local is_git_repo = git_state.is_git_repo()
-  logger.log_timing_event("REFRESH_GIT_STATE_COMPLETE")
 
   logger.log_timing_event("REFRESH_KEYMAPS_START")
   local keymaps = registry.get('nexus.keymaps')

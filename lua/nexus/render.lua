@@ -1,25 +1,23 @@
 local M = {}
 
--- Component imports
-local layout = require('nexus.render.layout')
-local sections_component = require('nexus.render.components.sections')
-local highlighting = require('nexus.render.components.highlighting')
-local events = require('nexus.render.components.events')
-
--- State management imports
-local git_state = require('nexus.state.git')
-local ui_state = require('nexus.state.ui')
-
--- Legacy imports still needed
-local logo = require('nexus.ui.logo')
+-- NOTE: Module imports are lazy-loaded inside render_git_status() to avoid
+-- blocking startup. This prevents synchronous loading of 7+ modules when
+-- render.lua is first required.
 
 function M.render_git_status(buf, config, cached_files)
+  -- Lazy load all dependencies inside function to avoid startup blocking
+  local layout = require('nexus.render.layout')
+  local sections_component = require('nexus.render.components.sections')
+  local highlighting = require('nexus.render.components.highlighting')
+  local events = require('nexus.render.components.events')
+  local git_state = require('nexus.state.git')
+  local ui_state = require('nexus.state.ui')
+  local logo = require('nexus.ui.logo')
   -- Update configuration in state
   ui_state.update_config(config or {})
-  
-  -- Check if we're in a git repository and update state
-  local git_state = require('nexus.state.git')
-  git_state.force_refresh(config) -- Ensure git data is current
+
+  -- Get git state without forcing refresh (data comes from async loader or cache)
+  -- NOTE: force_refresh() removed to prevent blocking - async_loader handles git data
   local is_git_repo = git_state.is_git_repo()
   local files = cached_files or git_state.get_git_status()
   

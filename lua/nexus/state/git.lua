@@ -148,7 +148,7 @@ function M.init()
   M.update_git_repository_info()
 end
 
--- Initialize on module load
-M.init()
+-- NOTE: M.init() is NOT called at module load to avoid blocking startup
+-- Git state is initialized lazily on first access or explicitly via async_loader
 
 return M
