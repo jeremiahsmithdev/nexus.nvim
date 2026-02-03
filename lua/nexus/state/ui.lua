@@ -202,7 +202,20 @@ function M.detect_section_by_content(line_content)
      line_content:match("Press 'H' to configure") or line_content:match("Huly integration disabled") then
     return "huly_issues"
   end
-  
+
+  -- Check for Beads issues
+  local beads_component = require('nexus.render.components.beads')
+  local is_beads_issue, _ = beads_component.is_beads_issue_line(line_content)
+  if is_beads_issue then
+    return "beads_issues"
+  end
+
+  -- Check for Beads error/setup messages
+  if line_content:match("No %.beads directory") or line_content:match("bd CLI not installed") or
+     line_content:match("Run 'bd init'") or line_content:match("No ready issues") then
+    return "beads_issues"
+  end
+
   -- Check for todos
   local todo_component = require('nexus.render.components.todo')
   if todo_component.is_todo_line(line_content) then
@@ -223,6 +236,8 @@ function M.detect_section_by_content(line_content)
     return "linear_issues_header"
   elseif line_content:match("Huly Issues:") then
     return "huly_issues_header"
+  elseif line_content:match("Beads Issues:") then
+    return "beads_issues_header"
   elseif line_content:match("Todo:") then
     return "todos_header"
   elseif line_content:match("Claude Conversations:") then
@@ -280,6 +295,19 @@ function M.is_actionable_line(section_name, line_content)
            line_content:match("Huly workspace not configured") or
            line_content:match("Press 'H' to configure") or
            line_content:match("Huly integration disabled")
+  end
+
+  -- Beads issues are actionable
+  if section_name == "beads_issues" then
+    local beads_component = require('nexus.render.components.beads')
+    local is_issue, _ = beads_component.is_beads_issue_line(line_content)
+    -- Issues are actionable, and so are setup/error messages
+    return is_issue or
+           line_content:match("No %.beads directory") or
+           line_content:match("bd CLI not installed") or
+           line_content:match("Run 'bd init'") or
+           line_content:match("No ready issues") or
+           line_content:match("press 'c' to create")
   end
 
   -- Todos are actionable

@@ -13,6 +13,7 @@ local navigation = require('nexus.navigation')
 local todo_keymaps = require('nexus.keymaps.todo')
 local linear_keymaps = require('nexus.keymaps.linear')
 local huly_keymaps = require('nexus.keymaps.huly')
+local beads_keymaps = require('nexus.keymaps.beads')
 local dashboard_keymaps = require('nexus.keymaps.dashboard')
 local git_keymaps = require('nexus.keymaps.git')
 local claude_keymaps = require('nexus.keymaps.claude')
@@ -48,6 +49,8 @@ function M.get_current_section(lines, line_num, config)
         return "linear"
       elseif line:match("Huly Issues:%s*$") then
         return "huly"
+      elseif line:match("Beads Issues:%s*$") then
+        return "beads"
       elseif line:match("Todo:%s*$") then
         return "todo"
       elseif line:match("Recent Commits:%s*$") then
@@ -86,7 +89,11 @@ function M.handle_e_key(buf, config, render_callback)
     -- Handle todo editing
     local todo_id = todo_component.get_todo_id_from_line_num(line_num)
     todo_keymaps.handle_edit(todo_id, buf, render_callback, config)
-    
+
+  elseif section == "beads" then
+    -- Handle beads issue editing
+    beads_keymaps.handle_edit(current_line, buf, render_callback, config)
+
   elseif section == "commits" and config.show_commit_review then
     -- Handle commit review status
     M.handle_commit_review_status(current_line, buf, render_callback, config)
@@ -136,6 +143,9 @@ function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
 
   elseif section == "huly" then
     huly_keymaps.handle_enter(current_line, config, buf, render_callback)
+
+  elseif section == "beads" then
+    beads_keymaps.handle_enter(current_line, line_num, config, buf, render_callback)
 
   elseif section == "todo" then
     todo_keymaps.handle_enter(current_line, line_num, config)
@@ -271,6 +281,8 @@ local function setup_git_keymaps(buf, config, render_callback)
 
       if section == "huly" and current_line then
         huly_keymaps.handle_status_update(current_line, buf, render_callback, config)
+      elseif section == "beads" and current_line then
+        beads_keymaps.handle_status_update(current_line, buf, render_callback, config)
       elseif section == "linear" then
         linear_keymaps.handle_status_update(buf, render_callback, config)
       else
@@ -302,6 +314,8 @@ local function setup_git_keymaps(buf, config, render_callback)
         linear_keymaps.handle_create(buf, render_callback, config)
       elseif section == "huly" then
         huly_keymaps.handle_create(buf, render_callback, config)
+      elseif section == "beads" then
+        beads_keymaps.handle_create(buf, render_callback, config)
       elseif section == "todo" or (config_module.is_section_enabled("todos") and section == "unknown") then
         todo_keymaps.handle_create(buf, render_callback, config)
       else
@@ -346,15 +360,18 @@ local function setup_git_keymaps(buf, config, render_callback)
   })
 end
 
---- Set up context-sensitive keymaps (todo/commit review)
+--- Set up context-sensitive keymaps (todo/commit review/beads)
 ---@param buf number Buffer number
 ---@param config table Nexus configuration
 ---@param render_callback function Function to re-render the buffer
 local function setup_context_keymaps(buf, config, render_callback)
   local config_module = require('nexus.config')
 
-  -- Set up 'e' key if either todos or commit review are enabled
-  if config_module.is_section_enabled("todos") or config.show_commit_review then
+  local todos_enabled = config_module.is_section_enabled("todos")
+  local beads_enabled = config_module.is_section_enabled("beads_issues")
+
+  -- Set up 'e' key if todos, beads, or commit review are enabled
+  if todos_enabled or beads_enabled or config.show_commit_review then
     vim.api.nvim_buf_set_keymap(buf, 'n', 'e', '', {
       noremap = true,
       silent = true,
@@ -364,19 +381,30 @@ local function setup_context_keymaps(buf, config, render_callback)
     })
   end
 
-  -- Set up todo-specific keymaps only if todos are enabled
-  if not config_module.is_section_enabled("todos") then return end
-  
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'd', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      local line_num = vim.api.nvim_win_get_cursor(0)[1]
-      local todo_id = todo_component.get_todo_id_from_line_num(line_num)
-      todo_keymaps.handle_done(todo_id, buf, render_callback, config)
-    end
-  })
-  
+  -- Set up 'd' key for context-aware "done" action (todos or beads)
+  if todos_enabled or beads_enabled then
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'd', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+        local line_num = vim.api.nvim_win_get_cursor(0)[1]
+        local section = M.get_current_section(lines, line_num, config)
+        local current_line = lines[line_num]
+
+        if section == "beads" and current_line then
+          beads_keymaps.handle_done(current_line, buf, render_callback, config)
+        elseif section == "todo" then
+          local todo_id = todo_component.get_todo_id_from_line_num(line_num)
+          todo_keymaps.handle_done(todo_id, buf, render_callback, config)
+        end
+      end
+    })
+  end
+
+  -- Set up todo-specific 'D' key for delete (only if todos enabled)
+  if not todos_enabled then return end
+
   vim.api.nvim_buf_set_keymap(buf, 'n', 'D', '', {
     noremap = true,
     silent = true,
@@ -533,6 +561,16 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
   if config_module.is_section_enabled("huly_issues") then
     setup_huly_setup_keymap(buf, config, render_callback)
   end
+
+  -- Config menu keymap (always available)
+  vim.api.nvim_buf_set_keymap(buf, 'n', ',', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local config_menu = require('nexus.config_menu')
+      config_menu.open()
+    end
+  })
 end
 
 --- Async quit function - only quits when Nexus is the only real buffer

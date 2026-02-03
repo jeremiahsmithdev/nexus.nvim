@@ -140,6 +140,12 @@ function M.build_sections(config, is_git_repo, files, commits)
     sections.huly_issues = huly_component.build_huly_section(config)
   end
 
+  -- Beads issues section (local git-backed issue tracker)
+  if config_module.is_section_enabled("beads_issues") then
+    local beads_component = require('nexus.render.components.beads')
+    sections.beads_issues = beads_component.build_beads_section(config)
+  end
+
   -- Claude conversations section (placeholder for future implementation)
   if config_module.is_section_enabled("claude_conversations") then
     -- This would be implemented when the feature is added

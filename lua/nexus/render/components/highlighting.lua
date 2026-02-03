@@ -27,6 +27,9 @@ function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_secti
   
   -- 7. Todo highlighting
   M.apply_todo_highlighting(buf, lines, config)
+
+  -- 8. Beads issues highlighting
+  M.apply_beads_highlighting(buf, lines, config)
 end
 
 -- Logo highlighting
@@ -347,15 +350,38 @@ function M.apply_todo_highlighting(buf, lines, config)
   if not config_module.is_section_enabled("todos") then
     return
   end
-  
+
   local todo_component = require('nexus.render.components.todo')
-  
+
   -- Find Todo section
   for i, line in ipairs(lines) do
     if line:match('^%s*Todo:') or line:match('^%s*[▼▶] Todo:') then
       todo_component.apply_todo_highlighting(buf, i)
       break
     end
+  end
+end
+
+-- Beads issues highlighting
+function M.apply_beads_highlighting(buf, lines, config)
+  local config_module = require('nexus.config')
+  if not config_module.is_section_enabled("beads_issues") then
+    return
+  end
+
+  local beads_component = require('nexus.render.components.beads')
+
+  -- Find Beads Issues section
+  local beads_section_start = nil
+  for i, line in ipairs(lines) do
+    if line:match('Beads Issues:') or line:match('[▼▶] Beads Issues:') then
+      beads_section_start = i
+      break
+    end
+  end
+
+  if beads_section_start then
+    beads_component.apply_beads_highlighting(buf, beads_section_start)
   end
 end
 

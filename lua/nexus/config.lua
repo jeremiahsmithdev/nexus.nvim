@@ -1,5 +1,22 @@
 local M = {}
 
+-- Load persisted config from .nexus/config.lua if it exists
+local function load_persisted_config()
+  local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
+  if vim.v.shell_error ~= 0 or not git_root then
+    return nil
+  end
+  local config_path = git_root .. "/.nexus/config.lua"
+  if vim.fn.filereadable(config_path) == 0 then
+    return nil
+  end
+  local ok, loaded = pcall(dofile, config_path)
+  if ok and type(loaded) == "table" then
+    return loaded
+  end
+  return nil
+end
+
 -- Default configuration
 local default_config = {
   -- Startup behavior
@@ -74,6 +91,21 @@ local default_config = {
       projects_ttl = 3600,              -- Projects cache TTL (1 hour)
       provider_ttl = 1800               -- Provider instance cache TTL (30 minutes)
     }
+  },
+
+  -- Beads integration (local git-backed issue tracker)
+  beads = {
+    enabled = false,                    -- Enable Beads integration
+    max_issues = 10,                    -- Maximum issues to show in dashboard
+    show_priority = true,               -- Show priority indicators (P0-P4)
+    show_status = true,                 -- Show status in parentheses
+    show_blocked_by = true,             -- Show blocker information for blocked issues
+    filter = "ready",                   -- Issue filter: "ready" (unblocked), "all", "in_progress"
+
+    -- Cache settings
+    cache = {
+      issues_ttl = 60                   -- Issues cache TTL (1 minute - beads is local)
+    }
   }
 }
 
@@ -82,7 +114,12 @@ local config = vim.deepcopy(default_config)
 -- Setup function to allow user configuration
 function M.setup(user_config)
   local logger = require('nexus.logger')
-  config = vim.tbl_deep_extend('force', default_config, user_config or {})
+
+  -- Load persisted config from .nexus/config.lua (project-local settings)
+  local persisted_config = load_persisted_config()
+
+  -- Merge order: default < user < persisted (project config has highest priority)
+  config = vim.tbl_deep_extend('force', default_config, user_config or {}, persisted_config or {})
   
   -- Validate git_status_count
   if config.git_status_count ~= nil then
@@ -124,6 +161,7 @@ function M.setup(user_config)
         git_status = true,
         linear_issues = true,
         huly_issues = true,
+        beads_issues = true,
         claude_conversations = true
       }
       
