@@ -146,11 +146,17 @@ function M.load_git_data_async(buf, config, callback)
   loading_buffers[buf] = true
   
   -- Create async git command
+  -- Handle nil/0 count as "show default 3 commits"
+  local commit_count = config.recent_commits_count
+  if not commit_count or commit_count < 1 then
+    commit_count = 3
+  end
+
   local cmd = {
-    'sh', '-c', 
+    'sh', '-c',
     'git rev-parse --is-inside-work-tree 2>/dev/null && echo "---STATUS---" && ' ..
     'git status --porcelain=v1 2>/dev/null && echo "---COMMITS---" && ' ..
-    'git log --oneline --decorate -' .. (config.recent_commits_count or 3) .. ' 2>/dev/null && ' ..
+    'git log --oneline --decorate -' .. commit_count .. ' 2>/dev/null && ' ..
     'echo "---DIFFSTAT---" && git diff --numstat 2>/dev/null'
   }
   
@@ -276,11 +282,18 @@ function M.parse_async_git_output(output)
   if sections.commits then
     for _, line in ipairs(sections.commits) do
       if line ~= '' then
-        local hash, decoration, message = line:match('([%w]+)%s*(%([^%)]*%))?(.*)')
-        if hash then
+        -- First extract hash and rest of line
+        local hash, rest = line:match('^([%w]+)%s+(.*)')
+        if hash and rest then
+          -- Check if rest starts with decoration (parentheses)
+          local decoration, message = rest:match('^(%([^%)]+%))%s*(.*)')
+          if not decoration then
+            -- No decoration, rest is the message
+            message = rest
+          end
           table.insert(commits, {
             hash = hash,
-            message = message and message:match("^%s*(.-)%s*$") or '',
+            message = message or '',
             decoration = decoration
           })
         end

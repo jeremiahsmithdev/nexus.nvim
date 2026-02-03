@@ -12,7 +12,11 @@ end
 
 function M.get_git_log(config)
   -- Get commits with decorations (branch/tag info)
-  local count = config.recent_commits_count or 3
+  -- Handle nil/0 count as default of 3
+  local count = config.recent_commits_count
+  if not count or count < 1 then
+    count = 3
+  end
   local handle = io.popen('git log --oneline --decorate -' .. count .. ' 2>/dev/null')
   if not handle then
     return {}

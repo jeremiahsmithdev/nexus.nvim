@@ -109,10 +109,10 @@ function M.open(is_manual_open)
     state.set('cache', 'git_commits_timestamp', os.time())
     logger.log_timing_event("GIT_STATE_CACHE_UPDATED")
 
-    -- Full render with actual git data
+    -- Full render with actual git data (pass both files AND commits)
     local render = registry.get('nexus.render')
     logger.log_timing_event("FULL_RENDER_START")
-    local files, section_ranges = render.render_git_status(buf, current_config, git_data.files)
+    local files, section_ranges = render.render_git_status(buf, current_config, git_data.files, git_data.commits)
     logger.log_timing_event("FULL_RENDER_COMPLETE")
 
     -- Get git repo status from async data

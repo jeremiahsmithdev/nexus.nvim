@@ -4,7 +4,7 @@ local M = {}
 -- blocking startup. This prevents synchronous loading of 7+ modules when
 -- render.lua is first required.
 
-function M.render_git_status(buf, config, cached_files)
+function M.render_git_status(buf, config, cached_files, cached_commits)
   -- Lazy load all dependencies inside function to avoid startup blocking
   local layout = require('nexus.render.layout')
   local sections_component = require('nexus.render.components.sections')
@@ -20,12 +20,13 @@ function M.render_git_status(buf, config, cached_files)
   -- NOTE: force_refresh() removed to prevent blocking - async_loader handles git data
   local is_git_repo = git_state.is_git_repo()
   local files = cached_files or git_state.get_git_status()
-  
+  local commits = cached_commits or git_state.get_git_commits()
+
   -- Get display width
   local width = layout.get_display_width()
-  
-  -- Build sections using component
-  local sections = sections_component.build_sections(config, is_git_repo, files)
+
+  -- Build sections using component (pass both files and commits)
+  local sections = sections_component.build_sections(config, is_git_repo, files, commits)
   
   -- Layout sections using component
   local lines, section_ranges, logo_section = layout.layout_sections(sections, config, width)
