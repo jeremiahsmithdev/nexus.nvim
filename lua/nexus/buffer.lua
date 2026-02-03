@@ -184,7 +184,12 @@ function M.setup_image_autocommands(buf)
   -- Handle splits using debounced handler
   vim.api.nvim_create_autocmd({'WinNew', 'WinEnter', 'BufWinEnter'}, {
     group = group_name,
-    callback = function()
+    callback = function(ev)
+      -- Only resize if the event is for THIS Nexus buffer
+      local event_buf = ev.buf or vim.api.nvim_get_current_buf()
+      if event_buf ~= buf then
+        return
+      end
       -- Use immediate resize for splits to handle layout changes
       M.debounced_resize(buf, {}, true)  -- immediate = true
     end

@@ -17,7 +17,8 @@ local default_config = {
     "todos",
     "recent_commits",
     "git_status",
-    "linear_issues"
+    -- "linear_issues",  -- Disabled by default; enable with linear.enabled = true
+    -- "huly_issues",    -- Disabled by default; enable with huly.enabled = true
   },
   
   -- Logo configuration
@@ -39,15 +40,39 @@ local default_config = {
     show_cycle = true,                  -- Show cycle/sprint information
     auto_refresh = 0,                 -- Auto-refresh interval in seconds (0 to disable)
     filter_by_repository = true,        -- Filter issues by current git repository project
-    
+
     -- Issue ordering and filtering
     issue_order = nil,                  -- Status-based ordering: {"Todo", "In Progress", "Done"} or nil for all
-    
+
     -- Cache settings
     cache = {
       issues_ttl = 300,                 -- Issues cache TTL (5 minutes)
-      teams_ttl = 3600,                 -- Teams cache TTL (1 hour)  
+      teams_ttl = 3600,                 -- Teams cache TTL (1 hour)
       user_info_ttl = 3600,             -- User info cache TTL (1 hour)
+    }
+  },
+
+  -- Huly integration (requires huly-bridge server: scripts/huly-bridge/)
+  huly = {
+    enabled = false,                    -- Enable Huly integration
+    bridge_url = "http://localhost:8088",  -- Huly bridge server URL
+    token = vim.env.HULY_TOKEN,         -- Huly API token (JWT from workspace settings)
+    workspace = vim.env.HULY_WORKSPACE, -- Workspace name (required, no default)
+    max_issues = 10,                    -- Maximum issues to show in dashboard
+    show_assignee = true,               -- Show assignee information
+    show_priority = true,               -- Show priority indicators
+    show_project = true,                -- Show project information
+    auto_refresh = 0,                   -- Auto-refresh interval in seconds (0 to disable)
+
+    -- Issue ordering and filtering
+    issue_order = nil,                  -- Status-based ordering: {"todo", "in progress", "done"} or nil for all
+
+    -- Cache settings
+    cache = {
+      issues_ttl = 300,                 -- Issues cache TTL (5 minutes)
+      workspaces_ttl = 3600,            -- Workspaces cache TTL (1 hour)
+      projects_ttl = 3600,              -- Projects cache TTL (1 hour)
+      provider_ttl = 1800               -- Provider instance cache TTL (30 minutes)
     }
   }
 }
@@ -98,6 +123,7 @@ function M.setup(user_config)
         recent_commits = true,
         git_status = true,
         linear_issues = true,
+        huly_issues = true,
         claude_conversations = true
       }
       
@@ -189,12 +215,47 @@ function M.setup(user_config)
           })
         end
       end
-      
+
       if #valid_order == 0 then
         logger.warn("CONFIG", "No valid statuses in linear.issue_order, disabling filtering")
         config.linear.issue_order = nil
       else
         config.linear.issue_order = valid_order
+      end
+    end
+  end
+
+  -- Validate Huly configuration
+  if config.huly and config.huly.issue_order ~= nil then
+    if type(config.huly.issue_order) ~= "table" then
+      logger.warn("CONFIG", "huly.issue_order must be a table, disabling filtering", {
+        provided_value = config.huly.issue_order,
+        provided_type = type(config.huly.issue_order)
+      })
+      config.huly.issue_order = nil
+    elseif #config.huly.issue_order == 0 then
+      logger.warn("CONFIG", "huly.issue_order is empty, disabling filtering")
+      config.huly.issue_order = nil
+    else
+      -- Validate that all items are strings
+      local valid_order = {}
+      for i, status in ipairs(config.huly.issue_order) do
+        if type(status) == "string" and #status > 0 then
+          table.insert(valid_order, status)
+        else
+          logger.warn("CONFIG", "Invalid status in huly.issue_order, skipping", {
+            status = status,
+            index = i,
+            type = type(status)
+          })
+        end
+      end
+
+      if #valid_order == 0 then
+        logger.warn("CONFIG", "No valid statuses in huly.issue_order, disabling filtering")
+        config.huly.issue_order = nil
+      else
+        config.huly.issue_order = valid_order
       end
     end
   end

@@ -329,10 +329,18 @@ function M._get_project_name()
   if vim.v.shell_error == 0 and git_root ~= "" then
     local project_name = vim.fn.fnamemodify(git_root, ":t")
     if project_name and project_name ~= "" then
-      return project_name
+      -- Get current git branch
+      local git_commits = require('nexus.git.commits')
+      local current_branch = git_commits.get_current_branch()
+
+      if current_branch and current_branch ~= "" then
+        return string.format("%s on  %s", project_name, current_branch)
+      else
+        return project_name
+      end
     end
   end
-  
+
   -- Fallback to current working directory name
   local cwd = vim.fn.getcwd()
   local cwd_name = vim.fn.fnamemodify(cwd, ":t")

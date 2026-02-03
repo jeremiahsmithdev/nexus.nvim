@@ -34,31 +34,41 @@ function M.render_git_status(buf, config, cached_files)
   
   vim.api.nvim_buf_set_option(buf, 'modifiable', true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  
+
   -- Render image logo if enabled (after buffer content is set)
   if config.logo_selection == "image" then
     logo.render_image_logo(buf, config, 0, 0)
   end
-  
+
   -- Set up folding for git status overflow
   sections_component.setup_folding(buf, lines, config, files)
-  
+
+  -- Set up section folds for all collapsible sections
+  local folding = require('nexus.ui.folding')
+  folding.setup_section_folds(buf, section_ranges)
+
   -- Update state with section ranges and logo info
   ui_state.update_section_ranges(section_ranges)
   ui_state.update_logo_section(logo_section)
-  
+
   -- Add syntax highlighting using component
   highlighting.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
-  
+
   -- Update UI state with section ranges for dynamic shortcuts
   ui_state.update_section_ranges(section_ranges)
-  
+
   -- Set up dynamic shortcut updating on cursor movement (only if shortcuts are enabled)
   local config_module = require('nexus.config')
   if config_module.is_section_enabled("keyboard_shortcuts") then
     events.setup_dynamic_shortcuts(buf, config, is_git_repo, section_ranges)
   end
-  
+
+  -- Apply saved fold states from persistent storage
+  folding.apply_fold_states(buf, section_ranges)
+
+  -- Update section arrows to reflect fold states
+  folding.update_section_arrows(buf, section_ranges)
+
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
   
   return files, section_ranges

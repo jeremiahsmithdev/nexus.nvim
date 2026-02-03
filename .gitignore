@@ -1,4 +1,7 @@
 .history
+functional-specs
 .claude
 .nexus-todo.json
 .nexus
+.review.md
+node_modules/

@@ -139,6 +139,8 @@ function M.position_cursor_on_actionable_line(buf, section_ranges)
 
       -- This is an actionable line
       logger.log_timing_event("CURSOR_POSITIONING_INNER_COMPLETE")
+      -- First scroll to top to keep logo visible, then set cursor
+      vim.cmd('normal! gg')
       vim.api.nvim_win_set_cursor(0, {i, 0})
       break
     end

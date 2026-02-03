@@ -49,7 +49,7 @@ function M.build_linear_section(config)
   linear_state.refresh_if_needed(config)
   
   local lines = {}
-  
+
   -- Section header
   table.insert(lines, "Linear Issues:")
   table.insert(lines, "")

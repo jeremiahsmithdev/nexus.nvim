@@ -12,6 +12,7 @@ local navigation = require('nexus.navigation')
 -- Section-specific keymap handlers
 local todo_keymaps = require('nexus.keymaps.todo')
 local linear_keymaps = require('nexus.keymaps.linear')
+local huly_keymaps = require('nexus.keymaps.huly')
 local dashboard_keymaps = require('nexus.keymaps.dashboard')
 local git_keymaps = require('nexus.keymaps.git')
 local claude_keymaps = require('nexus.keymaps.claude')
@@ -42,14 +43,16 @@ function M.get_current_section(lines, line_num, config)
   for i = line_num, 1, -1 do
     local line = lines[i]
     if line then
-      -- Check for section headers (end with colon)
-      if line:match("^%s*Linear Issues:%s*$") then
+      -- Check for section headers (with or without fold indicators)
+      if line:match("Linear Issues:%s*$") then
         return "linear"
-      elseif line:match("^%s*Todo:%s*$") then
+      elseif line:match("Huly Issues:%s*$") then
+        return "huly"
+      elseif line:match("Todo:%s*$") then
         return "todo"
-      elseif line:match("^%s*Recent Commits:%s*$") then
+      elseif line:match("Recent Commits:%s*$") then
         return "commits"
-      elseif line:match("^%s*Git Status:%s*$") then
+      elseif line:match("Git Status:%s*$") then
         return "git_status"
       elseif line:match("^%s*Dashboard:%s*$") or line:match("Find file") or line:match("Recently opened files") then
         return "dashboard"
@@ -130,7 +133,10 @@ function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
     
   elseif section == "linear" then
     linear_keymaps.handle_enter(current_line, config, buf, render_callback)
-    
+
+  elseif section == "huly" then
+    huly_keymaps.handle_enter(current_line, config, buf, render_callback)
+
   elseif section == "todo" then
     todo_keymaps.handle_enter(current_line, line_num, config)
     
@@ -174,6 +180,39 @@ local function setup_basic_navigation_keymaps(buf, logo_end_line, section_ranges
   })
 end
 
+--- Set up fold toggle keymaps (za, Tab, Space)
+---@param buf number Buffer number
+local function setup_fold_keymaps(buf)
+  local folding = require('nexus.ui.folding')
+
+  -- Standard Vim fold toggle (za)
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'za', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      folding.toggle_fold_at_cursor(buf)
+    end
+  })
+
+  -- Tab key for fold toggle
+  vim.api.nvim_buf_set_keymap(buf, 'n', '<Tab>', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      folding.toggle_fold_at_cursor(buf)
+    end
+  })
+
+  -- Space key for fold toggle
+  vim.api.nvim_buf_set_keymap(buf, 'n', '<Space>', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      folding.toggle_fold_at_cursor(buf)
+    end
+  })
+end
+
 --- Set up section navigation keymaps ({/})
 ---@param buf number Buffer number
 ---@param config table Nexus configuration
@@ -211,6 +250,11 @@ local function setup_git_keymaps(buf, config, render_callback)
       if config.linear and config.linear.enabled then
         linear_state.refresh_data(config)
       end
+      -- Refresh Huly data if enabled
+      if config.huly and config.huly.enabled then
+        local huly_state = require('nexus.state.huly')
+        huly_state.refresh_data(config)
+      end
       render_callback(buf)
     end
   })
@@ -219,7 +263,20 @@ local function setup_git_keymaps(buf, config, render_callback)
     noremap = true,
     silent = true,
     callback = function()
-      git_keymaps.handle_add(buf, render_callback)
+      -- Context-aware 's' key - stage in git, update status in issue trackers
+      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      local line_num = vim.api.nvim_win_get_cursor(0)[1]
+      local section = M.get_current_section(lines, line_num, config)
+      local current_line = lines[line_num]
+
+      if section == "huly" and current_line then
+        huly_keymaps.handle_status_update(current_line, buf, render_callback, config)
+      elseif section == "linear" then
+        linear_keymaps.handle_status_update(buf, render_callback, config)
+      else
+        -- Default to git stage
+        git_keymaps.handle_add(buf, render_callback)
+      end
     end
   })
   
@@ -243,6 +300,8 @@ local function setup_git_keymaps(buf, config, render_callback)
 
       if section == "linear" then
         linear_keymaps.handle_create(buf, render_callback, config)
+      elseif section == "huly" then
+        huly_keymaps.handle_create(buf, render_callback, config)
       elseif section == "todo" or (config_module.is_section_enabled("todos") and section == "unknown") then
         todo_keymaps.handle_create(buf, render_callback, config)
       else
@@ -264,7 +323,7 @@ local function setup_git_keymaps(buf, config, render_callback)
     noremap = false,
     silent = true,
     callback = function()
-      -- Only handle 'v' in commits section, otherwise use default visual mode
+      -- Handle 'v' in commits and git_status sections, otherwise use default visual mode
       local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
       local line_num = vim.api.nvim_win_get_cursor(0)[1]
       local section = M.get_current_section(lines, line_num, config)
@@ -273,6 +332,11 @@ local function setup_git_keymaps(buf, config, render_callback)
         local current_line = lines[line_num]
         if current_line then
           git_keymaps.handle_vgit_commit(current_line)
+        end
+      elseif section == "git_status" then
+        local current_line = lines[line_num]
+        if current_line then
+          git_keymaps.handle_vgit_file_diff(current_line)
         end
       else
         -- Fall back to default visual mode behavior
@@ -330,7 +394,7 @@ end
 ---@param render_callback function Function to re-render the buffer
 local function setup_linear_keymaps(buf, config, render_callback)
   if not (config.linear and config.linear.enabled) then return end
-  
+
   vim.api.nvim_buf_set_keymap(buf, 'n', 'p', '', {
     noremap = true,
     silent = true,
@@ -338,6 +402,45 @@ local function setup_linear_keymaps(buf, config, render_callback)
       linear_keymaps.handle_project_selection(buf, render_callback, config)
     end
   })
+end
+
+--- Set up Huly setup keymap (always available for initial configuration)
+---@param buf number Buffer number
+---@param config table Nexus configuration
+---@param render_callback function Function to re-render the buffer
+local function setup_huly_setup_keymap(buf, config, render_callback)
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'H', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      huly_keymaps.handle_setup(buf, render_callback, config)
+    end
+  })
+end
+
+--- Set up Huly-specific keymaps
+---@param buf number Buffer number
+---@param config table Nexus configuration
+---@param render_callback function Function to re-render the buffer
+local function setup_huly_keymaps(buf, config, render_callback)
+  if not (config.huly and config.huly.enabled) then return end
+
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'w', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      huly_keymaps.handle_workspace_selection(buf, render_callback, config)
+    end
+  })
+
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'p', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      huly_keymaps.handle_project_selection(buf, render_callback, config)
+    end
+  })
+  -- Note: 's' key is handled in setup_git_keymaps with context-awareness
 end
 
 --- Set up exit keymaps (q/<Esc>)
@@ -387,6 +490,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
   setup_enter_keymap(buf, files, config, is_git_repo, render_callback)
   setup_exit_keymaps(buf)
   setup_basic_navigation_keymaps(buf, logo_end_line, section_ranges)
+  setup_fold_keymaps(buf)
   setup_section_navigation_keymaps(buf, config, logo_end_line, section_ranges)
   
   -- Git-specific keymaps (only in git repositories)
@@ -394,6 +498,13 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
     setup_git_keymaps(buf, config, render_callback)
     setup_context_keymaps(buf, config, render_callback)
     setup_linear_keymaps(buf, config, render_callback)
+    setup_huly_keymaps(buf, config, render_callback)
+  end
+
+  -- Huly setup keymap (always available, regardless of git repo or enabled state)
+  local config_module = require('nexus.config')
+  if config_module.is_section_enabled("huly_issues") then
+    setup_huly_setup_keymap(buf, config, render_callback)
   end
 end
 

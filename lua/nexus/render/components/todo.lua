@@ -31,7 +31,7 @@ function M.build_todo_section(config)
   end
   
   local lines = {}
-  
+
   -- Section header
   table.insert(lines, "Todo:")
   table.insert(lines, "")
@@ -169,7 +169,7 @@ function M.get_todo_id_from_line_num(line_num)
   
   local todo_header_line = nil
   for i, line in ipairs(lines) do
-    if line:match("^%s*Todo:") then -- Allow for centered spacing
+    if line:match("^%s*Todo:") or line:match("^%s*[▼▶] Todo:") then -- Allow for centered spacing and fold indicators
       todo_header_line = i
       break
     end

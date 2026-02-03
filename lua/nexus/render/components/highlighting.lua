@@ -44,7 +44,32 @@ function M.apply_logo_highlighting(buf, lines, config, logo_section)
         end
         
         if is_project_name then
-          vim.api.nvim_buf_add_highlight(buf, logo_ns, "DiagnosticWarn", i - 1, 0, -1)
+          -- Check if line has "project on  branch" format
+          -- Find " on " pattern (space-on-space before the git icon)
+          local on_pattern_start, on_pattern_end = line_content:find(" on ")
+          if on_pattern_start then
+            -- Highlight project name (before " on")
+            local project_start = line_content:find("%S")  -- First non-whitespace
+            if project_start then
+              vim.api.nvim_buf_add_highlight(buf, logo_ns, "DiagnosticWarn", i - 1, project_start - 1, on_pattern_start - 1)
+            end
+            -- Highlight " on " in Comment color (dimmed)
+            vim.api.nvim_buf_add_highlight(buf, logo_ns, "Comment", i - 1, on_pattern_start - 1, on_pattern_end)
+            -- Find the git icon (nerd font icon after "on ")
+            local icon_start, icon_end = line_content:find("", on_pattern_end, true)
+            if icon_start then
+              -- Highlight git icon in String color (green)
+              vim.api.nvim_buf_add_highlight(buf, logo_ns, "String", i - 1, icon_start - 1, icon_end)
+              -- Highlight branch name (after icon) in Function color
+              vim.api.nvim_buf_add_highlight(buf, logo_ns, "Function", i - 1, icon_end, -1)
+            else
+              -- No icon found, highlight rest as branch
+              vim.api.nvim_buf_add_highlight(buf, logo_ns, "Function", i - 1, on_pattern_end, -1)
+            end
+          else
+            -- No branch info, highlight entire project name
+            vim.api.nvim_buf_add_highlight(buf, logo_ns, "DiagnosticWarn", i - 1, 0, -1)
+          end
         else
           vim.api.nvim_buf_add_highlight(buf, logo_ns, logo_color, i - 1, 0, -1)
         end
@@ -140,7 +165,7 @@ function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
   
   -- Find Git Status section
   for i, line in ipairs(lines) do
-    if line:match('Git Status:') then
+    if line:match('Git Status:') or line:match('[▼▶] Git Status:') then
       git_status_start = i
       break
     end
@@ -215,7 +240,7 @@ function M.apply_linear_highlighting(buf, lines, config)
   -- Find Linear Issues section
   local linear_section_start = nil
   for i, line in ipairs(lines) do
-    if line:match('Linear Issues:') then
+    if line:match('Linear Issues:') or line:match('[▼▶] Linear Issues:') then
       linear_section_start = i
       break
     end
@@ -327,7 +352,7 @@ function M.apply_todo_highlighting(buf, lines, config)
   
   -- Find Todo section
   for i, line in ipairs(lines) do
-    if line:match('^%s*Todo:') then
+    if line:match('^%s*Todo:') or line:match('^%s*[▼▶] Todo:') then
       todo_component.apply_todo_highlighting(buf, i)
       break
     end

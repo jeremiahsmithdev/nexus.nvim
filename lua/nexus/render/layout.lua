@@ -43,7 +43,7 @@ function M.layout_sections(sections, config, width)
   local button_sections = {}
   local git_sections_data = {}
   local project_name_section = nil
-  
+
   for _, section_name in ipairs(config.section_order) do
     local section_data = sections[section_name]
     if section_data and #section_data > 0 then
@@ -52,7 +52,7 @@ function M.layout_sections(sections, config, width)
       elseif section_name == "dashboard_buttons" or section_name == "keyboard_shortcuts" then
         table.insert(button_sections, {data = section_data, name = section_name})
       else
-        table.insert(git_sections_data, section_data)
+        table.insert(git_sections_data, {data = section_data, name = section_name})
       end
     end
   end
@@ -88,8 +88,8 @@ function M.layout_sections(sections, config, width)
   
   -- Find the longest line across all git sections to calculate common alignment
   local max_git_line_length = 0
-  for _, section in ipairs(git_sections_data) do
-    local section_max = center.longest_line(section)
+  for _, section_info in ipairs(git_sections_data) do
+    local section_max = center.longest_line(section_info.data)
     max_git_line_length = math.max(max_git_line_length, section_max)
   end
   
@@ -97,16 +97,24 @@ function M.layout_sections(sections, config, width)
   if max_git_line_length > 0 then
     local left_padding = math.max(0, math.floor((width - max_git_line_length) / 2))
     local padding_str = string.rep(" ", left_padding)
-    
-    for i, section in ipairs(git_sections_data) do
+
+    for i, section_info in ipairs(git_sections_data) do
       -- Add spacing before section (except first git section if no button sections exist)
       if i > 1 or #button_sections > 0 or #lines > #logo_lines then
         table.insert(lines, "")
       end
-      
-      for _, line in ipairs(section) do
+
+      local section_start = #lines + 1
+      for _, line in ipairs(section_info.data) do
         table.insert(lines, padding_str .. line)
       end
+      local section_end = #lines
+
+      -- Store section ranges for navigation and folding
+      section_ranges[section_info.name] = {
+        start_line = section_start,
+        end_line = section_end
+      }
     end
   end
   

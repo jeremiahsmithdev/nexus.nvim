@@ -19,7 +19,14 @@ local shortcuts_registry = {
     {key = "s", action = "update status"},
     {key = "c", action = "create issue"}
   },
-  
+
+  huly_issues = {
+    {key = "<Enter>", action = "details"},
+    {key = "s", action = "update status"},
+    {key = "c", action = "create issue"},
+    {key = "H", action = "configure"}
+  },
+
   recent_commits = {
     {key = "<Enter>", action = "show commit"},
     {key = "v", action = "open in vgit"},
@@ -42,6 +49,7 @@ local shortcuts_registry = {
   recent_commits_header = {},
   git_status_header = {},
   linear_issues_header = {},
+  huly_issues_header = {},
   todos_header = {},
   claude_conversations_header = {},
   

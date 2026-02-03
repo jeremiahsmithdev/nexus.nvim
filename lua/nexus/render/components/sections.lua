@@ -52,13 +52,13 @@ function M.build_sections(config, is_git_repo, files, commits)
       local git_state = require('nexus.state.git')
       commits_to_use = git_state.get_git_commits()
     end
-    
+
     if commits_to_use and #commits_to_use > 0 then
       local commits_lines = {"Recent Commits:", ""}
       for i, commit in ipairs(commits_to_use) do
         local line
         local review_icon = ""
-        
+
         -- Add review status indicator if enabled
         if config.show_commit_review and commit.review_status then
           if commit.review_status == "reviewed" then
@@ -69,7 +69,7 @@ function M.build_sections(config, is_git_repo, files, commits)
             review_icon = "☐ "
           end
         end
-        
+
         if commit.decoration then
           line = string.format("  %s%s (%s) %s", review_icon, commit.hash, commit.decoration, commit.message)
         else
@@ -133,7 +133,13 @@ function M.build_sections(config, is_git_repo, files, commits)
     local linear_component = require('nexus.render.components.linear')
     sections.linear_issues = linear_component.build_linear_section(config)
   end
-  
+
+  -- Huly issues section (show even if not configured, to allow setup)
+  if config_module.is_section_enabled("huly_issues") then
+    local huly_component = require('nexus.render.components.huly')
+    sections.huly_issues = huly_component.build_huly_section(config)
+  end
+
   -- Claude conversations section (placeholder for future implementation)
   if config_module.is_section_enabled("claude_conversations") then
     -- This would be implemented when the feature is added

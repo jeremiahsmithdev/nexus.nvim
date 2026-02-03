@@ -16,7 +16,7 @@ function M.is_actionable_line(line, line_num, logo_end_line, section_ranges)
   if line_num <= logo_end_line then
     return false
   end
-  
+
   -- Skip keyboard shortcuts section completely
   if section_ranges and section_ranges.keyboard_shortcuts then
     local shortcuts_range = section_ranges.keyboard_shortcuts
@@ -24,17 +24,17 @@ function M.is_actionable_line(line, line_num, logo_end_line, section_ranges)
       return false
     end
   end
-  
+
   -- Skip empty lines
   if line:match("^%s*$") then
     return false
   end
-  
+
   -- Skip section titles (lines ending with colon)
   if line:match(":$") then
     return false
   end
-  
+
   return true
 end
 
@@ -46,14 +46,41 @@ function M.move_to_next_actionable(direction, logo_end_line, section_ranges)
   local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
   local current_line = vim.api.nvim_win_get_cursor(0)[1]
   local step = direction > 0 and 1 or -1
-  
-  for i = current_line + step, direction > 0 and #lines or 1, step do
-    if lines[i] then
-      if M.is_actionable_line(lines[i], i, logo_end_line, section_ranges) then
-        vim.api.nvim_win_set_cursor(0, {i, 0})
-        return
-      end
+
+  -- If we're currently on a hidden line inside a fold, move to the visible fold line first
+  local current_fold = vim.fn.foldclosed(current_line)
+  if current_fold ~= -1 and current_fold ~= current_line then
+    -- We're on a hidden line, move to the fold start (the visible line)
+    current_line = current_fold
+  end
+
+  -- If we're currently on a fold line going forward, skip past it
+  if direction > 0 and current_fold ~= -1 then
+    local fold_end = vim.fn.foldclosedend(current_line)
+    current_line = fold_end
+  end
+
+  -- Now search for next actionable line
+  local i = current_line + step
+
+  while (direction > 0 and i <= #lines) or (direction < 0 and i >= 1) do
+    -- Check if this line is in a fold
+    local fold_start = vim.fn.foldclosed(i)
+
+    if fold_start ~= -1 then
+      -- We hit a fold - the fold start line is the visible line representing the entire fold
+      -- Treat this as a single actionable line and stop here
+      vim.api.nvim_win_set_cursor(0, {fold_start, 0})
+      return
     end
+
+    -- Check if this line is actionable
+    if lines[i] and M.is_actionable_line(lines[i], i, logo_end_line, section_ranges) then
+      vim.api.nvim_win_set_cursor(0, {i, 0})
+      return
+    end
+
+    i = i + step
   end
 end
 
