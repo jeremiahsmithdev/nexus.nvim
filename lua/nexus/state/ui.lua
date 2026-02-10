@@ -211,8 +211,8 @@ function M.detect_section_by_content(line_content)
   end
 
   -- Check for Beads error/setup messages
-  if line_content:match("No %.beads directory") or line_content:match("bd CLI not installed") or
-     line_content:match("Run 'bd init'") or line_content:match("No ready issues") then
+  if line_content:match("No %.beads directory") or line_content:match("CLI not installed") or
+     line_content:match("init' to initialize beads") or line_content:match("No ready issues") then
     return "beads_issues"
   end
 
@@ -304,8 +304,8 @@ function M.is_actionable_line(section_name, line_content)
     -- Issues are actionable, and so are setup/error messages
     return is_issue or
            line_content:match("No %.beads directory") or
-           line_content:match("bd CLI not installed") or
-           line_content:match("Run 'bd init'") or
+           line_content:match("CLI not installed") or
+           line_content:match("init' to initialize beads") or
            line_content:match("No ready issues") or
            line_content:match("press 'c' to create")
   end

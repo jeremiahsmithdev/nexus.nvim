@@ -95,6 +95,7 @@ local default_config = {
 
   -- Beads integration (local git-backed issue tracker)
   beads = {
+    cli = "br",                         -- CLI binary: "br" (beads_rust) or "bd" (beads)
     enabled = false,                    -- Enable Beads integration
     max_issues = 10,                    -- Maximum issues to show in dashboard
     show_priority = true,               -- Show priority indicators (P0-P4)

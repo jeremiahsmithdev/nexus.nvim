@@ -1,5 +1,5 @@
 --- Beads state management for Nexus
---- Handles CLI interaction with bd (beads) and caches results
+--- Handles CLI interaction with beads (br or bd) and caches results
 ---@module nexus.state.beads
 
 local M = {}
@@ -17,6 +17,13 @@ local _error = nil
 -- Line to issue mapping for navigation
 local _line_to_issue_map = {}
 
+--- Get configured CLI binary name
+---@return string "br" or "bd"
+local function get_cli()
+  local config = require('nexus.config').get()
+  return (config.beads and config.beads.cli) or 'br'
+end
+
 --- Check if beads is available in current directory
 ---@return boolean
 function M.is_beads_available()
@@ -30,24 +37,26 @@ function M.is_beads_available()
   return vim.fn.isdirectory(beads_dir) == 1
 end
 
---- Check if bd CLI is installed
+--- Check if beads CLI is installed
 ---@return boolean
-function M.is_bd_installed()
-  local result = vim.fn.system('which bd 2>/dev/null')
+function M.is_cli_installed()
+  local cli = get_cli()
+  local result = vim.fn.system('which ' .. cli .. ' 2>/dev/null')
   return vim.v.shell_error == 0 and result ~= ''
 end
 
---- Execute bd command and parse JSON output
+--- Execute beads CLI command and parse JSON output
 ---@param args string Command arguments
 ---@return table|nil result Parsed JSON or nil on error
 ---@return string|nil error Error message if failed
-local function run_bd_command(args)
-  local cmd = 'bd ' .. args .. ' 2>/dev/null'
+local function run_cli_command(args)
+  local cli = get_cli()
+  local cmd = cli .. ' ' .. args .. ' 2>/dev/null'
   local output = vim.fn.system(cmd)
 
   if vim.v.shell_error ~= 0 then
-    logger.debug('BEADS', 'bd command failed: ' .. cmd)
-    return nil, 'bd command failed'
+    logger.debug('BEADS', cli .. ' command failed: ' .. cmd)
+    return nil, cli .. ' command failed'
   end
 
   if output == '' or output == '\n' then
@@ -58,7 +67,7 @@ local function run_bd_command(args)
   local ok, result = pcall(vim.json.decode, output)
   if not ok then
     logger.debug('BEADS', 'Failed to parse JSON: ' .. output)
-    return nil, 'Failed to parse bd output'
+    return nil, 'Failed to parse ' .. cli .. ' output'
   end
 
   return result, nil
@@ -97,8 +106,8 @@ function M.get_issues(filter, force_refresh)
     return {}
   end
 
-  if not M.is_bd_installed() then
-    _error = 'bd CLI not installed'
+  if not M.is_cli_installed() then
+    _error = get_cli() .. ' CLI not installed'
     return {}
   end
 
@@ -115,7 +124,7 @@ function M.get_issues(filter, force_refresh)
     cmd_args = 'list --json'
   end
 
-  local result, err = run_bd_command(cmd_args)
+  local result, err = run_cli_command(cmd_args)
   _loading = false
 
   if err then
@@ -147,7 +156,7 @@ function M.get_issues(filter, force_refresh)
 end
 
 --- Get a single issue by ID
----@param id string Issue ID (e.g., "bd-a3f8")
+---@param id string Issue ID (e.g., "Prefix-a3f8")
 ---@return table|nil issue Issue details or nil
 function M.get_issue_by_id(id)
   if not id then return nil end
@@ -160,7 +169,7 @@ function M.get_issue_by_id(id)
   end
 
   -- Fetch from CLI
-  local result, err = run_bd_command('show ' .. id .. ' --json')
+  local result, err = run_cli_command('show ' .. id .. ' --json')
   if err or not result then
     logger.debug('BEADS', 'Failed to get issue ' .. id .. ': ' .. (err or 'unknown error'))
     return nil
@@ -193,7 +202,7 @@ function M.create_issue(title, opts)
 
   args = args .. ' --json'
 
-  local result, err = run_bd_command(args)
+  local result, err = run_cli_command(args)
   if err then
     return nil, err
   end
@@ -234,7 +243,7 @@ function M.update_issue(id, updates)
 
   args = args .. ' --json'
 
-  local result, err = run_bd_command(args)
+  local result, err = run_cli_command(args)
   if err then
     return nil, err
   end
@@ -261,7 +270,7 @@ function M.close_issue(id, reason)
   end
   args = args .. ' --json'
 
-  local _, err = run_bd_command(args)
+  local _, err = run_cli_command(args)
   if err then
     return false, err
   end

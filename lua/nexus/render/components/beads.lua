@@ -140,15 +140,16 @@ function M.build_beads_section(config)
   table.insert(lines, "Beads Issues:")
   table.insert(lines, "")
 
+  local cli = require('nexus.config').get().beads.cli or 'br'
+
   -- Check if beads is available
   if not beads_state.is_beads_available() then
     table.insert(lines, "  No .beads directory found")
-    table.insert(lines, "  Run 'bd init' to initialize beads")
+    table.insert(lines, "  Run '" .. cli .. " init' to initialize beads")
     return lines
   end
-
-  if not beads_state.is_bd_installed() then
-    table.insert(lines, "  bd CLI not installed")
+  if not beads_state.is_cli_installed() then
+    table.insert(lines, "  " .. cli .. " CLI not installed")
     table.insert(lines, "  Install from: github.com/anthropics/beads")
     return lines
   end

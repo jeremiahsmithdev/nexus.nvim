@@ -253,6 +253,7 @@ function M.init()
   local TodoEditAction = require('nexus.actions.todo.edit')
   local TodoDoneAction = require('nexus.actions.todo.done')
   local TodoDeleteAction = require('nexus.actions.todo.delete')
+  local TodoImportantAction = require('nexus.actions.todo.important')
   
   -- Register actions with error handling
   local actions_to_register = {
@@ -266,7 +267,8 @@ function M.init()
     { TodoCreateAction, 'todo.create' },
     { TodoEditAction, 'todo.edit' },
     { TodoDoneAction, 'todo.done' },
-    { TodoDeleteAction, 'todo.delete' }
+    { TodoDeleteAction, 'todo.delete' },
+    { TodoImportantAction, 'todo.important' }
   }
   
   local registered_count = 0

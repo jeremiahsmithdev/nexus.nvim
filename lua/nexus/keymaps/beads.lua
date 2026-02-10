@@ -18,11 +18,11 @@ function M.handle_enter(current_line, line_num, config, buf, render_callback)
 
   -- Check for setup/error messages
   if current_line:match("No %.beads directory") then
-    vim.notify("Run 'bd init' in your project root to initialize beads", vim.log.levels.INFO)
+    vim.notify("Run 'br init' in your project root to initialize beads", vim.log.levels.INFO)
     return
   end
 
-  if current_line:match("bd CLI not installed") then
+  if current_line:match("CLI not installed") then
     vim.notify("Install beads from: github.com/anthropics/beads", vim.log.levels.INFO)
     return
   end
@@ -54,12 +54,12 @@ function M.handle_create(buf, render_callback, config)
 
   -- Check prerequisites
   if not beads_state.is_beads_available() then
-    vim.notify("No .beads directory found. Run 'bd init' first.", vim.log.levels.WARN)
+    vim.notify("No .beads directory found. Run 'br init' first.", vim.log.levels.WARN)
     return
   end
 
-  if not beads_state.is_bd_installed() then
-    vim.notify("bd CLI not installed", vim.log.levels.WARN)
+  if not beads_state.is_cli_installed() then
+    vim.notify("Beads CLI not installed (looking for: " .. (require('nexus.config').get().beads.cli or 'br') .. ")", vim.log.levels.WARN)
     return
   end
 
