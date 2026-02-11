@@ -13,6 +13,7 @@ local _todos_cache = {} -- Cache todos for lookup
 local ICONS = {
   todo = "☐",
   done = "✓",
+  important = "★",
   error = "❌",
   info = "ℹ️",
   empty = "📝"
@@ -53,16 +54,28 @@ function M.build_todo_section(config)
     _todos_cache[todo.id] = todo
   end
   
-  -- Separate active and completed todos  
-  local active_todos = {}
+  -- Separate active and completed todos, with important items first
+  local important_todos = {}
+  local normal_todos = {}
   local completed_todos = {}
-  
+
   for _, todo in ipairs(todos) do
     if todo.completed then
       table.insert(completed_todos, todo)
+    elseif todo.important then
+      table.insert(important_todos, todo)
     else
-      table.insert(active_todos, todo)
+      table.insert(normal_todos, todo)
     end
+  end
+
+  -- Active todos: important first, then normal
+  local active_todos = {}
+  for _, todo in ipairs(important_todos) do
+    table.insert(active_todos, todo)
+  end
+  for _, todo in ipairs(normal_todos) do
+    table.insert(active_todos, todo)
   end
   
   -- Keep track of todos in display order
@@ -137,6 +150,14 @@ function M.apply_todo_highlighting(buf, todo_section_start)
         vim.api.nvim_buf_add_highlight(buf, todo_ns, 'DiagnosticOk', i - 1, tick_start - 1, tick_end)
       end
     end
+
+    -- Check if it's an important todo line with star
+    if line_content:match("^%s*★") then
+      local star_start, star_end = line_content:find('★')
+      if star_start then
+        vim.api.nvim_buf_add_highlight(buf, todo_ns, 'DiagnosticWarn', i - 1, star_start - 1, star_end)
+      end
+    end
   end
 end
 
@@ -145,7 +166,7 @@ end
 ---@param is_completed boolean Whether this is in the completed section
 ---@return string formatted_line
 function M.format_todo_line(todo, is_completed)
-  local icon = todo.completed and ICONS.done or ICONS.todo
+  local icon = todo.completed and ICONS.done or (todo.important and ICONS.important or ICONS.todo)
   local text = todo.text
   
   -- Truncate long todo text
@@ -208,7 +229,7 @@ end
 ---@return string todo_text The clean todo text without icon
 function M.get_todo_text_from_line(line)
   -- Remove the icon and clean up whitespace
-  local text = line:gsub("^%s*[☐✓]%s*", ""):gsub("^%s+", ""):gsub("%s+$", "")
+  local text = line:gsub("^%s*[☐✓★]%s*", ""):gsub("^%s+", ""):gsub("%s+$", "")
   return text
 end
 
@@ -216,7 +237,7 @@ end
 ---@param line string The line to check
 ---@return boolean is_todo_line Whether the line represents a todo item
 function M.is_todo_line(line)
-  return line:match("^%s*[☐✓]%s*.+") ~= nil
+  return line:match("^%s*[☐✓★]%s*.+") ~= nil
 end
 
 return M

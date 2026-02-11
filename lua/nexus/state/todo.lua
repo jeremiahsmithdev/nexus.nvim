@@ -121,6 +121,7 @@ function M.add_todo(text)
     id = tostring(os.time() .. math.random(1000, 9999)), -- Simple ID generation
     text = text,
     completed = false,
+    important = false,
     created_at = os.time(),
     updated_at = os.time(),
     display_position = nil -- Will be set during rendering
@@ -219,6 +220,48 @@ function M.mark_todo_done(id)
   })
   state.notify('todo', 'item_completed', todos[todo_index], todos)
   
+  return todos[todo_index]
+end
+
+-- Toggle important flag on a todo
+function M.toggle_important(id)
+  if not id then
+    return nil, 'Invalid todo ID'
+  end
+
+  ensure_initialized()
+  local todos = M.get_todos()
+  local todo_index = nil
+
+  for i, todo in ipairs(todos) do
+    if todo.id == id then
+      todo_index = i
+      break
+    end
+  end
+
+  if not todo_index then
+    return nil, 'Todo not found'
+  end
+
+  todos[todo_index].important = not todos[todo_index].important
+  todos[todo_index].updated_at = os.time()
+
+  state.set('todo', 'items', todos)
+
+  local success = save_todos_to_file(todos)
+  if not success then
+    return nil, 'Failed to save todo changes'
+  end
+
+  local status = todos[todo_index].important and 'important' or 'normal'
+  logger.info('TODO', 'Toggled todo importance', {
+    id = id,
+    text = todos[todo_index].text,
+    important = todos[todo_index].important
+  })
+  state.notify('todo', 'item_updated', todos[todo_index], todos)
+
   return todos[todo_index]
 end
 

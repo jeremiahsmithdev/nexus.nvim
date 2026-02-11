@@ -66,6 +66,15 @@ function M.handle_done(todo_id, buf, render_callback, config)
   render_callback(buf)
 end
 
+--- Handle '!' key in todo section - toggle important
+function M.handle_important(todo_id, buf, render_callback, config)
+  actions.execute('todo.important', {
+    id = todo_id
+  })
+  vim.api.nvim_buf_set_option(buf, 'modifiable', true)
+  render_callback(buf)
+end
+
 --- Handle 'D' key in todo section - delete todo
 function M.handle_delete(todo_id, buf, render_callback, config)
   local todo = todo_state.get_todo_by_id(todo_id)
@@ -101,6 +110,9 @@ function M.show_todo_details(todo, config)
   -- Status
   local status = todo.completed and "✅ Completed" or "⭕ Pending"
   table.insert(todo_details, string.format("Status: %s", status))
+  if todo.important then
+    table.insert(todo_details, "Priority: ★ Important")
+  end
   table.insert(todo_details, "")
   
   -- Timestamps
@@ -120,6 +132,8 @@ function M.show_todo_details(todo, config)
   table.insert(todo_details, "Actions:")
   if not todo.completed then
     table.insert(todo_details, "  d - Mark as done")
+    local important_label = todo.important and "Remove important" or "Mark as important"
+    table.insert(todo_details, "  ! - " .. important_label)
   end
   table.insert(todo_details, "  e - Edit")
   table.insert(todo_details, "  D - Delete")

@@ -402,6 +402,25 @@ local function setup_context_keymaps(buf, config, render_callback)
     })
   end
 
+  -- Set up todo-specific '!' key for toggle important (only if todos enabled)
+  if todos_enabled then
+    vim.api.nvim_buf_set_keymap(buf, 'n', '!', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        local line_num = vim.api.nvim_win_get_cursor(0)[1]
+        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+        local section = M.get_current_section(lines, line_num, config)
+        if section == "todo" then
+          local todo_id = todo_component.get_todo_id_from_line_num(line_num)
+          if todo_id then
+            todo_keymaps.handle_important(todo_id, buf, render_callback, config)
+          end
+        end
+      end
+    })
+  end
+
   -- Set up todo-specific 'D' key for delete (only if todos enabled)
   if not todos_enabled then return end
 

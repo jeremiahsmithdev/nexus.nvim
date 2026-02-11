@@ -148,9 +148,11 @@ function M.setup_git_status_folding(buf, lines, config, files)
           fold_text = fold_text
         })
         
-        -- Set up buffer folding options
-        vim.api.nvim_buf_set_option(buf, 'foldmethod', 'manual')
-        vim.api.nvim_buf_set_option(buf, 'foldtext', 'v:lua.require("nexus.ui.folding").get_fold_text(' .. fold_start_line .. ', "' .. fold_text .. '")')
+        -- Set up folding options on the window (not buffer defaults)
+        vim.api.nvim_buf_call(buf, function()
+          vim.wo[0].foldmethod = 'manual'
+          vim.wo[0].foldtext = 'v:lua.require("nexus.ui.folding").get_fold_text(' .. fold_start_line .. ', "' .. fold_text .. '")'
+        end)
         
         -- Create the fold (vim uses 1-based line numbers)
         local cmd = string.format('%d,%dfold', fold_start_line, fold_end_line)
@@ -192,6 +194,33 @@ function M.get_fold_text(fold_start_line, base_text)
   end
 end
 
+-- Sections that can be folded (skip project_name and keyboard_shortcuts)
+M.foldable_sections = {
+  'dashboard_buttons',
+  'todos',
+  'recent_commits',
+  'git_status',
+  'linear_issues',
+  'huly_issues',
+  'beads_issues',
+  'claude_conversations'
+}
+
+-- Set window-local fold options reliably via vim.wo inside nvim_buf_call.
+-- Using vim.wo[0] ensures these are set on the CURRENT WINDOW, not as
+-- buffer-local defaults. The deprecated nvim_buf_set_option API is unreliable
+-- for window-local options like foldmethod/foldenable/foldlevel.
+-- Note: foldopen/foldclose are global options - we don't set them here to
+-- avoid affecting other buffers.
+local function set_fold_window_options(buf)
+  vim.api.nvim_buf_call(buf, function()
+    vim.wo[0].foldmethod = 'manual'
+    vim.wo[0].foldenable = true
+    vim.wo[0].foldlevel = 99
+    vim.wo[0].foldtext = 'v:lua.require("nexus.ui.folding").get_section_fold_text()'
+  end)
+end
+
 -- Setup folds for all collapsible sections
 function M.setup_section_folds(buf, section_ranges)
   -- Validate buffer
@@ -205,24 +234,22 @@ function M.setup_section_folds(buf, section_ranges)
     return
   end
 
-  -- Set up buffer folding options (manual mode for precise control)
-  vim.api.nvim_buf_set_option(buf, 'foldmethod', 'manual')
-  vim.api.nvim_buf_set_option(buf, 'foldenable', true)
-  vim.api.nvim_buf_set_option(buf, 'foldlevel', 99) -- Start with all folds open
-  vim.api.nvim_buf_set_option(buf, 'foldtext', 'v:lua.require("nexus.ui.folding").get_section_fold_text()')
-  vim.api.nvim_buf_set_option(buf, 'foldopen', '')  -- Don't auto-open folds on any movement
-  vim.api.nvim_buf_set_option(buf, 'foldclose', '')  -- Don't auto-close folds
+  -- Set fold options on the window displaying this buffer (not buffer-local defaults)
+  set_fold_window_options(buf)
 
-  -- Sections that can be folded (skip project_name and keyboard_shortcuts)
-  local foldable_sections = {
-    'dashboard_buttons',
-    'todos',
-    'recent_commits',
-    'git_status',
-    'linear_issues',
-    'huly_issues',
-    'claude_conversations'
-  }
+  local foldable_sections = M.foldable_sections
+
+  -- Build a sorted list of ALL section start lines to use as boundaries
+  local all_section_starts = {}
+  for _, range in pairs(section_ranges) do
+    if range and range.start_line then
+      table.insert(all_section_starts, range.start_line)
+    end
+  end
+  table.sort(all_section_starts)
+
+  local total_lines = vim.api.nvim_buf_line_count(buf)
+  local buf_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 
   -- Create folds for each foldable section
   for _, section_name in ipairs(foldable_sections) do
@@ -230,7 +257,28 @@ function M.setup_section_folds(buf, section_ranges)
 
     if range and range.start_line and range.end_line then
       local fold_start = range.start_line + 2  -- Skip header and empty line
-      local fold_end = range.end_line
+
+      -- Find the next section's start_line to use as upper boundary
+      local max_fold_end = total_lines
+      for _, start in ipairs(all_section_starts) do
+        if start > range.start_line then
+          -- Fold must end before the next section's header line
+          max_fold_end = start - 1
+          break
+        end
+      end
+
+      local fold_end = math.min(range.end_line, max_fold_end)
+
+      -- Trim trailing empty lines from fold range
+      while fold_end >= fold_start do
+        local line = buf_lines[fold_end]
+        if line and line:match("^%s*$") then
+          fold_end = fold_end - 1
+        else
+          break
+        end
+      end
 
       if fold_start <= fold_end then
         local success, err = pcall(function()
@@ -246,6 +294,14 @@ function M.setup_section_folds(buf, section_ranges)
             start = fold_start,
             end_line = fold_end,
             error = err
+          })
+        else
+          logger.debug("FOLD", "Created fold for section", {
+            section = section_name,
+            fold_start = fold_start,
+            fold_end = fold_end,
+            range_end = range.end_line,
+            clamped_to = max_fold_end
           })
         end
       end
@@ -268,12 +324,18 @@ function M.apply_fold_states(buf, section_ranges)
     return
   end
 
+  -- Build a lookup set of foldable section names for fast checking
+  local foldable_set = {}
+  for _, name in ipairs(M.foldable_sections) do
+    foldable_set[name] = true
+  end
+
   -- Save initial cursor position
   local initial_cursor = vim.api.nvim_win_get_cursor(0)
 
-  -- Apply fold states for each section
+  -- Apply fold states only for foldable sections (skip keyboard_shortcuts, project_name, etc.)
   for section_name, range in pairs(section_ranges) do
-    if range and range.start_line and range.end_line then
+    if foldable_set[section_name] and range and range.start_line and range.end_line then
       local is_open = fold_state.is_section_open(section_name)
 
       -- Calculate actual fold start (header + empty line are not part of fold)
@@ -353,12 +415,23 @@ function M.toggle_fold_at_cursor(buf)
   -- Calculate actual fold start (header + empty line are not part of fold)
   local fold_line = range.start_line + 2
 
-  -- Execute toggle in buffer context
-  vim.api.nvim_buf_call(buf, function()
+  -- Use explicit zo/zc instead of za to toggle.
+  -- za has a side-effect of changing foldlevel which closes ALL folds,
+  -- not just the targeted one.
+  local ok = pcall(vim.api.nvim_buf_call, buf, function()
+    local is_closed = vim.fn.foldclosed(fold_line) ~= -1
     vim.api.nvim_win_set_cursor(0, {fold_line, 0})
-    vim.cmd('normal! za')
+    if is_closed then
+      vim.cmd('normal! zo')
+    else
+      vim.cmd('normal! zc')
+    end
     vim.api.nvim_win_set_cursor(0, cursor)
   end)
+
+  if not ok then
+    return false
+  end
 
   -- Update arrow and save state
   M.update_section_arrows(buf, section_ranges)
