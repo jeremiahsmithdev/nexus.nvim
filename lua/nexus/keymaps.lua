@@ -396,7 +396,9 @@ local function setup_context_keymaps(buf, config, render_callback)
           beads_keymaps.handle_done(current_line, buf, render_callback, config)
         elseif section == "todo" then
           local todo_id = todo_component.get_todo_id_from_line_num(line_num)
-          todo_keymaps.handle_done(todo_id, buf, render_callback, config)
+          if todo_id then
+            todo_keymaps.handle_done(todo_id, buf, render_callback, config)
+          end
         end
       end
     })

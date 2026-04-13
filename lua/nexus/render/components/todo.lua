@@ -190,7 +190,7 @@ function M.get_todo_id_from_line_num(line_num)
   
   local todo_header_line = nil
   for i, line in ipairs(lines) do
-    if line:match("^%s*Todo:") or line:match("^%s*[▼▶] Todo:") then -- Allow for centered spacing and fold indicators
+    if line:match("Todo:%s*$") then -- Match "Todo:" at end of line (handles padding + UTF-8 fold indicators)
       todo_header_line = i
       break
     end

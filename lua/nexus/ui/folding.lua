@@ -104,7 +104,7 @@ function M.setup_git_status_folding(buf, lines, config, files)
     
     -- Find Git Status section
     for i, line in ipairs(lines) do
-      if line:match('Git Status:') or line:match('[▼▶] Git Status:') then
+      if line:match('Git Status:') then
         git_status_start = i
         break
       end
@@ -476,8 +476,8 @@ function M.update_section_arrows(buf, section_ranges)
         if current_line then
           local new_line
 
-          -- Check if line already has an arrow
-          if current_line:match("^%s*[▼▶]") then
+          -- Check if line already has an arrow (use find with plain=true for UTF-8 safety)
+          if current_line:find("▼", 1, true) or current_line:find("▶", 1, true) then
             -- Replace existing arrow
             if is_folded then
               new_line = current_line:gsub("▼", "▶", 1)

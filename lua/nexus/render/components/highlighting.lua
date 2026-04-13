@@ -168,7 +168,7 @@ function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
   
   -- Find Git Status section
   for i, line in ipairs(lines) do
-    if line:match('Git Status:') or line:match('[▼▶] Git Status:') then
+    if line:match('Git Status:') then
       git_status_start = i
       break
     end
@@ -243,7 +243,7 @@ function M.apply_linear_highlighting(buf, lines, config)
   -- Find Linear Issues section
   local linear_section_start = nil
   for i, line in ipairs(lines) do
-    if line:match('Linear Issues:') or line:match('[▼▶] Linear Issues:') then
+    if line:match('Linear Issues:') then
       linear_section_start = i
       break
     end
@@ -355,7 +355,7 @@ function M.apply_todo_highlighting(buf, lines, config)
 
   -- Find Todo section
   for i, line in ipairs(lines) do
-    if line:match('^%s*Todo:') or line:match('^%s*[▼▶] Todo:') then
+    if line:match('Todo:%s*$') then
       todo_component.apply_todo_highlighting(buf, i)
       break
     end
@@ -374,7 +374,7 @@ function M.apply_beads_highlighting(buf, lines, config)
   -- Find Beads Issues section
   local beads_section_start = nil
   for i, line in ipairs(lines) do
-    if line:match('Beads Issues:') or line:match('[▼▶] Beads Issues:') then
+    if line:match('Beads Issues:') then
       beads_section_start = i
       break
     end

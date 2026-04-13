@@ -376,7 +376,7 @@ function M.apply_syntax_highlighting(bufnr)
           end
         end
       end
-    elseif line:match("^Huly Issues:") or line:match("^[▼▶] Huly Issues:") then
+    elseif line:match("Huly Issues:") then
       -- Highlight section header
       vim.api.nvim_buf_add_highlight(bufnr, namespace, "Title", line_num, 0, -1)
     elseif line:match("Workspace:") or line:match("Project:") then

@@ -272,7 +272,7 @@ function M.apply_beads_highlighting(buf, section_start)
   local section_end = #lines
 
   for i, line in ipairs(lines) do
-    if line:match("^%s*Beads Issues:") or line:match("^%s*[▼▶] Beads Issues:") then
+    if line:match("Beads Issues:%s*$") then
       in_beads_section = true
       section_start = i
     elseif in_beads_section and line:match("^%s*[%w]+ [%w]+:") and not line:match("Beads") then
