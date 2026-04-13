@@ -98,6 +98,141 @@ function M.handle_delete(todo_id, buf, render_callback, config)
   end)
 end
 
+--- Handle 'E' key - edit all todos in a popup buffer
+function M.handle_edit_all(buf, render_callback, config)
+  local todos = todo_state.get_todos()
+
+  -- Build editable lines with checkbox syntax (stored order)
+  local lines = {}
+
+  for _, todo in ipairs(todos) do
+    local prefix
+    if todo.completed then
+      prefix = "[x]"
+    elseif todo.important then
+      prefix = "[!]"
+    else
+      prefix = "[ ]"
+    end
+    table.insert(lines, prefix .. " " .. todo.text)
+  end
+
+  -- Add blank line at end for easy adding
+  if #lines == 0 then
+    table.insert(lines, "[ ] ")
+  end
+
+  -- Create popup buffer
+  local popup_buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(popup_buf, 0, -1, false, lines)
+  vim.api.nvim_buf_set_option(popup_buf, 'buftype', 'acwrite')
+  vim.api.nvim_buf_set_option(popup_buf, 'bufhidden', 'wipe')
+  vim.api.nvim_buf_set_name(popup_buf, 'nexus://todos-' .. vim.loop.now())
+
+  -- Calculate popup size
+  local ui = vim.api.nvim_list_uis()[1]
+  local width = math.min(70, ui.width - 10)
+  local height = math.min(#lines + 4, ui.height - 6)
+
+  local popup_win = vim.api.nvim_open_win(popup_buf, true, {
+    relative = 'editor',
+    width = width,
+    height = height,
+    row = math.floor((ui.height - height) / 2),
+    col = math.floor((ui.width - width) / 2),
+    style = 'minimal',
+    border = 'rounded',
+    title = ' Edit Todos (s: save, q: cancel) ',
+    title_pos = 'center',
+  })
+
+  -- Position cursor at end of first line for immediate editing
+  vim.api.nvim_win_set_cursor(popup_win, {1, #lines[1]})
+
+  -- Build lookup of existing todos by text for preserving metadata
+  local existing_by_text = {}
+  for _, todo in ipairs(todos) do
+    existing_by_text[todo.text] = todo
+  end
+
+  -- Save function
+  local function save_todos()
+    local edited_lines = vim.api.nvim_buf_get_lines(popup_buf, 0, -1, false)
+    local new_todos = {}
+    local used_ids = {}
+
+    for _, line in ipairs(edited_lines) do
+      -- Skip empty lines
+      if line:match("^%s*$") then goto continue end
+
+      -- Parse checkbox prefix and text
+      local prefix, text = line:match("^%[([x!%s])%]%s*(.*)")
+      if not prefix then
+        -- Line without prefix - treat as active todo with the whole line as text
+        text = line:gsub("^%s+", ""):gsub("%s+$", "")
+        prefix = " "
+      end
+
+      if text and text ~= "" then
+        local completed = prefix == "x"
+        local important = prefix == "!"
+
+        -- Try to match existing todo by text to preserve id/created_at
+        local existing = existing_by_text[text]
+        if existing and not used_ids[existing.id] then
+          used_ids[existing.id] = true
+          existing.completed = completed
+          existing.important = important
+          existing.updated_at = os.time()
+          table.insert(new_todos, existing)
+        else
+          table.insert(new_todos, {
+            id = tostring(os.time() .. math.random(1000, 9999)),
+            text = text,
+            completed = completed,
+            important = important,
+            created_at = os.time(),
+            updated_at = os.time(),
+          })
+        end
+      end
+
+      ::continue::
+    end
+
+    -- Replace all todos in state
+    todo_state.replace_all(new_todos)
+
+    -- Close popup
+    if vim.api.nvim_win_is_valid(popup_win) then
+      vim.api.nvim_win_close(popup_win, true)
+    end
+
+    vim.notify(string.format("Saved %d todos", #new_todos), vim.log.levels.INFO)
+    render_callback(buf)
+  end
+
+  local function close_popup()
+    if vim.api.nvim_win_is_valid(popup_win) then
+      vim.api.nvim_win_close(popup_win, true)
+    end
+  end
+
+  -- Support :w and :wq via BufWriteCmd
+  vim.api.nvim_create_autocmd('BufWriteCmd', {
+    buffer = popup_buf,
+    callback = function()
+      save_todos()
+    end
+  })
+
+  -- Keymaps
+  local opts = { noremap = true, silent = true, buffer = popup_buf }
+  vim.keymap.set('n', 's', save_todos, opts)
+  vim.keymap.set('n', 'q', close_popup, opts)
+  vim.keymap.set('n', '<Esc>', close_popup, opts)
+end
+
 --- Show todo details popup
 function M.show_todo_details(todo, config)
   local todo_details = {}

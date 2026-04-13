@@ -54,55 +54,17 @@ function M.build_todo_section(config)
     _todos_cache[todo.id] = todo
   end
   
-  -- Separate active and completed todos, with important items first
-  local important_todos = {}
-  local normal_todos = {}
-  local completed_todos = {}
-
-  for _, todo in ipairs(todos) do
-    if todo.completed then
-      table.insert(completed_todos, todo)
-    elseif todo.important then
-      table.insert(important_todos, todo)
-    else
-      table.insert(normal_todos, todo)
-    end
-  end
-
-  -- Active todos: important first, then normal
-  local active_todos = {}
-  for _, todo in ipairs(important_todos) do
-    table.insert(active_todos, todo)
-  end
-  for _, todo in ipairs(normal_todos) do
-    table.insert(active_todos, todo)
-  end
-  
-  -- Keep track of todos in display order
+  -- Render todos in stored order (user controls order via E edit-all)
   local display_todos = {}
-  
-  -- Render active todos first
   local max_todos = config.max_todos or 10
   local total_displayed = 0
-  
-  for i, todo in ipairs(active_todos) do
+
+  for _, todo in ipairs(todos) do
     if total_displayed >= max_todos then
       break
     end
-    
-    local todo_line = M.format_todo_line(todo, false)
-    table.insert(lines, "  " .. todo_line)
-    table.insert(display_todos, todo)
-    total_displayed = total_displayed + 1
-  end
-  
-  -- Add completed todos (up to remaining limit)
-  for i, todo in ipairs(completed_todos) do
-    if total_displayed >= max_todos then
-      break
-    end
-    
-    local todo_line = M.format_todo_line(todo, true)
+
+    local todo_line = M.format_todo_line(todo, todo.completed)
     table.insert(lines, "  " .. todo_line)
     table.insert(display_todos, todo)
     total_displayed = total_displayed + 1
@@ -112,18 +74,9 @@ function M.build_todo_section(config)
   todo_state.update_display_positions(display_todos)
   
   -- Show summary if there are more todos
-  local remaining_active = math.max(0, #active_todos - total_displayed)
-  local remaining_completed = math.max(0, #completed_todos - (total_displayed - math.min(total_displayed, #active_todos)))
-  
-  if remaining_active > 0 or remaining_completed > 0 then
-    local summary_parts = {}
-    if remaining_active > 0 then
-      table.insert(summary_parts, string.format("%d more active", remaining_active))
-    end
-    if remaining_completed > 0 then
-      table.insert(summary_parts, string.format("%d more completed", remaining_completed))
-    end
-    table.insert(lines, string.format("  ... and %s", table.concat(summary_parts, ", ")))
+  local remaining = #todos - total_displayed
+  if remaining > 0 then
+    table.insert(lines, string.format("  ... and %d more", remaining))
   end
 
   return lines

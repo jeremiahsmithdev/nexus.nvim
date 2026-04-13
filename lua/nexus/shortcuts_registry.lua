@@ -37,6 +37,7 @@ local shortcuts_registry = {
     {key = "<Enter>", action = "details"},
     {key = "c", action = "create"},
     {key = "e", action = "edit"},
+    {key = "E", action = "edit all"},
     {key = "d", action = "done"},
     {key = "D", action = "delete"}
   },

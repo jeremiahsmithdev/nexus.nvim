@@ -424,17 +424,36 @@ local function setup_context_keymaps(buf, config, render_callback)
   end
 
   -- Set up todo-specific 'D' key for delete (only if todos enabled)
-  if not todos_enabled then return end
+  if todos_enabled then
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'D', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        local line_num = vim.api.nvim_win_get_cursor(0)[1]
+        local todo_id = todo_component.get_todo_id_from_line_num(line_num)
+        todo_keymaps.handle_delete(todo_id, buf, render_callback, config)
+      end
+    })
+  end
 
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'D', '', {
-    noremap = true,
-    silent = true,
-    callback = function()
-      local line_num = vim.api.nvim_win_get_cursor(0)[1]
-      local todo_id = todo_component.get_todo_id_from_line_num(line_num)
-      todo_keymaps.handle_delete(todo_id, buf, render_callback, config)
-    end
-  })
+  -- Set up 'E' key for context-aware bulk action (todo edit-all or beads browse epics)
+  if todos_enabled or beads_enabled then
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'E', '', {
+      noremap = true,
+      silent = true,
+      callback = function()
+        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+        local line_num = vim.api.nvim_win_get_cursor(0)[1]
+        local section = M.get_current_section(lines, line_num, config)
+
+        if section == "todo" then
+          todo_keymaps.handle_edit_all(buf, render_callback, config)
+        elseif section == "beads" then
+          beads_keymaps.handle_browse_epics(buf, render_callback, config)
+        end
+      end
+    })
+  end
 end
 
 --- Set up Linear-specific keymaps
@@ -490,6 +509,34 @@ local function setup_huly_keymaps(buf, config, render_callback)
     end
   })
   -- Note: 's' key is handled in setup_git_keymaps with context-awareness
+end
+
+--- Set up Beads-specific keymaps
+---@param buf number Buffer number
+---@param config table Nexus configuration
+---@param render_callback function Function to re-render the buffer
+local function setup_beads_keymaps(buf, config, render_callback)
+  local config_module = require('nexus.config')
+  if not config_module.is_section_enabled("beads_issues") then return end
+
+  -- Note: 'E' key moved to setup_context_keymaps for section-aware dispatch
+
+  -- 'R' key - Show ready issues
+  vim.api.nvim_buf_set_keymap(buf, 'n', 'R', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      local line_num = vim.api.nvim_win_get_cursor(0)[1]
+      local section = M.get_current_section(lines, line_num, config)
+
+      if section == "beads" then
+        beads_keymaps.handle_show_ready(buf, render_callback, config)
+      end
+    end
+  })
+
+  -- Note: 's', 'c', 'd', 'e' keys are handled in context-aware functions above
 end
 
 --- Set up exit keymaps (q/<Esc>)

@@ -347,6 +347,19 @@ function M.get_todo_by_position(position)
   return nil
 end
 
+-- Replace all todos (used by bulk edit)
+function M.replace_all(new_todos)
+  state.set('todo', 'items', new_todos)
+  local success = save_todos_to_file(new_todos)
+  if not success then
+    logger.error('TODO', 'Failed to save bulk-edited todos')
+    return false
+  end
+  logger.info('TODO', 'Replaced all todos', { count = #new_todos })
+  state.notify('todo', 'items_replaced', new_todos)
+  return true
+end
+
 -- Delete a todo item
 function M.delete_todo(id)
   if not id then
