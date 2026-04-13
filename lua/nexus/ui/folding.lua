@@ -309,6 +309,56 @@ function M.setup_section_folds(buf, section_ranges)
   end
 end
 
+-- Initialize all folds to open state (establishes consistent baseline)
+-- Needed because newly created folds have undefined state - foldclosed() may return
+-- -1 even though conceptually they're "closed" since they were never opened.
+function M.initialize_folds_to_open(buf, section_ranges)
+  -- Validate buffer
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    logger.error("FOLD", "Invalid buffer for initializing folds")
+    return
+  end
+
+  if not section_ranges or vim.tbl_isempty(section_ranges) then
+    logger.debug("FOLD", "No section ranges for initializing folds")
+    return
+  end
+
+  -- Ensure folding is enabled on window
+  vim.api.nvim_buf_call(buf, function()
+    vim.wo[0].foldenable = true
+    vim.wo[0].foldmethod = 'manual'
+    vim.wo[0].foldlevel = 99
+  end)
+
+  -- Build a lookup set of foldable section names
+  local foldable_set = {}
+  for _, name in ipairs(M.foldable_sections) do
+    foldable_set[name] = true
+  end
+
+  -- Open all folds to establish consistent baseline
+  for section_name, range in pairs(section_ranges) do
+    if foldable_set[section_name] and range and range.start_line then
+      local fold_line = range.start_line + 2
+
+      local success = pcall(function()
+        vim.api.nvim_buf_call(buf, function()
+          vim.api.nvim_win_set_cursor(0, {fold_line, 0})
+          vim.cmd('normal! zo')  -- Open the fold
+        end)
+      end)
+
+      if not success then
+        logger.debug("FOLD", "Could not open fold during initialization", {
+          section = section_name,
+          fold_line = fold_line
+        })
+      end
+    end
+  end
+end
+
 -- Apply saved fold states from persistent storage
 function M.apply_fold_states(buf, section_ranges)
   local fold_state = require('nexus.state.folds')
@@ -344,14 +394,18 @@ function M.apply_fold_states(buf, section_ranges)
       -- Apply fold state
       local success = pcall(function()
         vim.api.nvim_buf_call(buf, function()
+          -- Ensure folding is properly enabled on the window (fixes initial state issue)
+          vim.wo[0].foldenable = true
+          vim.wo[0].foldmethod = 'manual'
+
           -- Move cursor to the fold start line
           vim.api.nvim_win_set_cursor(0, {fold_line, 0})
 
           -- Open or close the fold
           if is_open then
-            vim.cmd('silent! normal! zo')  -- Open fold
+            vim.cmd('normal! zo')  -- Open fold
           else
-            vim.cmd('silent! normal! zc')  -- Close fold
+            vim.cmd('normal! zc')  -- Close fold
           end
         end)
       end)
@@ -419,6 +473,10 @@ function M.toggle_fold_at_cursor(buf)
   -- za has a side-effect of changing foldlevel which closes ALL folds,
   -- not just the targeted one.
   local ok = pcall(vim.api.nvim_buf_call, buf, function()
+    -- Ensure folding is properly enabled on the window (fixes first-press issue)
+    vim.wo[0].foldenable = true
+    vim.wo[0].foldmethod = 'manual'
+
     local is_closed = vim.fn.foldclosed(fold_line) ~= -1
     vim.api.nvim_win_set_cursor(0, {fold_line, 0})
     if is_closed then

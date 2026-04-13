@@ -68,6 +68,9 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
     events.setup_dynamic_shortcuts(buf, config, is_git_repo, section_ranges)
   end
 
+  -- Initialize all folds to open state (establishes baseline before applying saved states)
+  folding.initialize_folds_to_open(buf, section_ranges)
+
   -- Apply saved fold states from persistent storage
   folding.apply_fold_states(buf, section_ranges)
 
