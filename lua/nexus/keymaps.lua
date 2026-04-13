@@ -245,6 +245,23 @@ local function setup_section_navigation_keymaps(buf, config, logo_end_line, sect
       navigation.navigate_to_next_section(M.get_current_section, config, logo_end_line, section_ranges)
     end
   })
+
+  -- Ctrl-j/k aliases for section navigation
+  vim.api.nvim_buf_set_keymap(buf, 'n', '<C-j>', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      navigation.navigate_to_next_section(M.get_current_section, config, logo_end_line, section_ranges)
+    end
+  })
+
+  vim.api.nvim_buf_set_keymap(buf, 'n', '<C-k>', '', {
+    noremap = true,
+    silent = true,
+    callback = function()
+      navigation.navigate_to_previous_section(M.get_current_section, config, logo_end_line, section_ranges)
+    end
+  })
 end
 
 --- Set up git-specific keymaps
