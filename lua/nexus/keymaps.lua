@@ -75,16 +75,16 @@ end
 function M.handle_e_key(buf, config, render_callback)
   local cursor = vim.api.nvim_win_get_cursor(0)
   local line_num = cursor[1]
-  
+
   -- Get all lines in the buffer
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local current_line = lines[line_num]
-  
+
   if not current_line then return end
-  
+
   -- Determine which section we're in
   local section = M.get_current_section(lines, line_num, config)
-  
+
   if section == "todo" then
     -- Handle todo editing
     local todo_id = todo_component.get_todo_id_from_line_num(line_num)
@@ -92,7 +92,7 @@ function M.handle_e_key(buf, config, render_callback)
 
   elseif section == "beads" then
     -- Handle beads issue editing
-    beads_keymaps.handle_edit(current_line, buf, render_callback, config)
+    beads_keymaps.handle_edit(current_line, line_num, buf, render_callback, config)
 
   elseif section == "commits" and config.show_commit_review then
     -- Handle commit review status
@@ -282,7 +282,7 @@ local function setup_git_keymaps(buf, config, render_callback)
       if section == "huly" and current_line then
         huly_keymaps.handle_status_update(current_line, buf, render_callback, config)
       elseif section == "beads" and current_line then
-        beads_keymaps.handle_status_update(current_line, buf, render_callback, config)
+        beads_keymaps.handle_status_update(current_line, line_num, buf, render_callback, config)
       elseif section == "linear" then
         linear_keymaps.handle_status_update(buf, render_callback, config)
       else
@@ -393,7 +393,7 @@ local function setup_context_keymaps(buf, config, render_callback)
         local current_line = lines[line_num]
 
         if section == "beads" and current_line then
-          beads_keymaps.handle_done(current_line, buf, render_callback, config)
+          beads_keymaps.handle_done(current_line, line_num, buf, render_callback, config)
         elseif section == "todo" then
           local todo_id = todo_component.get_todo_id_from_line_num(line_num)
           if todo_id then
@@ -622,6 +622,7 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
     setup_context_keymaps(buf, config, render_callback)
     setup_linear_keymaps(buf, config, render_callback)
     setup_huly_keymaps(buf, config, render_callback)
+    setup_beads_keymaps(buf, config, render_callback)
   end
 
   -- Huly setup keymap (always available, regardless of git repo or enabled state)

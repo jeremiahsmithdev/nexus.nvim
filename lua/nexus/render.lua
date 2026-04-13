@@ -30,7 +30,13 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
   
   -- Layout sections using component
   local lines, section_ranges, logo_section = layout.layout_sections(sections, config, width)
-  
+
+  -- Update beads line mapping with absolute line numbers (if beads section exists)
+  if section_ranges.beads_issues then
+    local beads_component = require('nexus.render.components.beads')
+    beads_component.update_line_mapping(section_ranges.beads_issues.start_line)
+  end
+
   vim.api.nvim_buf_set_option(buf, 'modifiable', true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 

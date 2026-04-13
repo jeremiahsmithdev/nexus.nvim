@@ -96,15 +96,21 @@ function M.format_issue_line(issue, config)
   -- Issue ID in brackets
   table.insert(parts, string.format("[%s]", issue.id or "???"))
 
+  -- Type indicator for epics
+  if issue.type == 'epic' then
+    table.insert(parts, "[epic]")
+  end
+
   -- Title (truncate if too long)
   local title = issue.title or "Untitled"
-  if #title > 50 then
-    title = title:sub(1, 47) .. "..."
+  local max_title_len = 45
+  if #title > max_title_len then
+    title = title:sub(1, max_title_len - 3) .. "..."
   end
   table.insert(parts, title)
 
-  -- Status in parentheses (if enabled)
-  if beads_config.show_status ~= false then
+  -- Status in parentheses (if enabled and not shown as icon)
+  if beads_config.show_status ~= false and beads_config.show_status_text then
     table.insert(parts, string.format("(%s)", status))
   end
 
@@ -126,6 +132,40 @@ function M.format_issue_line(issue, config)
   end
 
   return table.concat(parts, " ")
+end
+
+--- Sort issues with in_progress first, then by priority
+---@param issues table List of issues
+---@return table sorted_issues
+local function sort_issues(issues)
+  local sorted = vim.deepcopy(issues)
+
+  -- Status priority: in_progress > open > blocked > deferred > closed
+  local status_order = {
+    in_progress = 1,
+    open = 2,
+    blocked = 3,
+    deferred = 4,
+    closed = 5
+  }
+
+  table.sort(sorted, function(a, b)
+    -- First sort by status
+    local a_status = status_order[a.status] or 99
+    local b_status = status_order[b.status] or 99
+
+    if a_status ~= b_status then
+      return a_status < b_status
+    end
+
+    -- Within same status, sort by priority (lower number = higher priority)
+    local a_priority = a.priority or 2
+    local b_priority = b.priority or 2
+
+    return a_priority < b_priority
+  end)
+
+  return sorted
 end
 
 --- Build the beads section content
@@ -170,18 +210,21 @@ function M.build_beads_section(config)
 
   -- Get issues (will use cache or refresh as needed)
   beads_state.refresh_if_needed(config)
-  local issues = beads_state.get_cached_issues()
+  local raw_issues = beads_state.get_cached_issues()
 
-  if not issues or #issues == 0 then
+  if not raw_issues or #raw_issues == 0 then
     local filter = (config.beads and config.beads.filter) or 'ready'
     if filter == 'ready' then
       table.insert(lines, "  No ready issues (all blocked or completed)")
     else
       table.insert(lines, "  No issues found")
     end
-    table.insert(lines, "  Press 'c' to create a new issue")
+    table.insert(lines, "  Press 'c' to create, 'E' for epics, 'R' for ready")
     return lines
   end
+
+  -- Sort issues: in_progress first, then by priority
+  local issues = sort_issues(raw_issues)
 
   -- Limit issues shown
   local max_issues = (config.beads and config.beads.max_issues) or 10
@@ -191,7 +234,7 @@ function M.build_beads_section(config)
     if shown_count >= max_issues then
       local remaining = #issues - shown_count
       if remaining > 0 then
-        table.insert(lines, string.format("  ... and %d more issues", remaining))
+        table.insert(lines, string.format("  ... and %d more (E: epics, R: ready)", remaining))
       end
       break
     end
@@ -217,13 +260,14 @@ end
 function M.is_beads_issue_line(line)
   if not line then return false, nil end
 
-  -- Pattern: starts with optional whitespace, status icon, and contains [bd-xxx] or [Prefix-xxx]
-  -- Match patterns like: "  ● P0 [bd-a3f8] Title"
-  local issue_id = line:match("%[([%w%-]+)%]")
+  -- Pattern: Match beads issue IDs which have format: letters-alphanumeric(.number)*
+  -- Examples: bd-a3f8, bd-26v, bd-a3f8.1, bd-26v.1.2
+  -- Must start with letters, have a hyphen, and may have dots for child issues
+  local issue_id = line:match("%[([%a][%w%-]*[%w%.]*[%w])%]")
 
   if issue_id then
-    -- Check if it looks like a beads issue ID (has hyphen, starts with letters)
-    if issue_id:match("^%a+%-") then
+    -- Verify it has the beads ID structure (letters-something)
+    if issue_id:match("^%a+%-%w") then
       return true, issue_id
     end
   end
@@ -295,12 +339,27 @@ end
 function M.highlight_beads_line(buf, ns_id, line_idx, line)
   if not line or line == '' then return end
 
-  -- Highlight issue ID [xxx-yyy]
-  local id_start, id_end = line:find("%[[%w%-]+%]")
+  -- Highlight beads issue ID [xxx-yyy] or [xxx-yyy.z]
+  -- Must match beads ID format: starts with letters, has hyphen, may have dots
+  local id_start, id_end = line:find("%[[%a][%w%-]*[%w%.]*[%w]%]")
   if id_start then
-    vim.api.nvim_buf_set_extmark(buf, ns_id, line_idx, id_start - 1, {
-      end_col = id_end,
-      hl_group = 'Number',
+    -- Verify it's a beads ID (has hyphen)
+    local id_text = line:sub(id_start + 1, id_end - 1)
+    if id_text:match("^%a+%-%w") then
+      vim.api.nvim_buf_set_extmark(buf, ns_id, line_idx, id_start - 1, {
+        end_col = id_end,
+        hl_group = 'Number',
+        strict = false
+      })
+    end
+  end
+
+  -- Highlight [epic] type indicator
+  local epic_start, epic_end = line:find("%[epic%]")
+  if epic_start then
+    vim.api.nvim_buf_set_extmark(buf, ns_id, line_idx, epic_start - 1, {
+      end_col = epic_end,
+      hl_group = 'Keyword',
       strict = false
     })
   end

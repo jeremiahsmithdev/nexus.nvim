@@ -85,7 +85,7 @@ function M.init()
 end
 
 --- Get issues based on filter
----@param filter string|nil "ready", "all", "in_progress" (default: from config)
+---@param filter string|nil "ready", "all", "in_progress", "epics" (default: from config)
 ---@param force_refresh boolean|nil Force refresh ignoring cache
 ---@return table issues List of issues
 function M.get_issues(filter, force_refresh)
@@ -120,6 +120,8 @@ function M.get_issues(filter, force_refresh)
     cmd_args = 'ready --json'
   elseif filter == 'in_progress' then
     cmd_args = 'list --status in_progress --json'
+  elseif filter == 'epics' then
+    cmd_args = 'list --type epic --json'
   else
     cmd_args = 'list --json'
   end
@@ -336,6 +338,120 @@ function M.refresh_if_needed(config)
   if M.needs_refresh(config) then
     M.get_issues(nil, true)
   end
+end
+
+--- Get epics sorted by activity (in_progress first, then with in_progress children, then others)
+---@param force_refresh boolean|nil Force refresh
+---@return table epics Sorted list of epics
+function M.get_sorted_epics(force_refresh)
+  -- Get all epics
+  local all_issues = M.get_issues('all', force_refresh)
+  local epics = {}
+
+  -- Filter to only epics
+  for _, issue in ipairs(all_issues) do
+    if issue.type == 'epic' then
+      table.insert(epics, issue)
+    end
+  end
+
+  -- Get in_progress issues for grouping
+  local in_progress_issues = {}
+  for _, issue in ipairs(all_issues) do
+    if issue.status == 'in_progress' then
+      in_progress_issues[issue.id] = true
+    end
+  end
+
+  -- Sort epics: in_progress first, then with in_progress children, then others
+  local group0 = {} -- in_progress epics
+  local group1 = {} -- epics with in_progress children
+  local group2 = {} -- other epics
+
+  for _, epic in ipairs(epics) do
+    if epic.status == 'in_progress' then
+      table.insert(group0, epic)
+    else
+      -- Check if epic has in_progress children
+      local has_in_progress_child = false
+      for issue_id, _ in pairs(in_progress_issues) do
+        if issue_id:match('^' .. epic.id .. '%.') then
+          has_in_progress_child = true
+          break
+        end
+      end
+
+      if has_in_progress_child then
+        table.insert(group1, epic)
+      else
+        table.insert(group2, epic)
+      end
+    end
+  end
+
+  -- Combine groups
+  local sorted_epics = {}
+  for _, epic in ipairs(group0) do table.insert(sorted_epics, epic) end
+  for _, epic in ipairs(group1) do table.insert(sorted_epics, epic) end
+  for _, epic in ipairs(group2) do table.insert(sorted_epics, epic) end
+
+  return sorted_epics
+end
+
+--- Get children of an epic (both active and closed)
+---@param epic_id string Epic ID
+---@return table children List of child issues
+function M.get_epic_children(epic_id)
+  if not epic_id then return {} end
+
+  -- Get all issues (including closed)
+  local all_open = M.get_issues('all', false)
+  local children = {}
+
+  -- Pattern: epic_id followed by a dot
+  local pattern = '^' .. epic_id:gsub('%-', '%%-') .. '%.'
+
+  for _, issue in ipairs(all_open) do
+    if issue.id and issue.id:match(pattern) then
+      table.insert(children, issue)
+    end
+  end
+
+  -- Also get closed children
+  local closed_result, _ = run_cli_command('list --status closed --json')
+  if closed_result and type(closed_result) == 'table' then
+    local closed_issues = closed_result.issues or closed_result or {}
+    for _, issue in ipairs(closed_issues) do
+      if issue.id and issue.id:match(pattern) then
+        issue._is_closed = true -- Mark as closed for rendering
+        table.insert(children, issue)
+      end
+    end
+  end
+
+  -- Sort: in_progress first, then open, then blocked, deferred, closed
+  local status_order = {
+    in_progress = 1,
+    open = 2,
+    blocked = 3,
+    deferred = 4,
+    closed = 5
+  }
+
+  table.sort(children, function(a, b)
+    local a_order = status_order[a.status] or 99
+    local b_order = status_order[b.status] or 99
+    return a_order < b_order
+  end)
+
+  return children
+end
+
+--- Get ready issues (no dependencies blocking)
+---@param force_refresh boolean|nil Force refresh
+---@return table issues List of ready issues
+function M.get_ready_issues(force_refresh)
+  return M.get_issues('ready', force_refresh)
 end
 
 return M

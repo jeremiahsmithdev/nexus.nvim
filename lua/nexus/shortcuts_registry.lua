@@ -41,6 +41,16 @@ local shortcuts_registry = {
     {key = "d", action = "done"},
     {key = "D", action = "delete"}
   },
+
+  beads_issues = {
+    {key = "<Enter>", action = "details"},
+    {key = "c", action = "create issue"},
+    {key = "s", action = "update status"},
+    {key = "e", action = "edit"},
+    {key = "d", action = "close"},
+    {key = "E", action = "browse epics"},
+    {key = "R", action = "show ready"}
+  },
   
   claude_conversations = {
     {key = "<Enter>", action = "resume conversation"}
@@ -51,6 +61,7 @@ local shortcuts_registry = {
   git_status_header = {},
   linear_issues_header = {},
   huly_issues_header = {},
+  beads_issues_header = {},
   todos_header = {},
   claude_conversations_header = {},
   
