@@ -96,8 +96,9 @@ function M.format_issue_line(issue, config)
   -- Issue ID in brackets
   table.insert(parts, string.format("[%s]", issue.id or "???"))
 
-  -- Type indicator for epics
-  if issue.type == 'epic' then
+  -- Type indicator for epics (br JSON uses `issue_type`, fall back to `type`)
+  local itype = issue.issue_type or issue.type
+  if itype == 'epic' then
     table.insert(parts, "[epic]")
   end
 
@@ -134,7 +135,8 @@ function M.format_issue_line(issue, config)
   return table.concat(parts, " ")
 end
 
---- Sort issues with in_progress first, then by priority
+--- Sort issues: epics first (in_progress epics ahead of other epics),
+--- then non-epics. Within each group, sort by status then priority.
 ---@param issues table List of issues
 ---@return table sorted_issues
 local function sort_issues(issues)
@@ -150,18 +152,23 @@ local function sort_issues(issues)
   }
 
   table.sort(sorted, function(a, b)
-    -- First sort by status
+    -- Epics always come before non-epics (br uses `issue_type`)
+    local a_is_epic = ((a.issue_type or a.type) == 'epic') and 0 or 1
+    local b_is_epic = ((b.issue_type or b.type) == 'epic') and 0 or 1
+    if a_is_epic ~= b_is_epic then
+      return a_is_epic < b_is_epic
+    end
+
+    -- Within the epic/non-epic group, sort by status
     local a_status = status_order[a.status] or 99
     local b_status = status_order[b.status] or 99
-
     if a_status ~= b_status then
       return a_status < b_status
     end
 
-    -- Within same status, sort by priority (lower number = higher priority)
+    -- Then by priority (lower number = higher priority)
     local a_priority = a.priority or 2
     local b_priority = b.priority or 2
-
     return a_priority < b_priority
   end)
 
@@ -210,7 +217,27 @@ function M.build_beads_section(config)
 
   -- Get issues (will use cache or refresh as needed)
   beads_state.refresh_if_needed(config)
-  local raw_issues = beads_state.get_cached_issues()
+  local raw_issues = beads_state.get_cached_issues() or {}
+
+  -- Always surface epics at the top, even when the active filter
+  -- (e.g. "ready") would otherwise exclude them. br ready only returns
+  -- unblocked leaf work; epics must be fetched independently.
+  local epics = beads_state.get_sorted_epics(false) or {}
+  local seen = {}
+  local merged = {}
+  for _, epic in ipairs(epics) do
+    if epic.id and not seen[epic.id] then
+      seen[epic.id] = true
+      table.insert(merged, epic)
+    end
+  end
+  for _, issue in ipairs(raw_issues) do
+    if issue.id and not seen[issue.id] then
+      seen[issue.id] = true
+      table.insert(merged, issue)
+    end
+  end
+  raw_issues = merged
 
   if not raw_issues or #raw_issues == 0 then
     local filter = (config.beads and config.beads.filter) or 'ready'
@@ -416,6 +443,102 @@ function M.highlight_beads_line(buf, ns_id, line_idx, line)
         strict = false
       })
       break
+    end
+  end
+end
+
+--- Apply syntax highlighting to a popup buffer (issue detail or epic children).
+--- Mirrors color conventions from ~/dotfiles/beads.sh _br_show:
+---   ID → Identifier (cyan), priority → priority colors, status icons/text →
+---   status colors, "[epic]" → Keyword, section labels → Title, dividers → Comment.
+---@param buf number Popup buffer number
+function M.apply_popup_highlighting(buf)
+  if not vim.api.nvim_buf_is_valid(buf) then return end
+  local ns_id = vim.api.nvim_create_namespace('nexus_beads_popup')
+  vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
+
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+
+  local function mark(line_idx, col, end_col, hl)
+    vim.api.nvim_buf_set_extmark(buf, ns_id, line_idx, col, {
+      end_col = end_col, hl_group = hl, strict = false,
+    })
+  end
+
+  for i, line in ipairs(lines) do
+    local idx = i - 1
+
+    -- Header (line 0): full line as Title
+    if i == 1 then
+      mark(idx, 0, #line, 'Title')
+    end
+
+    -- Divider line of ─ characters → Comment
+    if line:match('^─+$') then
+      mark(idx, 0, #line, 'Comment')
+    end
+
+    -- Section labels: "Description:", "Notes:", "Children (N):", "Actions:",
+    -- "Blocked by:", "Blocks:"
+    local label_end = line:match('^(%a[%a ]+%(?%d*%)?:)%s*$')
+    if label_end then
+      mark(idx, 0, #label_end, 'Title')
+    end
+
+    -- Issue IDs in [brackets] → Identifier (cyan-ish)
+    for s, e in line:gmatch('()%[[%a][%w%-%.]+%]()') do
+      mark(idx, s - 1, e - 1, 'Identifier')
+    end
+
+    -- "[epic]" literal → Keyword (magenta-ish, matches beads.sh MAG)
+    local epic_s, epic_e = line:find('%[epic%]')
+    if epic_s then mark(idx, epic_s - 1, epic_e, 'Keyword') end
+
+    -- Priority labels (P0-P4) anywhere → priority color
+    for s, p, e in line:gmatch('()P([0-4])()') do
+      local pnum = tonumber(p)
+      mark(idx, s - 1, e - 1, M.get_priority_color(pnum))
+    end
+
+    -- "Status: <status>" → color the status word
+    local stat_label, stat_word = line:match('^(%s*Status:%s+)(%w+)')
+    if stat_label and stat_word then
+      local s = #stat_label
+      mark(idx, s, s + #stat_word, M.get_status_color(stat_word))
+    end
+
+    -- "Type: <type>" → "epic" gets Keyword, others Type hl
+    local type_label, type_word = line:match('^(%s*Type:%s+)(%w+)')
+    if type_label and type_word then
+      local s = #type_label
+      mark(idx, s, s + #type_word,
+        type_word == 'epic' and 'Keyword' or 'Type')
+    end
+
+    -- Status icons at start (multi-byte: ○●◐◇✓⊘)
+    for icon, hl in pairs({
+      ['●'] = 'String',          -- in_progress
+      ['○'] = 'DiagnosticInfo',  -- open
+      ['◐'] = 'DiagnosticError', -- blocked
+      ['◇'] = 'Comment',         -- deferred
+      ['✓'] = 'DiagnosticOk',    -- closed
+      ['⊘'] = 'DiagnosticError', -- blocked (beads.sh variant)
+    }) do
+      local s = line:find(icon, 1, true)
+      if s then
+        mark(idx, s - 1, s - 1 + #icon, hl)
+      end
+    end
+
+    -- "(closed)" suffix on child rows → Comment (de-emphasize)
+    local cs, ce = line:find('%(closed%)%s*$')
+    if cs then mark(idx, cs - 1, ce, 'Comment') end
+
+    -- Action key hints "  x - description" → key letter as Special
+    local key_s, key_e = line:match('^(%s%s)([%w/]+) %- ')
+    if key_s and key_e then
+      local s = #key_s
+      mark(idx, s, s + #key_e, 'Special')
     end
   end
 end

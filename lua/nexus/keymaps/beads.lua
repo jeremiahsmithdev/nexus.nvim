@@ -41,8 +41,8 @@ function M.handle_enter(current_line, line_num, config, buf, render_callback)
     return
   end
 
-  -- If it's an epic, show children navigation
-  if issue.type == 'epic' then
+  -- If it's an epic, show children navigation (br uses `issue_type`)
+  if (issue.issue_type or issue.type) == 'epic' then
     M.show_epic_children_popup(issue, config, buf, render_callback)
   else
     -- Show issue details popup
@@ -404,6 +404,8 @@ function M.show_issue_popup(issue, config, buf, render_callback)
     end_col = #lines[1],
     hl_group = 'Title',
   })
+  -- Apply syntax highlighting (matches beads.sh color conventions)
+  require('nexus.render.components.beads').apply_popup_highlighting(popup_buf)
 
   -- Set up keymaps for popup
   local opts = { noremap = true, silent = true, buffer = popup_buf }
@@ -648,12 +650,8 @@ function M.show_epic_children_popup(epic, config, buf, render_callback)
     title_pos = 'center',
   })
 
-  -- Apply highlighting
-  local ns_id = vim.api.nvim_create_namespace('nexus_beads_epic_popup')
-  vim.api.nvim_buf_set_extmark(popup_buf, ns_id, 0, 0, {
-    end_col = #lines[1],
-    hl_group = 'Title',
-  })
+  -- Apply syntax highlighting (matches beads.sh color conventions)
+  require('nexus.render.components.beads').apply_popup_highlighting(popup_buf)
 
   -- Set up keymaps for popup
   local opts = { noremap = true, silent = true, buffer = popup_buf }
