@@ -171,7 +171,7 @@ function M.apply_commit_popup_highlighting(buf, lines, commit_hash)
       -- 1. Highlight commit hash (matches main dashboard highlighting)
       local hash_start, hash_end = line:find('[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+')
       if hash_start and hash_end then
-        vim.api.nvim_buf_add_highlight(buf, commit_ns, 'Number', i - 1, hash_start - 1, hash_end)
+        vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, hash_start - 1, { end_col = hash_end, hl_group = 'Number' })
       end
       
       -- 2. Highlight file paths in diff stats (lines ending with |)
@@ -181,18 +181,18 @@ function M.apply_commit_popup_highlighting(buf, lines, commit_hash)
           -- Highlight filename part
           local filename_part = line:sub(1, pipe_pos - 1):match("^%s*(.-)%s*$")
           if filename_part and #filename_part > 0 then
-            vim.api.nvim_buf_add_highlight(buf, commit_ns, 'String', i - 1, 0, pipe_pos - 1)
+            vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, 0, { end_col = pipe_pos - 1, hl_group = 'String' })
           end
-          
+
           -- Highlight + and - in diff stats (after the |)
           local stats_part = line:sub(pipe_pos + 1)
           for j = 1, #stats_part do
             local char = stats_part:sub(j, j)
             local actual_pos = pipe_pos + j - 1
             if char == '+' then
-              vim.api.nvim_buf_add_highlight(buf, commit_ns, 'DiagnosticOk', i - 1, actual_pos, actual_pos + 1)
+              vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, actual_pos, { end_col = actual_pos + 1, hl_group = 'DiagnosticOk' })
             elseif char == '-' then
-              vim.api.nvim_buf_add_highlight(buf, commit_ns, 'DiagnosticError', i - 1, actual_pos, actual_pos + 1)
+              vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, actual_pos, { end_col = actual_pos + 1, hl_group = 'DiagnosticError' })
             end
           end
         end
@@ -204,47 +204,45 @@ function M.apply_commit_popup_highlighting(buf, lines, commit_hash)
       if author_match then
         local author_start, author_end = line:find(author_match, nil, true)
         if author_start then
-          vim.api.nvim_buf_add_highlight(buf, commit_ns, 'Function', i - 1, author_start - 1, author_end)
+          vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, author_start - 1, { end_col = author_end, hl_group = 'Function' })
         end
       end
-      
+
       -- 4. Highlight dates/time (pattern like "X minutes ago", "X days ago")
       local date_start, date_end = line:find('%d+ [%w]+ ago')
       if date_start then
-        vim.api.nvim_buf_add_highlight(buf, commit_ns, 'Comment', i - 1, date_start - 1, date_end)
+        vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, date_start - 1, { end_col = date_end, hl_group = 'Comment' })
       end
       
       -- 5. Highlight summary lines (lines with file counts and insertions/deletions)
       if line:match('files? changed') or line:match('insertions?') or line:match('deletions?') then
         -- Highlight numbers in summary
         for num_start, num_end in line:gmatch('()(%d+)()') do
-          vim.api.nvim_buf_add_highlight(buf, commit_ns, 'Number', i - 1, num_start - 1, num_end - 1)
+          vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, num_start - 1, { end_col = num_end - 1, hl_group = 'Number' })
         end
-        
+
         -- Highlight keywords
         local keywords = {'files? changed', 'insertions?', 'deletions?'}
         for _, keyword in ipairs(keywords) do
           local kw_start, kw_end = line:find(keyword)
           if kw_start then
-            vim.api.nvim_buf_add_highlight(buf, commit_ns, 'Keyword', i - 1, kw_start - 1, kw_end)
+            vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, kw_start - 1, { end_col = kw_end, hl_group = 'Keyword' })
           end
         end
       end
-      
+
       -- 6. Highlight commit message (usually the second or third line, not containing hash/author/date)
       if i <= 3 and not line:match('[a-f0-9]+') and not line:match('%d+ %w+ ago') and not line:match('|') and #line:gsub('^%s*(.-)%s*$', '%1') > 0 then
-        vim.api.nvim_buf_add_highlight(buf, commit_ns, 'Title', i - 1, 0, -1)
+        vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, 0, { end_col = #line, hl_group = 'Title' })
       end
-      
+
       -- 7. Highlight Notes section
       if line:match('^Notes:') then
-        vim.api.nvim_buf_add_highlight(buf, commit_ns, 'Keyword', i - 1, 0, -1)
+        vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, 0, { end_col = #line, hl_group = 'Keyword' })
       elseif line:match('^%s*Reviewed by') then
-        -- Highlight "Reviewed by" lines specifically (may be indented)
-        vim.api.nvim_buf_add_highlight(buf, commit_ns, 'DiagnosticOk', i - 1, 0, -1)
+        vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, 0, { end_col = #line, hl_group = 'DiagnosticOk' })
       elseif line:match('^%s*Needs attention') then
-        -- Highlight "Needs attention" lines specifically (may be indented)
-        vim.api.nvim_buf_add_highlight(buf, commit_ns, 'DiagnosticWarn', i - 1, 0, -1)
+        vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, 0, { end_col = #line, hl_group = 'DiagnosticWarn' })
       end
     end
   end

@@ -452,19 +452,19 @@ function M.apply_linear_popup_highlighting(buf, lines, issue)
         -- Highlight the identifier
         local id_start, id_end = line:find('[A-Z]+-[0-9]+')
         if id_start then
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Number', i - 1, id_start - 1, id_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, id_start - 1, { end_col = id_end, hl_group = 'Number' })
         end
-        
+
         -- Highlight the rest as title
         local dash_pos = line:find(' - ')
         if dash_pos then
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Title', i - 1, dash_pos + 2, -1)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, dash_pos + 2, { end_col = #line, hl_group = 'Title' })
         end
       end
-      
+
       -- 2. Highlight the separator line (===)
       if line:match('^=+$') then
-        vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Comment', i - 1, 0, -1)
+        vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, 0, { end_col = #line, hl_group = 'Comment' })
       end
       
       -- 3. Highlight field names (Status:, Assignee:, etc.)
@@ -476,62 +476,62 @@ function M.apply_linear_popup_highlighting(buf, lines, issue)
       for _, pattern in ipairs(field_patterns) do
         local field_start, field_end = line:find(pattern)
         if field_start then
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Keyword', i - 1, field_start - 1, field_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, field_start - 1, { end_col = field_end, hl_group = 'Keyword' })
           break
         end
       end
-      
+
       -- 4. Highlight priority levels with colors
       if line:match('Priority:') then
         if line:match('Urgent') then
           local urgent_start, urgent_end = line:find('Urgent')
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticError', i - 1, urgent_start - 1, urgent_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, urgent_start - 1, { end_col = urgent_end, hl_group = 'DiagnosticError' })
         elseif line:match('High') then
           local high_start, high_end = line:find('High')
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticWarn', i - 1, high_start - 1, high_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, high_start - 1, { end_col = high_end, hl_group = 'DiagnosticWarn' })
         elseif line:match('Medium') then
           local medium_start, medium_end = line:find('Medium')
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticInfo', i - 1, medium_start - 1, medium_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, medium_start - 1, { end_col = medium_end, hl_group = 'DiagnosticInfo' })
         elseif line:match('Low') then
           local low_start, low_end = line:find('Low')
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticHint', i - 1, low_start - 1, low_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, low_start - 1, { end_col = low_end, hl_group = 'DiagnosticHint' })
         end
       end
-      
+
       -- 5. Highlight status with colors
       if line:match('Status:') then
         if line:match('Completed') then
           local completed_start, completed_end = line:find('Completed')
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticOk', i - 1, completed_start - 1, completed_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, completed_start - 1, { end_col = completed_end, hl_group = 'DiagnosticOk' })
         elseif line:match('Started') then
           local started_start, started_end = line:find('Started')
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticInfo', i - 1, started_start - 1, started_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, started_start - 1, { end_col = started_end, hl_group = 'DiagnosticInfo' })
         elseif line:match('Canceled') then
           local canceled_start, canceled_end = line:find('Canceled')
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticError', i - 1, canceled_start - 1, canceled_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, canceled_start - 1, { end_col = canceled_end, hl_group = 'DiagnosticError' })
         end
       end
-      
+
       -- 6. Highlight URLs
       if line:match('https?://[%w.-/]+') then
         local url_start, url_end = line:find('https?://[%w.-/]+')
-        vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Underlined', i - 1, url_start - 1, url_end)
+        vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, url_start - 1, { end_col = url_end, hl_group = 'Underlined' })
       end
-      
+
       -- 7. Highlight numbers (estimates, dates)
       if line:match('Estimate:') or line:match('points') then
         for num_start, num_end in line:gmatch('()(%d+)()') do
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Number', i - 1, num_start - 1, num_end - 1)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, num_start - 1, { end_col = num_end - 1, hl_group = 'Number' })
         end
       end
-      
+
       -- 8. Highlight names (assignee names, team names)
       if line:match('Assignee:') or line:match('Team:') or line:match('Cycle:') then
         local colon_pos = line:find(':')
         if colon_pos and colon_pos < #line then
           local value_start = line:find('[^%s:]', colon_pos + 1)
           if value_start then
-            vim.api.nvim_buf_add_highlight(buf, linear_ns, 'String', i - 1, value_start - 1, -1)
+            vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, value_start - 1, { end_col = #line, hl_group = 'String' })
           end
         end
       end

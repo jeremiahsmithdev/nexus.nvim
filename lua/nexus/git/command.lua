@@ -165,14 +165,14 @@ function M.create_git_command_window(refresh_callback)
     
     if selected_index <= #filtered_commands and selected_index > 0 then
       -- Highlight the selected line
-      vim.api.nvim_buf_add_highlight(bufnr, ns_id, 'Visual', selected_index + 1, 0, -1)
-      
+      vim.api.nvim_buf_set_extmark(bufnr, ns_id, selected_index + 1, 0, { end_row = selected_index + 2, end_col = 0, hl_group = 'Visual', strict = false })
+
       -- Highlight the arrow specifically
-      vim.api.nvim_buf_add_highlight(bufnr, ns_id, 'String', selected_index + 1, 0, 2)  -- "▶ "
+      vim.api.nvim_buf_set_extmark(bufnr, ns_id, selected_index + 1, 0, { end_col = 2, hl_group = 'String' })
     end
-    
+
     -- Highlight the "git " prefix
-    vim.api.nvim_buf_add_highlight(bufnr, ns_id, 'Keyword', 0, 0, 4)  -- "git "
+    vim.api.nvim_buf_set_extmark(bufnr, ns_id, 0, 0, { end_col = 4, hl_group = 'Keyword' })
     
     -- Add virtual text descriptions for special commands
     for i, cmd in ipairs(filtered_commands) do
@@ -229,7 +229,7 @@ function M.create_git_command_window(refresh_callback)
     if is_error then
       local ns_id = vim.api.nvim_create_namespace('gboard_git_output_error')
       for i = 0, #lines - 1 do
-        vim.api.nvim_buf_add_highlight(output_bufnr, ns_id, 'DiagnosticError', i, 0, -1)
+        vim.api.nvim_buf_set_extmark(output_bufnr, ns_id, i, 0, { end_col = #(lines[i + 1] or ''), hl_group = 'DiagnosticError' })
       end
     end
     
@@ -321,8 +321,8 @@ function M.create_git_command_window(refresh_callback)
       vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
       
       if selected_index <= #filtered_commands and selected_index > 0 then
-        vim.api.nvim_buf_add_highlight(bufnr, ns_id, 'Visual', selected_index + 1, 0, -1)
-        vim.api.nvim_buf_add_highlight(bufnr, ns_id, 'String', selected_index + 1, 0, 2)
+        vim.api.nvim_buf_set_extmark(bufnr, ns_id, selected_index + 1, 0, { end_row = selected_index + 2, end_col = 0, hl_group = 'Visual', strict = false })
+        vim.api.nvim_buf_set_extmark(bufnr, ns_id, selected_index + 1, 0, { end_col = 2, hl_group = 'String' })
       end
       
       -- Add virtual text "Filter: " only when input is empty

@@ -354,37 +354,37 @@ function M.apply_syntax_highlighting(bufnr)
         -- Highlight status icon
         local status_start = line:find("[🔷⚡❌ℹ️📋🔄✅❌📝]")
         if status_start then
-          vim.api.nvim_buf_add_highlight(bufnr, namespace, M.get_status_color(issue.status), line_num, status_start - 1, status_start)
+          vim.api.nvim_buf_set_extmark(bufnr, namespace, line_num, status_start - 1, { end_col = status_start, hl_group = M.get_status_color(issue.status) })
         end
 
         -- Highlight priority icon
         if issue.priority then
           local priority_start = line:find("[🟢🟡🟠🔴]", status_start or 1)
           if priority_start then
-            vim.api.nvim_buf_add_highlight(bufnr, namespace, M.get_priority_color(issue.priority), line_num, priority_start - 1, priority_start)
+            vim.api.nvim_buf_set_extmark(bufnr, namespace, line_num, priority_start - 1, { end_col = priority_start, hl_group = M.get_priority_color(issue.priority) })
           end
         end
 
         -- Highlight identifier
         local id_start, id_end = line:find("%[" .. identifier .. "%]")
         if id_start and id_end then
-          vim.api.nvim_buf_add_highlight(bufnr, namespace, "Number", line_num, id_start - 1, id_end)
+          vim.api.nvim_buf_set_extmark(bufnr, namespace, line_num, id_start - 1, { end_col = id_end, hl_group = "Number" })
         end
 
         -- Highlight assignee name
         if issue.assignee and issue.assignee.name then
           local assignee_start, assignee_end = line:find("@[^%s)]+")
           if assignee_start and assignee_end then
-            vim.api.nvim_buf_add_highlight(bufnr, namespace, "Function", line_num, assignee_start - 1, assignee_end)
+            vim.api.nvim_buf_set_extmark(bufnr, namespace, line_num, assignee_start - 1, { end_col = assignee_end, hl_group = "Function" })
           end
         end
       end
     elseif line:match("Huly Issues:") then
       -- Highlight section header
-      vim.api.nvim_buf_add_highlight(bufnr, namespace, "Title", line_num, 0, -1)
+      vim.api.nvim_buf_set_extmark(bufnr, namespace, line_num, 0, { end_col = #line, hl_group = "Title" })
     elseif line:match("Workspace:") or line:match("Project:") then
       -- Highlight context information
-      vim.api.nvim_buf_add_highlight(bufnr, namespace, "Comment", line_num, 2, -1)
+      vim.api.nvim_buf_set_extmark(bufnr, namespace, line_num, 2, { end_col = #line, hl_group = "Comment" })
     end
   end
 end

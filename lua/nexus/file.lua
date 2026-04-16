@@ -84,14 +84,7 @@ function M.apply_highlights(buf, highlights)
   -- Apply each highlight
   for _, hl in ipairs(highlights) do
     local ns = vim.api.nvim_create_namespace(hl.ns)
-    vim.api.nvim_buf_add_highlight(
-      buf,
-      ns,
-      hl.group,
-      hl.line,
-      hl.col_start,
-      hl.col_end
-    )
+    vim.api.nvim_buf_set_extmark(buf, ns, hl.line, hl.col_start, { end_col = hl.col_end, hl_group = hl.group })
   end
 end
 

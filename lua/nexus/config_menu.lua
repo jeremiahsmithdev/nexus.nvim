@@ -272,14 +272,14 @@ local function render()
   local ns = api.nvim_create_namespace('nexus_config_menu')
   api.nvim_buf_clear_namespace(state.buf, ns, 0, -1)
   for _, hl in ipairs(highlights) do
-    api.nvim_buf_add_highlight(state.buf, ns, hl.group, hl.line, hl.col_start, hl.col_end)
+    api.nvim_buf_set_extmark(state.buf, ns, hl.line, hl.col_start, { end_col = hl.col_end, hl_group = hl.group })
   end
 
   -- Highlight current line
   if state.cursor_line >= state.section_start_line and state.cursor_line <= state.section_end_line then
-    api.nvim_buf_add_highlight(state.buf, ns, 'CursorLine', state.cursor_line, 0, -1)
+    api.nvim_buf_set_extmark(state.buf, ns, state.cursor_line, 0, { end_row = state.cursor_line + 1, end_col = 0, hl_group = 'CursorLine', strict = false })
   elseif state.cursor_line == state.logo_line then
-    api.nvim_buf_add_highlight(state.buf, ns, 'CursorLine', state.cursor_line, 0, -1)
+    api.nvim_buf_set_extmark(state.buf, ns, state.cursor_line, 0, { end_row = state.cursor_line + 1, end_col = 0, hl_group = 'CursorLine', strict = false })
   end
 end
 

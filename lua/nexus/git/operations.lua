@@ -133,7 +133,7 @@ function M.git_commit(message, refresh_callback)
       if is_error then
         local ns_id = vim.api.nvim_create_namespace('gboard_git_output_error')
         for i = 0, #lines - 1 do
-          vim.api.nvim_buf_add_highlight(output_bufnr, ns_id, 'DiagnosticError', i, 0, -1)
+          vim.api.nvim_buf_set_extmark(output_bufnr, ns_id, i, 0, { end_col = #(lines[i + 1] or ''), hl_group = 'DiagnosticError' })
         end
       end
       
@@ -497,7 +497,7 @@ function M.create_commit_amend_window(refresh_callback)
           if is_error then
             local ns_id = vim.api.nvim_create_namespace('gboard_git_output_error')
             for i = 0, #lines - 1 do
-              vim.api.nvim_buf_add_highlight(output_bufnr, ns_id, 'DiagnosticError', i, 0, -1)
+              vim.api.nvim_buf_set_extmark(output_bufnr, ns_id, i, 0, { end_col = #(lines[i + 1] or ''), hl_group = 'DiagnosticError' })
             end
           end
           

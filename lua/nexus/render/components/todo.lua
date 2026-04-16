@@ -100,7 +100,7 @@ function M.apply_todo_highlighting(buf, todo_section_start)
     if line_content:match("^%s*✓") then
       local tick_start, tick_end = line_content:find('✓')
       if tick_start then
-        vim.api.nvim_buf_add_highlight(buf, todo_ns, 'DiagnosticOk', i - 1, tick_start - 1, tick_end)
+        vim.api.nvim_buf_set_extmark(buf, todo_ns, i - 1, tick_start - 1, { end_col = tick_end, hl_group = 'DiagnosticOk' })
       end
     end
 
@@ -108,7 +108,7 @@ function M.apply_todo_highlighting(buf, todo_section_start)
     if line_content:match("^%s*★") then
       local star_start, star_end = line_content:find('★')
       if star_start then
-        vim.api.nvim_buf_add_highlight(buf, todo_ns, 'DiagnosticWarn', i - 1, star_start - 1, star_end)
+        vim.api.nvim_buf_set_extmark(buf, todo_ns, i - 1, star_start - 1, { end_col = star_end, hl_group = 'DiagnosticWarn' })
       end
     end
   end

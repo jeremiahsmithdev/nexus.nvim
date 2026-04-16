@@ -176,47 +176,38 @@ function M._apply_issue_highlighting(buf, issue)
     local line_num = i - 1  -- Convert to 0-based
 
     if line:match("^📋") then
-      -- Highlight title
-      vim.api.nvim_buf_add_highlight(buf, namespace, "Title", line_num, 0, -1)
+      vim.api.nvim_buf_set_extmark(buf, namespace, line_num, 0, { end_col = #line, hl_group = "Title" })
     elseif line:match("^Identifier:") then
-      -- Highlight identifier value
       local id_start = line:find(": ") + 2
       if id_start then
-        vim.api.nvim_buf_add_highlight(buf, namespace, "Number", line_num, id_start - 1, -1)
+        vim.api.nvim_buf_set_extmark(buf, namespace, line_num, id_start - 1, { end_col = #line, hl_group = "Number" })
       end
     elseif line:match("^Status:") then
-      -- Highlight status value
       local status_start = line:find(": ") + 2
       if status_start then
-        vim.api.nvim_buf_add_highlight(buf, namespace, huly_component.get_status_color(issue.status), line_num, status_start - 1, -1)
+        vim.api.nvim_buf_set_extmark(buf, namespace, line_num, status_start - 1, { end_col = #line, hl_group = huly_component.get_status_color(issue.status) })
       end
     elseif line:match("^Priority:") then
-      -- Highlight priority value
       local priority_start = line:find(": ") + 2
       if priority_start then
-        vim.api.nvim_buf_add_highlight(buf, namespace, huly_component.get_priority_color(issue.priority), line_num, priority_start - 1, -1)
+        vim.api.nvim_buf_set_extmark(buf, namespace, line_num, priority_start - 1, { end_col = #line, hl_group = huly_component.get_priority_color(issue.priority) })
       end
     elseif line:match("^Assignee:") then
-      -- Highlight assignee name
       local assignee_start = line:find(": ") + 2
       if assignee_start then
-        vim.api.nvim_buf_add_highlight(buf, namespace, "Function", line_num, assignee_start - 1, -1)
+        vim.api.nvim_buf_set_extmark(buf, namespace, line_num, assignee_start - 1, { end_col = #line, hl_group = "Function" })
       end
     elseif line:match("^Project:") or line:match("^Workspace:") then
-      -- Highlight project/workspace names
       local name_start = line:find(": ") + 2
       if name_start then
-        vim.api.nvim_buf_add_highlight(buf, namespace, "Type", line_num, name_start - 1, -1)
+        vim.api.nvim_buf_set_extmark(buf, namespace, line_num, name_start - 1, { end_col = #line, hl_group = "Type" })
       end
     elseif line:match("^Created:") or line:match("^Updated:") then
-      -- Highlight timestamps
-      vim.api.nvim_buf_add_highlight(buf, namespace, "Comment", line_num, 0, -1)
+      vim.api.nvim_buf_set_extmark(buf, namespace, line_num, 0, { end_col = #line, hl_group = "Comment" })
     elseif line:match("^Actions:") then
-      -- Highlight section header
-      vim.api.nvim_buf_add_highlight(buf, namespace, "Special", line_num, 0, -1)
+      vim.api.nvim_buf_set_extmark(buf, namespace, line_num, 0, { end_col = #line, hl_group = "Special" })
     elseif line:match("^  [A-Za-z]") then
-      -- Highlight action keys
-      vim.api.nvim_buf_add_highlight(buf, namespace, "Keyword", line_num, 2, 3)
+      vim.api.nvim_buf_set_extmark(buf, namespace, line_num, 2, { end_col = 3, hl_group = "Keyword" })
     end
   end
 end
