@@ -508,6 +508,123 @@ function M.get_epic_children_async(epic_id, callback)
   end)
 end
 
+--- Update an issue optimistically: mutate the local cache immediately and
+--- call on_render(), then confirm via CLI in the background.  On CLI error the
+--- cache mutation is reverted and on_done receives the error string so the
+--- caller can show a notification and trigger a corrective re-render.
+--- No full list re-fetch is performed on success — the cache is already correct.
+---@param id string Issue ID
+---@param updates table Updates: { status, priority, title, notes }
+---@param on_render function Called immediately after optimistic cache mutation
+---@param on_done function Called with (error|nil) after CLI completes
+function M.update_issue_optimistic(id, updates, on_render, on_done)
+  if not id then on_done('Issue ID required') return end
+
+  -- 1. Save old state and apply optimistic mutation (issues cache)
+  local old_issue = nil
+  local issue_idx = nil
+  for i, issue in ipairs(_cached_issues) do
+    if issue.id == id then
+      old_issue = vim.deepcopy(issue)
+      issue_idx = i
+      for k, v in pairs(updates) do
+        _cached_issues[i][k] = v
+      end
+      break
+    end
+  end
+
+  -- Also update the epic cache if the id is there (e.g. status change on epic)
+  local old_epic = nil
+  local epic_idx = nil
+  for i, epic in ipairs(_cached_epics) do
+    if epic.id == id then
+      old_epic = vim.deepcopy(epic)
+      epic_idx = i
+      for k, v in pairs(updates) do
+        _cached_epics[i][k] = v
+      end
+      break
+    end
+  end
+
+  -- 2. Re-render with the optimistic state immediately (no CLI wait)
+  on_render()
+
+  -- 3. Build CLI args (identical to update_issue_async)
+  local args = 'update ' .. id
+  if updates.status then args = args .. ' --status ' .. updates.status end
+  if updates.priority then args = args .. ' --priority ' .. tostring(updates.priority) end
+  if updates.title then
+    args = args .. string.format(' --title="%s"', updates.title:gsub('"', '\\"'))
+  end
+  if updates.notes then
+    args = args .. string.format(' --notes="%s"', updates.notes:gsub('"', '\\"'))
+  end
+  args = args .. ' --json'
+
+  -- 4. Fire CLI in background; rollback on error
+  run_cli_command_async(args, function(_, err)
+    if err then
+      -- Revert optimistic mutations
+      if issue_idx and old_issue then _cached_issues[issue_idx] = old_issue end
+      if epic_idx and old_epic then _cached_epics[epic_idx] = old_epic end
+      logger.warn('BEADS', 'update_issue_optimistic: CLI error — reverted: ' .. err)
+      on_done(err)
+      return
+    end
+    -- Success: cache is already accurate; no invalidation needed
+    on_done(nil)
+  end)
+end
+
+--- Close an issue optimistically: remove from the local cache immediately and
+--- call on_render(), then confirm via CLI in the background.  On error the
+--- issue is re-inserted at its original position and on_done receives the error.
+---@param id string Issue ID
+---@param reason string|nil Close reason
+---@param on_render function Called immediately after optimistic cache mutation
+---@param on_done function Called with (error|nil) after CLI completes
+function M.close_issue_optimistic(id, reason, on_render, on_done)
+  if not id then on_done('Issue ID required') return end
+
+  -- 1. Save and remove from issues cache optimistically
+  local old_issue = nil
+  local issue_idx = nil
+  for i, issue in ipairs(_cached_issues) do
+    if issue.id == id then
+      old_issue = vim.deepcopy(issue)
+      issue_idx = i
+      table.remove(_cached_issues, i)
+      break
+    end
+  end
+
+  -- 2. Re-render immediately
+  on_render()
+
+  -- 3. Build CLI args
+  local args = 'close ' .. id
+  if reason and reason ~= '' then
+    args = args .. string.format(' --reason="%s"', reason:gsub('"', '\\"'))
+  end
+  args = args .. ' --json'
+
+  -- 4. Fire CLI in background; rollback on error
+  run_cli_command_async(args, function(_, err)
+    if err then
+      -- Re-insert at original position
+      if old_issue and issue_idx then
+        table.insert(_cached_issues, issue_idx, old_issue)
+      end
+      logger.warn('BEADS', 'close_issue_optimistic: CLI error — reverted: ' .. err)
+      on_done(err)
+      return
+    end
+    on_done(nil)
+  end)
+end
+
 --- Update an issue asynchronously.
 --- Runs the CLI update command, then invalidates the issues + epics caches so
 --- the next render shows fresh data.  callback receives (result, error).

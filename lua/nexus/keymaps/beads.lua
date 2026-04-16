@@ -111,7 +111,8 @@ function M.handle_create(buf, render_callback, config)
   end)
 end
 
---- Core: perform a status update for a known issue_id (async, non-blocking).
+--- Core: perform a status update for a known issue_id (optimistic, non-blocking).
+--- Mutates the local cache immediately and re-renders; CLI runs in background.
 --- Called both from handle_status_update (line-based) and from popups (id-based).
 ---@param issue_id string Issue ID
 ---@param buf number Buffer number
@@ -120,7 +121,7 @@ end
 local function do_status_update(issue_id, buf, render_callback, config)
   local beads_state = require('nexus.state.beads')
 
-  -- Fetch current status asynchronously (cache hit = instant)
+  -- Fetch current status from cache (instant) to populate the prompt
   beads_state.get_issue_by_id_async(issue_id, function(issue, _)
     local current_status = issue and issue.status or 'unknown'
     local status_options = { 'open', 'in_progress', 'blocked', 'deferred' }
@@ -130,16 +131,18 @@ local function do_status_update(issue_id, buf, render_callback, config)
     }, function(new_status)
       if not new_status then return end
 
-      beads_state.update_issue_async(issue_id, { status = new_status }, function(_, err)
-        if err then
-          vim.notify("Failed to update status: " .. err, vim.log.levels.ERROR)
-          return
+      -- Optimistic: update cache + re-render immediately; CLI confirms in background
+      beads_state.update_issue_optimistic(issue_id, { status = new_status },
+        function() render_callback(buf) end,  -- on_render: immediate
+        function(err)                          -- on_done: after CLI
+          if err then
+            vim.notify("Failed to update status: " .. err, vim.log.levels.ERROR)
+            render_callback(buf)  -- re-render to show reverted state
+          else
+            vim.notify(string.format("%s -> %s", issue_id, new_status), vim.log.levels.INFO)
+          end
         end
-        vim.notify(string.format("%s -> %s", issue_id, new_status), vim.log.levels.INFO)
-        beads_state.get_issues_async(nil, function()
-          render_callback(buf)
-        end)
-      end)
+      )
     end)
   end)
 end
@@ -162,7 +165,8 @@ function M.handle_status_update(current_line, line_num, buf, render_callback, co
   do_status_update(issue_id, buf, render_callback, config)
 end
 
---- Core: close a known issue_id asynchronously.
+--- Core: close a known issue_id optimistically.
+--- Removes from local cache and re-renders immediately; CLI confirms in background.
 --- Called both from handle_done (line-based) and from the issue popup.
 ---@param issue_id string Issue ID
 ---@param buf number Buffer number
@@ -171,16 +175,18 @@ local function do_close_issue(issue_id, buf, render_callback)
   local beads_state = require('nexus.state.beads')
 
   vim.ui.input({ prompt = 'Close reason (optional): ' }, function(reason)
-    beads_state.close_issue_async(issue_id, reason or 'Completed', function(success, err)
-      if not success then
-        vim.notify("Failed to close issue: " .. (err or 'unknown error'), vim.log.levels.ERROR)
-        return
+    -- Optimistic: remove from cache + re-render immediately; CLI confirms in background
+    beads_state.close_issue_optimistic(issue_id, reason or 'Completed',
+      function() render_callback(buf) end,  -- on_render: immediate
+      function(err)                          -- on_done: after CLI
+        if err then
+          vim.notify("Failed to close issue: " .. (err or 'unknown error'), vim.log.levels.ERROR)
+          render_callback(buf)  -- re-render to show reverted state
+        else
+          vim.notify(string.format("Closed %s", issue_id), vim.log.levels.INFO)
+        end
       end
-      vim.notify(string.format("Closed %s", issue_id), vim.log.levels.INFO)
-      beads_state.get_issues_async(nil, function()
-        render_callback(buf)
-      end)
-    end)
+    )
   end)
 end
 
@@ -238,7 +244,7 @@ function M.handle_edit(current_line, line_num, buf, render_callback, config)
   end)
 end
 
---- Handle priority change (async, non-blocking)
+--- Handle priority change (optimistic, non-blocking)
 ---@param issue_id string Issue ID
 ---@param buf number Buffer number
 ---@param render_callback function Callback to re-render buffer
@@ -252,20 +258,22 @@ function M.handle_priority_change(issue_id, buf, render_callback, config)
     if not choice then return end
 
     local priority = tonumber(choice:match('P(%d)')) or 2
-    beads_state.update_issue_async(issue_id, { priority = priority }, function(_, err)
-      if err then
-        vim.notify("Failed to update priority: " .. err, vim.log.levels.ERROR)
-        return
+    -- Optimistic: update cache + re-render immediately; CLI confirms in background
+    beads_state.update_issue_optimistic(issue_id, { priority = priority },
+      function() render_callback(buf) end,
+      function(err)
+        if err then
+          vim.notify("Failed to update priority: " .. err, vim.log.levels.ERROR)
+          render_callback(buf)
+        else
+          vim.notify(string.format("%s priority -> %s", issue_id, choice), vim.log.levels.INFO)
+        end
       end
-      vim.notify(string.format("%s priority -> %s", issue_id, choice), vim.log.levels.INFO)
-      beads_state.get_issues_async(nil, function()
-        render_callback(buf)
-      end)
-    end)
+    )
   end)
 end
 
---- Handle adding a note to an issue (async, non-blocking)
+--- Handle adding a note to an issue (optimistic, non-blocking)
 ---@param issue_id string Issue ID
 ---@param buf number Buffer number
 ---@param render_callback function Callback to re-render buffer
@@ -276,16 +284,18 @@ function M.handle_add_note(issue_id, buf, render_callback, config)
   vim.ui.input({ prompt = 'Note: ' }, function(note)
     if not note or note == '' then return end
 
-    beads_state.update_issue_async(issue_id, { notes = note }, function(_, err)
-      if err then
-        vim.notify("Failed to add note: " .. err, vim.log.levels.ERROR)
-        return
+    -- Optimistic: update notes in cache + re-render immediately; CLI confirms in background
+    beads_state.update_issue_optimistic(issue_id, { notes = note },
+      function() render_callback(buf) end,
+      function(err)
+        if err then
+          vim.notify("Failed to add note: " .. err, vim.log.levels.ERROR)
+          render_callback(buf)
+        else
+          vim.notify(string.format("Added note to %s", issue_id), vim.log.levels.INFO)
+        end
       end
-      vim.notify(string.format("Added note to %s", issue_id), vim.log.levels.INFO)
-      beads_state.get_issues_async(nil, function()
-        render_callback(buf)
-      end)
-    end)
+    )
   end)
 end
 
