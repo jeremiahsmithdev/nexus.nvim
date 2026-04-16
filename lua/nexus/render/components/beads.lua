@@ -46,6 +46,11 @@ local STATUS_COLORS = {
 local _line_to_issue_map = {}
 local _section_start_line = 0
 
+-- Sort cache: skip vim.deepcopy + table.sort when the issue list is unchanged.
+-- Fingerprint encodes the fields the comparator cares about (type, status, priority, id).
+local _sort_cache_fp = nil
+local _sort_cache_result = nil
+
 --- Get status icon for a status string
 ---@param status string Issue status
 ---@return string icon
@@ -135,11 +140,39 @@ function M.format_issue_line(issue, config)
   return table.concat(parts, " ")
 end
 
+--- Compute a cheap fingerprint of the fields the sort comparator cares about.
+--- Changes whenever any issue's type, status, priority, or id changes, or when
+--- the list length changes.  Does NOT call vim.fn.sha256 — plain string concat
+--- is sufficient and avoids a vimscript call on the hot render path.
+---@param issues table List of issues
+---@return string fingerprint
+local function compute_sort_fingerprint(issues)
+  local n = #issues
+  local parts = table.create and table.create(n) or {}
+  for i = 1, n do
+    local iss = issues[i]
+    parts[i] = (iss.id or '') .. '\x1f'
+      .. (iss.issue_type or iss.type or '') .. '\x1f'
+      .. (iss.status or '') .. '\x1f'
+      .. tostring(iss.priority or 2)
+  end
+  return tostring(n) .. '\x1e' .. table.concat(parts, '\x1e')
+end
+
 --- Sort issues: epics first (in_progress epics ahead of other epics),
 --- then non-epics. Within each group, sort by status then priority.
+--- Result is memoized: repeated calls with an identical issue list skip
+--- vim.deepcopy + table.sort entirely.
 ---@param issues table List of issues
----@return table sorted_issues
+---@return table sorted_issues (may be cached — do not mutate)
 local function sort_issues(issues)
+  local fp = compute_sort_fingerprint(issues)
+  if fp == _sort_cache_fp then
+    logger.debug('BEADS_SORT', 'cache hit — skipping deepcopy+sort')
+    return _sort_cache_result
+  end
+
+  logger.debug('BEADS_SORT', 'cache miss — sorting ' .. #issues .. ' issues')
   local sorted = vim.deepcopy(issues)
 
   -- Status priority: in_progress > open > blocked > deferred > closed
@@ -172,6 +205,8 @@ local function sort_issues(issues)
     return a_priority < b_priority
   end)
 
+  _sort_cache_fp = fp
+  _sort_cache_result = sorted
   return sorted
 end
 
