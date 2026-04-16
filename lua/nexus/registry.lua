@@ -26,7 +26,6 @@ local CACHEABLE_MODULES = {
   'nexus.git.batch',
   'nexus.ui.logo',
   'nexus.actions',
-  'nexus.unified_cache',
   'nexus.render.components.sections',
   'nexus.render.layout',
   'nexus.ui.center'
