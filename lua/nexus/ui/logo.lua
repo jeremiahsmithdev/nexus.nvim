@@ -1,3 +1,6 @@
+-- lua/nexus/ui/logo.lua
+-- Logo dispatcher and image-rendering logic for the Nexus dashboard.
+-- ASCII art data lives in lua/nexus/ui/logos/ and is lazy-loaded per variant.
 local M = {}
 local logger = require('nexus.logger')
 
@@ -8,7 +11,7 @@ M._current_tmux_pane = nil
 
 function M.get_neovim_logo(config)
   local logo_selection = config and config.logo_selection or "nexus"
-  
+
   if logo_selection == "image" then
     return M.get_image_logo(config)
   elseif logo_selection == "nexus" then
@@ -23,244 +26,15 @@ function M.get_neovim_logo(config)
   end
 end
 
+-- Alpha.nvim-style Neovim logo. Art data in logos/neovim.lua.
 function M.get_ascii_logo()
-  return {
-    [[                                  __                   ]],
-    [[     ___     ___    ___   __  __ /\_\    ___ ___       ]],
-    [[    / _ `\  / __`\ / __`\/\ \/\ \\/\ \  / __` __`\     ]],
-    [[   /\ \/\ \/\  __//\ \_\ \ \ \_/ |\ \ \/\ \/\ \/\ \    ]],
-    [[   \ \_\ \_\ \____\ \____/\ \___/  \ \_\ \_\ \_\ \_\   ]],
-    [[    \/_/\/_/\/____/\/___/  \/__/    \/_/\/_/\/_/\/_/   ]],
-    ""
-  }
+  return require('nexus.ui.logos.neovim')
 end
-
--- Alphabet definition using NEXUS font style
-local alphabet = {
-  A = {
-    [[█████╗ ]],
-    [[██╔██╗]],
-    [[███████]],
-    [[██╔══██]],
-    [[██║  ██]],
-    [[╚═╝  ╚═]]
-  },
-  B = {
-    [[███████╗]],
-    [[██╔══██║]],
-    [[███████║]],
-    [[██╔══██║]],
-    [[███████║]],
-    [[╚══════╝]]
-  },
-  C = {
-    [[ ██████╗]],
-    [[██╔════╝]],
-    [[██║     ]],
-    [[██║     ]],
-    [[╚██████╗]],
-    [[ ╚═════╝]]
-  },
-  D = {
-    [[██████╗ ]],
-    [[██╔══██╗]],
-    [[██║  ██║]],
-    [[██║  ██║]],
-    [[██████╔╝]],
-    [[╚═════╝ ]]
-  },
-  E = {
-    [[███████╗]],
-    [[██╔════╝]],
-    [[█████╗  ]],
-    [[██╔══╝  ]],
-    [[███████╗]],
-    [[╚══════╝]]
-  },
-  F = {
-    [[███████╗]],
-    [[██╔════╝]],
-    [[█████╗  ]],
-    [[██╔══╝  ]],
-    [[██║     ]],
-    [[╚═╝     ]]
-  },
-  G = {
-    [[ ██████╗ ]],
-    [[██╔════╝ ]],
-    [[██║  ███╗]],
-    [[██║   ██║]],
-    [[╚██████╔╝]],
-    [[ ╚═════╝ ]]
-  },
-  H = {
-    [[██╗  ██╗]],
-    [[██║  ██║]],
-    [[███████║]],
-    [[██╔══██║]],
-    [[██║  ██║]],
-    [[╚═╝  ╚═╝]]
-  },
-  I = {
-    [[██╗]],
-    [[██║]],
-    [[██║]],
-    [[██║]],
-    [[██║]],
-    [[╚═╝]]
-  },
-  J = {
-    [[     ██╗]],
-    [[     ██║]],
-    [[     ██║]],
-    [[██   ██║]],
-    [[╚██████╔╝]],
-    [[ ╚═════╝ ]]
-  },
-  K = {
-    [[██╗  ██╗]],
-    [[██║ ██╔╝]],
-    [[█████╔╝ ]],
-    [[██╔═██╗ ]],
-    [[██║  ██╗]],
-    [[╚═╝  ╚═╝]]
-  },
-  L = {
-    [[██╗     ]],
-    [[██║     ]],
-    [[██║     ]],
-    [[██║     ]],
-    [[███████╗]],
-    [[╚══════╝]]
-  },
-  M = {
-    [[███╗   ███╗]],
-    [[████╗ ████║]],
-    [[██╔████╔██║]],
-    [[██║╚██╔╝██║]],
-    [[██║ ╚═╝ ██║]],
-    [[╚═╝     ╚═╝]]
-  },
-  N = {
-    [[███╗   ██╗]],
-    [[████╗  ██║]],
-    [[██╔██╗ ██║]],
-    [[██║╚██╗██║]],
-    [[██║ ╚████║]],
-    [[╚═╝  ╚═══╝]]
-  },
-  O = {
-    [[ ██████╗ ]],
-    [[██╔═══██╗]],
-    [[██║   ██║]],
-    [[██║   ██║]],
-    [[╚██████╔╝]],
-    [[ ╚═════╝ ]]
-  },
-  P = {
-    [[██████╗ ]],
-    [[██╔══██╗]],
-    [[██████╔╝]],
-    [[██╔═══╝ ]],
-    [[██║     ]],
-    [[╚═╝     ]]
-  },
-  Q = {
-    [[ ██████╗ ]],
-    [[██╔═══██╗]],
-    [[██║   ██║]],
-    [[██║▄▄ ██║]],
-    [[╚██████╔╝]],
-    [[ ╚══▀▀═╝ ]]
-  },
-  R = {
-    [[██████╗ ]],
-    [[██╔══██╗]],
-    [[██████╔╝]],
-    [[██╔══██╗]],
-    [[██║  ██║]],
-    [[╚═╝  ╚═╝]]
-  },
-  S = {
-    [[███████╗]],
-    [[██╔════╝]],
-    [[███████╗]],
-    [[╚════██║]],
-    [[███████║]],
-    [[╚══════╝]]
-  },
-  T = {
-    [[████████╗]],
-    [[╚══██╔══╝]],
-    [[   ██║   ]],
-    [[   ██║   ]],
-    [[   ██║   ]],
-    [[   ╚═╝   ]]
-  },
-  U = {
-    [[██╗   ██╗]],
-    [[██║   ██║]],
-    [[██║   ██║]],
-    [[██║   ██║]],
-    [[╚██████╔╝]],
-    [[ ╚═════╝ ]]
-  },
-  V = {
-    [[██╗   ██╗]],
-    [[██║   ██║]],
-    [[██║   ██║]],
-    [[ ██╗ ██╔╝]],
-    [[  ╚████╔╝ ]],
-    [[   ╚═══╝  ]]
-  },
-  W = {
-    [[██╗    ██╗]],
-    [[██║    ██║]],
-    [[██║ █╗ ██║]],
-    [[██║███╗██║]],
-    [[╚███╔███╔╝]],
-    [[ ╚══╝╚══╝ ]]
-  },
-  X = {
-    [[██╗  ██╗]],
-    [[╚██╗██╔╝]],
-    [[ ╚███╔╝ ]],
-    [[ ██╔██╗ ]],
-    [[██╔╝ ██╗]],
-    [[╚═╝  ╚═╝]]
-  },
-  Y = {
-    [[██╗   ██╗]],
-    [[╚██╗ ██╔╝]],
-    [[ ╚████╔╝ ]],
-    [[  ╚██╔╝  ]],
-    [[   ██║   ]],
-    [[   ╚═╝   ]]
-  },
-  Z = {
-    [[███████╗]],
-    [[╚══███╔╝]],
-    [[  ███╔╝ ]],
-    [[ ███╔╝  ]],
-    [[███████╗]],
-    [[╚══════╝]]
-  }
-}
 
 function M.get_nexus_ascii_logo()
   local project_name = M._get_project_name()
-  local logo_lines = {
-    "",
-    [[███╗   ██╗███████╗██╗  ██╗██╗   ██╗███████╗]],
-    [[████╗  ██║██╔════╝╚██╗██╔╝██║   ██║██╔════╝]],
-    [[██╔██╗ ██║█████╗   ╚███╔╝ ██║   ██║███████╗]],
-    [[██║╚██╗██║██╔══╝   ██╔██╗ ██║   ██║╚════██║]],
-    [[██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║]],
-    [[╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝]],
-    "",
-    "[ The Developer's Mission Control Center ]",
-    ""
-  }
+  -- Base art loaded lazily; only pulled in when this variant is selected.
+  local logo_lines = vim.deepcopy(require('nexus.ui.logos.nexus'))
   
   if project_name then
     local padding = math.floor((48 - #project_name) / 2)
@@ -273,14 +47,17 @@ function M.get_nexus_ascii_logo()
   return logo_lines
 end
 
--- Function to generate project logo using the alphabet
+-- Function to generate project logo using block-letter alphabet.
+-- Alphabet data loaded lazily from logos/alphabet.lua.
 function M.get_project_logo()
   local project_name = M._get_project_name()
   if not project_name then
     -- Fallback to nexus logo if no project name detected
     return M.get_nexus_ascii_logo()
   end
-  
+
+  local alphabet = require('nexus.ui.logos.alphabet')
+
   -- Convert to uppercase and filter out unsupported characters
   local upper_name = string.upper(project_name)
   local filtered_chars = {}
