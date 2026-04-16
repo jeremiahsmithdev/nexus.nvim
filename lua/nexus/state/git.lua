@@ -120,8 +120,6 @@ function M.invalidate_cache()
     git_status_timestamp = 0,
     git_commits_timestamp = 0
   })
-  
-  state.notify('cache', 'git_invalidated', {}, nil)
 end
 
 -- Force refresh all git data (ignores cache)

@@ -22,8 +22,7 @@ M.EVENTS = {
   GIT_COMMITS_UPDATED = 'git_commits_updated',
   UI_SECTION_RANGES_UPDATED = 'ui_section_ranges_updated',
   UI_CONFIG_UPDATED = 'ui_config_updated',
-  CACHE_INVALIDATED = 'cache_invalidated',
-  CACHE_UPDATED = 'cache_updated'
+  CACHE_INVALIDATED = 'cache_invalidated'
 }
 
 -- Get state for a specific domain
