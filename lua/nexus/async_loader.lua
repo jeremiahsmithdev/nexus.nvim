@@ -156,7 +156,9 @@ function M.load_git_data_async(buf, config, callback)
     'sh', '-c',
     'git rev-parse --is-inside-work-tree 2>/dev/null && echo "---STATUS---" && ' ..
     'git status --porcelain=v1 2>/dev/null && echo "---COMMITS---" && ' ..
-    'git log --oneline --decorate -' .. commit_count .. ' 2>/dev/null && ' ..
+    -- --notes appends note lines (4-space indent) after each commit so review
+    -- status is available without additional per-commit subprocess calls.
+    'git log --oneline --decorate -' .. commit_count .. ' --notes 2>/dev/null && ' ..
     'echo "---DIFFSTAT---" && git diff --numstat 2>/dev/null'
   }
   
@@ -279,28 +281,59 @@ function M.parse_async_git_output(output)
     end
   end
   
-  -- Parse commits
+  -- Parse commits (with inline notes from --notes flag).
+  -- Notes lines are indented by 4 spaces; empty separator lines were already
+  -- filtered by the on_stdout handler (if line ~= '').
   local commits = {}
   if sections.commits then
+    local current_commit = nil
+    local current_notes = {}
+
+    local function finalize_commit()
+      if not current_commit then return end
+      -- Inline parse_review_status_from_notes logic (avoids require cycle)
+      local review_status = "unreviewed"
+      if #current_notes > 0 then
+        local lower = table.concat(current_notes, '\n'):lower()
+        if lower:match('needs attention') then
+          review_status = "needs_attention"
+        elseif lower:match('reviewed') then
+          review_status = "reviewed"
+        end
+      end
+      current_commit.review_status = review_status
+      current_commit.is_reviewed = review_status == "reviewed"
+      table.insert(commits, current_commit)
+      current_commit = nil
+      current_notes = {}
+    end
+
     for _, line in ipairs(sections.commits) do
-      if line ~= '' then
-        -- First extract hash and rest of line
+      if line:match('^    ') then
+        -- Notes line: 4-space indented by git log --notes
+        if current_commit then
+          table.insert(current_notes, line:sub(5))
+        end
+      elseif line:match('^[0-9a-f]') then
+        -- Commit header line: abbreviated hash starts with hex digit.
+        -- Non-hex non-indented lines (e.g. the 'Notes:' sub-header) are skipped.
+        finalize_commit()
         local hash, rest = line:match('^([%w]+)%s+(.*)')
         if hash and rest then
-          -- Check if rest starts with decoration (parentheses)
           local decoration, message = rest:match('^(%([^%)]+%))%s*(.*)')
           if not decoration then
-            -- No decoration, rest is the message
             message = rest
           end
-          table.insert(commits, {
+          current_commit = {
             hash = hash,
             message = message or '',
             decoration = decoration
-          })
+          }
         end
       end
+      -- 'Notes:' header line and other non-hex non-indented lines are skipped implicitly
     end
+    finalize_commit()
   end
   
   return {

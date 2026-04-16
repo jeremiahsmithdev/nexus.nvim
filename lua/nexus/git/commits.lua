@@ -11,52 +11,78 @@ function M.get_current_branch()
 end
 
 function M.get_git_log(config)
-  -- Get commits with decorations (branch/tag info)
-  -- Handle nil/0 count as default of 3
+  -- Get commits with decorations and notes in a single subprocess.
+  -- --notes appends note lines (indented 4 spaces) after each commit, so we
+  -- collect them inline without extra per-commit 'git notes show' calls.
   local count = config.recent_commits_count
   if not count or count < 1 then
     count = 3
   end
-  local handle = io.popen('git log --oneline --decorate -' .. count .. ' 2>/dev/null')
+  local handle = io.popen('git log --oneline --decorate -' .. count .. ' --notes 2>/dev/null')
   if not handle then
     return {}
   end
-  
+
   local result = handle:read('*a')
   handle:close()
-  
+
   if result == '' then
     return {}
   end
-  
+
   local commits = {}
-  for line in result:gmatch('[^\r\n]+') do
-    local hash, rest = line:match('([a-f0-9]+) (.+)')
-    if hash and rest then
-      -- Check if this has decoration (branch/tag info)
-      local decoration, message = rest:match('%(([^)]+)%) (.+)')
-      if not decoration then
-        message = rest
-        decoration = nil
-      end
-      
-      -- Check review status if enabled
-      local review_status = "unreviewed"
-      if config.show_commit_review then
-        review_status = M.get_commit_review_status(hash)
-      end
-      
-      table.insert(commits, {
-        hash = hash,
-        message = message,
-        decoration = decoration,
-        review_status = review_status,
-        is_reviewed = review_status == "reviewed" -- For backward compatibility
-      })
+  local current_commit = nil
+  local current_notes = {}
+
+  local function finalize_commit()
+    if not current_commit then return end
+    local review_status = "unreviewed"
+    if config.show_commit_review and #current_notes > 0 then
+      review_status = M.parse_review_status_from_notes(table.concat(current_notes, '\n'))
     end
+    current_commit.review_status = review_status
+    current_commit.is_reviewed = review_status == "reviewed"
+    table.insert(commits, current_commit)
+    current_commit = nil
+    current_notes = {}
   end
-  
+
+  for line in result:gmatch('[^\r\n]+') do
+    if line:match('^    ') then
+      -- Notes line: indented 4 spaces by git log --notes
+      if current_commit then
+        table.insert(current_notes, line:sub(5))
+      end
+    elseif line:match('^[a-f0-9]') then
+      -- Commit header line
+      finalize_commit()
+      local hash, rest = line:match('([a-f0-9]+) (.+)')
+      if hash and rest then
+        local decoration, message = rest:match('%(([^)]+)%) (.+)')
+        if not decoration then
+          message = rest
+          decoration = nil
+        end
+        current_commit = { hash = hash, message = message, decoration = decoration }
+      end
+    end
+    -- Empty separator lines (between notes and next commit) are skipped implicitly
+  end
+  finalize_commit()
+
   return commits
+end
+
+-- Parse review status from notes text (shared logic for both sync and async paths).
+function M.parse_review_status_from_notes(notes_text)
+  local lower = notes_text:lower()
+  if lower:match('needs attention') then
+    return "needs_attention"
+  elseif lower:match('reviewed') then
+    return "reviewed"
+  else
+    return "unreviewed"
+  end
 end
 
 function M.get_commit_review_status(hash)
