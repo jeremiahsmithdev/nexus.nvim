@@ -30,11 +30,13 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
   local sections = sections_component.build_sections(config, is_git_repo, files, commits)
   
   -- Layout sections using component
-  local lines, section_ranges, logo_section = layout.layout_sections(sections, config, width)
+  local lines, section_ranges, logo_section, left_padding = layout.layout_sections(sections, config, width)
 
   -- Store section ranges as buffer-local var so keymap handlers can access it
   -- for O(1) section detection without it being threaded through every closure.
   vim.b[buf].nexus_section_ranges = section_ranges
+  -- Store left_padding so incremental section renders can apply the same alignment.
+  vim.b[buf].nexus_git_left_padding = left_padding or 0
 
   -- Update beads line mapping with absolute line numbers (if beads section exists)
   if section_ranges.beads_issues then
@@ -93,6 +95,125 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
   
   return files, section_ranges
+end
+
+--- Re-render a single named section in-place without touching the rest of the buffer.
+--- Reads the current section range from vim.b[buf].nexus_section_ranges and replaces
+--- only those lines.  Updates section_ranges metadata and shifts downstream entries
+--- when the new line count differs from the old one.
+---
+--- Primary consumer: T9 optimistic beads updates (status / close / priority / note).
+--- Full render is still used on cold open and on explicit 'r' refresh.
+---
+--- Supported section names: any key from section_ranges
+--- (most tested path: 'beads_issues').
+---
+---@param buf number Buffer handle
+---@param section_name string Key as it appears in section_ranges (e.g. 'beads_issues')
+function M.render_section(buf, section_name)
+  if not vim.api.nvim_buf_is_valid(buf) then return end
+
+  local section_ranges = vim.b[buf].nexus_section_ranges
+  if not section_ranges or not section_ranges[section_name] then
+    -- Section not tracked yet (e.g. cold open hasn't finished); fall back to full render.
+    local logger_mod = require('nexus.logger')
+    logger_mod.debug('RENDER', 'render_section: ' .. section_name .. ' not in section_ranges; falling back to full render')
+    local config_mod = require('nexus.config')
+    M.render_git_status(buf, config_mod.get())
+    return
+  end
+
+  local old_range = section_ranges[section_name]
+  local old_start = old_range.start_line  -- 1-indexed, inclusive
+  local old_end   = old_range.end_line    -- 1-indexed, inclusive
+
+  -- Build fresh lines for just this section.
+  local config_mod  = require('nexus.config')
+  local current_config = config_mod.get()
+
+  -- Route to section-specific builder to avoid rebuilding all sections.
+  local raw_lines
+  if section_name == 'beads_issues' then
+    local beads_component = require('nexus.render.components.beads')
+    raw_lines = beads_component.build_beads_section(current_config)
+  else
+    -- Generic fallback: rebuild all sections and extract the one we need.
+    local git_state_mod = require('nexus.state.git')
+    local sections_component = require('nexus.render.components.sections')
+    local all_sections = sections_component.build_sections(
+      current_config,
+      git_state_mod.is_git_repo(),
+      git_state_mod.get_git_status(),
+      git_state_mod.get_git_commits()
+    )
+    raw_lines = all_sections[section_name] or {}
+  end
+
+  -- Apply the left_padding that was recorded during the last full render.
+  -- Button sections (dashboard_buttons, keyboard_shortcuts) use centering instead;
+  -- they are not expected incremental-render targets so we leave them as-is.
+  local is_button_section = (section_name == 'dashboard_buttons' or section_name == 'keyboard_shortcuts')
+  local new_lines
+  if is_button_section then
+    new_lines = raw_lines
+  else
+    local padding_str = string.rep(" ", vim.b[buf].nexus_git_left_padding or 0)
+    new_lines = {}
+    for _, line in ipairs(raw_lines) do
+      table.insert(new_lines, padding_str .. line)
+    end
+  end
+
+  -- Replace only the section's lines.
+  -- nvim_buf_set_lines(buf, start, end, strict, repl):
+  --   start/end are 0-indexed; end is exclusive.
+  --   old_start-1 = 0-indexed inclusive start
+  --   old_end     = 0-indexed exclusive end (== 1-indexed inclusive end)
+  local new_line_count = #new_lines
+  local old_line_count = old_end - old_start + 1
+  local delta = new_line_count - old_line_count
+
+  vim.api.nvim_buf_set_option(buf, 'modifiable', true)
+  vim.api.nvim_buf_set_lines(buf, old_start - 1, old_end, false, new_lines)
+  vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+
+  -- Update section_ranges metadata.
+  -- Must use vim.deepcopy so we don't mutate the cached buffer-local table in-place
+  -- (Neovim serialises vim.b values, but being explicit avoids surprises).
+  local new_ranges = vim.deepcopy(section_ranges)
+  new_ranges[section_name].end_line = old_end + delta
+
+  -- Shift every section that starts after the replaced block.
+  if delta ~= 0 then
+    for name, range in pairs(new_ranges) do
+      if name ~= section_name and range.start_line > old_end then
+        new_ranges[name] = {
+          start_line = range.start_line + delta,
+          end_line   = range.end_line   + delta,
+        }
+      end
+    end
+  end
+
+  vim.b[buf].nexus_section_ranges = new_ranges
+
+  -- Keep ui_state in sync (used by events / shortcuts dynamic update).
+  local ui_state = require('nexus.state.ui')
+  ui_state.update_section_ranges(new_ranges)
+
+  -- Section-specific post-render hooks.
+  if section_name == 'beads_issues' and new_ranges.beads_issues then
+    -- Re-build the line-number → issue-id map for Enter / status keymaps.
+    local beads_component = require('nexus.render.components.beads')
+    beads_component.update_line_mapping(new_ranges.beads_issues.start_line)
+
+    -- Clear stale beads highlights in the replaced range, then re-apply.
+    local ns_id = vim.api.nvim_create_namespace('nexus_beads')
+    local new_start = new_ranges.beads_issues.start_line
+    local new_end   = new_ranges.beads_issues.end_line
+    vim.api.nvim_buf_clear_namespace(buf, ns_id, new_start - 1, new_end)
+    beads_component.apply_beads_highlighting(buf, new_start)
+  end
 end
 
 

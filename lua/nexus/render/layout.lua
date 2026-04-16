@@ -94,8 +94,9 @@ function M.layout_sections(sections, config, width)
   end
   
   -- Apply same left padding to all git sections
+  local left_padding = 0
   if max_git_line_length > 0 then
-    local left_padding = math.max(0, math.floor((width - max_git_line_length) / 2))
+    left_padding = math.max(0, math.floor((width - max_git_line_length) / 2))
     local padding_str = string.rep(" ", left_padding)
 
     for i, section_info in ipairs(git_sections_data) do
@@ -117,8 +118,8 @@ function M.layout_sections(sections, config, width)
       }
     end
   end
-  
-  return lines, section_ranges, logo_section
+
+  return lines, section_ranges, logo_section, left_padding
 end
 
 return M

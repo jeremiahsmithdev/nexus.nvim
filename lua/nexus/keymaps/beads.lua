@@ -131,13 +131,16 @@ local function do_status_update(issue_id, buf, render_callback, config)
     }, function(new_status)
       if not new_status then return end
 
-      -- Optimistic: update cache + re-render immediately; CLI confirms in background
+      -- Optimistic: update cache + re-render immediately; CLI confirms in background.
+      -- on_render uses incremental section render (beads only) to keep cursor stable.
+      -- on_done revert path uses full render_callback to guarantee consistency.
+      local render = require('nexus.render')
       beads_state.update_issue_optimistic(issue_id, { status = new_status },
-        function() render_callback(buf) end,  -- on_render: immediate
+        function() render.render_section(buf, 'beads_issues') end,  -- on_render: incremental
         function(err)                          -- on_done: after CLI
           if err then
             vim.notify("Failed to update status: " .. err, vim.log.levels.ERROR)
-            render_callback(buf)  -- re-render to show reverted state
+            render_callback(buf)  -- full re-render to show reverted state
           else
             vim.notify(string.format("%s -> %s", issue_id, new_status), vim.log.levels.INFO)
           end
@@ -175,13 +178,15 @@ local function do_close_issue(issue_id, buf, render_callback)
   local beads_state = require('nexus.state.beads')
 
   vim.ui.input({ prompt = 'Close reason (optional): ' }, function(reason)
-    -- Optimistic: remove from cache + re-render immediately; CLI confirms in background
+    -- Optimistic: remove from cache + re-render immediately; CLI confirms in background.
+    -- on_render uses incremental section render (beads only) to keep cursor stable.
+    local render = require('nexus.render')
     beads_state.close_issue_optimistic(issue_id, reason or 'Completed',
-      function() render_callback(buf) end,  -- on_render: immediate
+      function() render.render_section(buf, 'beads_issues') end,  -- on_render: incremental
       function(err)                          -- on_done: after CLI
         if err then
           vim.notify("Failed to close issue: " .. (err or 'unknown error'), vim.log.levels.ERROR)
-          render_callback(buf)  -- re-render to show reverted state
+          render_callback(buf)  -- full re-render to show reverted state
         else
           vim.notify(string.format("Closed %s", issue_id), vim.log.levels.INFO)
         end
@@ -258,9 +263,10 @@ function M.handle_priority_change(issue_id, buf, render_callback, config)
     if not choice then return end
 
     local priority = tonumber(choice:match('P(%d)')) or 2
-    -- Optimistic: update cache + re-render immediately; CLI confirms in background
+    -- Optimistic: update cache + re-render immediately; CLI confirms in background.
+    local render = require('nexus.render')
     beads_state.update_issue_optimistic(issue_id, { priority = priority },
-      function() render_callback(buf) end,
+      function() render.render_section(buf, 'beads_issues') end,  -- on_render: incremental
       function(err)
         if err then
           vim.notify("Failed to update priority: " .. err, vim.log.levels.ERROR)
@@ -284,9 +290,10 @@ function M.handle_add_note(issue_id, buf, render_callback, config)
   vim.ui.input({ prompt = 'Note: ' }, function(note)
     if not note or note == '' then return end
 
-    -- Optimistic: update notes in cache + re-render immediately; CLI confirms in background
+    -- Optimistic: update notes in cache + re-render immediately; CLI confirms in background.
+    local render = require('nexus.render')
     beads_state.update_issue_optimistic(issue_id, { notes = note },
-      function() render_callback(buf) end,
+      function() render.render_section(buf, 'beads_issues') end,  -- on_render: incremental
       function(err)
         if err then
           vim.notify("Failed to add note: " .. err, vim.log.levels.ERROR)
