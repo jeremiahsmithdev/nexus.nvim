@@ -41,9 +41,6 @@ function M.update_git_status(force_refresh)
     local files = git_status.parse_git_status()
     state.set('git', 'files', files)
     state.set('cache', 'git_status_timestamp', current_time)
-    
-    -- Emit event for reactive updates
-    state.notify('git', 'status_updated', files, state.get('git', 'files'))
   else
     state.set('git', 'files', {})
   end
@@ -74,9 +71,6 @@ function M.update_git_commits(config, force_refresh)
     local commits = git_commits.get_git_log(config or {})
     state.set('git', 'commits', commits)
     state.set('cache', 'git_commits_timestamp', current_time)
-    
-    -- Emit event for reactive updates
-    state.notify('git', 'commits_updated', commits, state.get('git', 'commits'))
   else
     state.set('git', 'commits', {})
   end
@@ -127,18 +121,6 @@ function M.force_refresh(config)
   M.update_git_repository_info()
   M.update_git_status(true)  -- force_refresh = true
   M.update_git_commits(config, true)  -- force_refresh = true
-  
-  -- Notify that git data was refreshed
-  state.notify('git', 'force_refreshed', {
-    timestamp = os.time(),
-    files = state.get('git', 'files'),
-    commits = state.get('git', 'commits')
-  }, nil)
-end
-
--- Subscribe to git state changes
-function M.subscribe_to_git_changes(callback)
-  return state.subscribe('git', callback)
 end
 
 -- Initialize git state

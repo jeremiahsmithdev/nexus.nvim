@@ -4,11 +4,7 @@ local state = require('nexus.state')
 
 -- UI state management
 function M.update_section_ranges(section_ranges)
-  local old_ranges = state.get('ui', 'section_ranges')
   state.set('ui', 'section_ranges', section_ranges or {})
-  
-  -- Emit event for reactive updates
-  state.notify('ui', 'section_ranges_updated', section_ranges, old_ranges)
 end
 
 -- Get current section ranges
@@ -18,13 +14,7 @@ end
 
 -- Update current section based on cursor position
 function M.update_current_section(section_name)
-  local old_section = state.get('ui', 'current_section')
   state.set('ui', 'current_section', section_name or 'unknown')
-  
-  -- Emit event for reactive updates if section changed
-  if old_section ~= section_name then
-    state.notify('ui', 'current_section_changed', section_name, old_section)
-  end
 end
 
 -- Get current section
@@ -34,11 +24,7 @@ end
 
 -- Update configuration
 function M.update_config(config)
-  local old_config = state.get('ui', 'config')
   state.set('ui', 'config', config or {})
-  
-  -- Emit event for reactive updates
-  state.notify('ui', 'config_updated', config, old_config)
 end
 
 -- Get current configuration
@@ -51,9 +37,6 @@ function M.update_buffer_info(buf, buffer_info)
   local buffers = state.get('ui', 'buffers') or {}
   buffers[buf] = buffer_info
   state.set('ui', 'buffers', buffers)
-  
-  -- Emit event for reactive updates
-  state.notify('ui', 'buffer_updated', {buf = buf, info = buffer_info}, nil)
 end
 
 -- Get buffer information
@@ -69,14 +52,7 @@ end
 
 -- Update window dimensions
 function M.update_window_dimensions(width, height)
-  local old_dims = state.get('ui', 'window_dimensions')
-  local new_dims = {width = width, height = height}
-  state.set('ui', 'window_dimensions', new_dims)
-  
-  -- Emit event for reactive updates if dimensions changed
-  if not old_dims or old_dims.width ~= width or old_dims.height ~= height then
-    state.notify('ui', 'window_resized', new_dims, old_dims)
-  end
+  state.set('ui', 'window_dimensions', {width = width, height = height})
 end
 
 -- Get window dimensions
@@ -87,7 +63,6 @@ end
 -- Update logo section info
 function M.update_logo_section(logo_section)
   state.set('ui', 'logo_section', logo_section)
-  state.notify('ui', 'logo_updated', logo_section, nil)
 end
 
 -- Get logo section info
@@ -95,18 +70,11 @@ function M.get_logo_section()
   return state.get('ui', 'logo_section')
 end
 
--- Subscribe to UI state changes
-function M.subscribe_to_ui_changes(callback)
-  return state.subscribe('ui', callback)
-end
-
 -- Clear UI state for a specific buffer
 function M.clear_buffer_state(buf)
   local buffers = state.get('ui', 'buffers') or {}
   buffers[buf] = nil
   state.set('ui', 'buffers', buffers)
-  
-  state.notify('ui', 'buffer_cleared', {buf = buf}, nil)
 end
 
 -- Get section information based on cursor position (extracted from cursor.lua logic)

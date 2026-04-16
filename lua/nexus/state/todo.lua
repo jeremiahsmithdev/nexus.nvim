@@ -136,8 +136,7 @@ function M.add_todo(text)
   end
   
   logger.info('TODO', 'Added new todo', { id = new_todo.id, text = text })
-  state.notify('todo', 'item_added', new_todo, todos)
-  
+
   return new_todo
 end
 
@@ -173,13 +172,12 @@ function M.edit_todo(id, new_text)
     return nil, 'Failed to save todo changes'
   end
   
-  logger.info('TODO', 'Edited todo', { 
-    id = id, 
-    old_text = old_text, 
-    new_text = new_text 
+  logger.info('TODO', 'Edited todo', {
+    id = id,
+    old_text = old_text,
+    new_text = new_text
   })
-  state.notify('todo', 'item_updated', todos[todo_index], todos)
-  
+
   return todos[todo_index]
 end
 
@@ -214,12 +212,11 @@ function M.mark_todo_done(id)
     return nil, 'Failed to save todo changes'
   end
   
-  logger.info('TODO', 'Marked todo as done', { 
-    id = id, 
-    text = todos[todo_index].text 
+  logger.info('TODO', 'Marked todo as done', {
+    id = id,
+    text = todos[todo_index].text
   })
-  state.notify('todo', 'item_completed', todos[todo_index], todos)
-  
+
   return todos[todo_index]
 end
 
@@ -254,13 +251,11 @@ function M.toggle_important(id)
     return nil, 'Failed to save todo changes'
   end
 
-  local status = todos[todo_index].important and 'important' or 'normal'
   logger.info('TODO', 'Toggled todo importance', {
     id = id,
     text = todos[todo_index].text,
     important = todos[todo_index].important
   })
-  state.notify('todo', 'item_updated', todos[todo_index], todos)
 
   return todos[todo_index]
 end
@@ -288,8 +283,7 @@ function M.clear_completed()
   end
   
   logger.info('TODO', 'Cleared completed todos', { removed_count = removed_count })
-  state.notify('todo', 'items_cleared', removed_count, active_todos)
-  
+
   return active_todos, removed_count
 end
 
@@ -309,7 +303,6 @@ end
 function M.refresh()
   local todos = load_todos_from_file()
   state.set('todo', 'items', todos)
-  state.notify('todo', 'refreshed', todos)
   return todos
 end
 
@@ -356,7 +349,6 @@ function M.replace_all(new_todos)
     return false
   end
   logger.info('TODO', 'Replaced all todos', { count = #new_todos })
-  state.notify('todo', 'items_replaced', new_todos)
   return true
 end
 
@@ -393,12 +385,11 @@ function M.delete_todo(id)
     return false, 'Failed to save todo changes'
   end
   
-  logger.info('TODO', 'Deleted todo', { 
-    id = id, 
-    text = todo_to_delete.text 
+  logger.info('TODO', 'Deleted todo', {
+    id = id,
+    text = todo_to_delete.text
   })
-  state.notify('todo', 'item_deleted', todo_to_delete, todos)
-  
+
   return true
 end
 
