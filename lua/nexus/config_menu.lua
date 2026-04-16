@@ -34,8 +34,8 @@ local state = {
 
 -- Get the .nexus config file path
 local function get_config_path()
-  local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
-  if vim.v.shell_error ~= 0 or not git_root then
+  local git_root = require('nexus.git.root').get()
+  if not git_root then
     return nil
   end
   return git_root .. "/.nexus/config.lua"
@@ -43,8 +43,8 @@ end
 
 -- Ensure .nexus directory exists
 local function ensure_nexus_dir()
-  local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
-  if vim.v.shell_error ~= 0 or not git_root then
+  local git_root = require('nexus.git.root').get()
+  if not git_root then
     return false
   end
   local nexus_dir = git_root .. "/.nexus"

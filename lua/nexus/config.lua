@@ -2,8 +2,8 @@ local M = {}
 
 -- Load persisted config from .nexus/config.lua if it exists
 local function load_persisted_config()
-  local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
-  if vim.v.shell_error ~= 0 or not git_root then
+  local git_root = require('nexus.git.root').get()
+  if not git_root then
     return nil
   end
   local config_path = git_root .. "/.nexus/config.lua"

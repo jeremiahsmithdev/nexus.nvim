@@ -32,8 +32,8 @@ end
 ---@return boolean
 function M.is_beads_available()
   -- Check for .beads/ directory
-  local git_root = vim.fn.system('git rev-parse --show-toplevel 2>/dev/null'):gsub('\n', '')
-  if vim.v.shell_error ~= 0 or git_root == '' then
+  local git_root = require('nexus.git.root').get()
+  if not git_root then
     return false
   end
 
@@ -413,8 +413,8 @@ function M.get_epic_children(epic_id)
   if not epic_id then return {} end
 
   -- Locate the beads SQLite DB
-  local git_root = vim.fn.system('git rev-parse --show-toplevel 2>/dev/null'):gsub('\n', '')
-  if vim.v.shell_error ~= 0 or git_root == '' then return {} end
+  local git_root = require('nexus.git.root').get()
+  if not git_root then return {} end
   local db = git_root .. '/.beads/beads.db'
   if vim.fn.filereadable(db) == 0 then return {} end
 

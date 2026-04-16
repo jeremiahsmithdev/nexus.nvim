@@ -325,8 +325,8 @@ end
 -- Helper function to get the current project name
 function M._get_project_name()
   -- Try to get project name from git repository
-  local git_root = vim.fn.system("git rev-parse --show-toplevel 2>/dev/null"):gsub('\n', '')
-  if vim.v.shell_error == 0 and git_root ~= "" then
+  local git_root = require('nexus.git.root').get()
+  if git_root then
     local project_name = vim.fn.fnamemodify(git_root, ":t")
     if project_name and project_name ~= "" then
       -- Get current git branch

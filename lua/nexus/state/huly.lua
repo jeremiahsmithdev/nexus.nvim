@@ -22,15 +22,9 @@ local CACHE_TTL = {
 
 ---Get the repository-local config directory
 local function get_config_dir()
-  -- Get git repo root
-  local handle = io.popen('git rev-parse --show-toplevel 2>/dev/null')
-  if handle then
-    local result = handle:read('*a')
-    handle:close()
-    if result and result ~= '' then
-      local repo_root = result:gsub('\n$', '')
-      return repo_root .. "/.nexus"
-    end
+  local repo_root = require('nexus.git.root').get()
+  if repo_root then
+    return repo_root .. "/.nexus"
   end
   -- Fallback to global config if not in a git repo
   return vim.fn.expand("~/.config/nexus")

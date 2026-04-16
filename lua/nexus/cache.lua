@@ -1,11 +1,12 @@
 local M = {}
 
 local logger = require('nexus.logger')
+local git_root_mod = require('nexus.git.root')
 
 -- Get cache directory for current project
 local function get_cache_dir()
-  local git_root = vim.fn.system('git rev-parse --show-toplevel 2>/dev/null'):gsub('\n', '')
-  if vim.v.shell_error == 0 and git_root ~= '' then
+  local git_root = git_root_mod.get()
+  if git_root then
     return git_root .. '/.nexus/cache'
   end
   return vim.fn.stdpath('cache') .. '/nexus'
@@ -221,8 +222,8 @@ end
 
 -- Create cache key for git repository
 function M.get_git_cache_key(suffix)
-  local git_root = vim.fn.system('git rev-parse --show-toplevel 2>/dev/null'):gsub('\n', '')
-  if vim.v.shell_error == 0 and git_root ~= '' then
+  local git_root = git_root_mod.get()
+  if git_root then
     local repo_name = git_root:match('([^/]+)$')
     return 'git_' .. repo_name .. '_' .. suffix
   end

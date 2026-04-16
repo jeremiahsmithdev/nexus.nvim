@@ -139,7 +139,7 @@ function M.handle_enter_key(popup_buf, popup_win)
     filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
     
     -- Get git root directory
-    local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+    local git_root = require('nexus.git.root').get()
     local full_path = git_root and (git_root .. '/' .. filename) or filename
     
     -- Close the popup first

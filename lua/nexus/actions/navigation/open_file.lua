@@ -51,8 +51,8 @@ function OpenFileAction:can_execute(args)
   
   -- Resolve relative paths to absolute paths using git root
   if not filename:match("^/") then
-    local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
-    if git_root and vim.v.shell_error == 0 then
+    local git_root = require('nexus.git.root').get()
+    if git_root then
       filename = git_root .. '/' .. filename
     end
   end
@@ -81,8 +81,8 @@ function OpenFileAction:_execute(args)
   
   -- Resolve relative paths to absolute paths using git root
   if not filename:match("^/") then
-    local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
-    if git_root and vim.v.shell_error == 0 then
+    local git_root = require('nexus.git.root').get()
+    if git_root then
       filename = git_root .. '/' .. filename
     end
   end

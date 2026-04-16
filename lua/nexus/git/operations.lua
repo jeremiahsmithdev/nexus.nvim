@@ -1,12 +1,13 @@
 local M = {}
 local logger = require('nexus.logger')
+local git_root_mod = require('nexus.git.root')
 
 function M.git_add_file(filename, refresh_callback)
   print(string.format('Executing: git add "%s"', filename))
 
   -- Get git repository root to ensure we run commands from the correct directory
-  local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
-  if vim.v.shell_error ~= 0 then
+  local git_root = git_root_mod.get()
+  if not git_root then
     print('Failed to get git root directory')
     return false
   end
@@ -34,8 +35,8 @@ function M.git_unstage_file(filename, refresh_callback)
   print(string.format('Executing: git reset HEAD "%s"', filename))
 
   -- Get git repository root to ensure we run commands from the correct directory
-  local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
-  if vim.v.shell_error ~= 0 then
+  local git_root = git_root_mod.get()
+  if not git_root then
     print('Failed to get git root directory')
     return false
   end

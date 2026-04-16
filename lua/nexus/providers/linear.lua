@@ -27,21 +27,12 @@ end
 
 -- Get the current git repository name for project filtering
 function LinearProvider:_get_repository_name()
-  local handle = io.popen('git rev-parse --show-toplevel 2>/dev/null')
-  if not handle then
+  local git_root = require('nexus.git.root').get()
+  if not git_root then
     return nil
   end
-  
-  local result = handle:read('*a')
-  handle:close()
-  
-  if result and result ~= '' then
-    -- Extract repository name from path (e.g., /path/to/nexus.nvim -> nexus.nvim)
-    local repo_name = result:gsub('\n$', ''):match('([^/]+)$')
-    return repo_name
-  end
-  
-  return nil
+  -- Extract repository name from path (e.g., /path/to/nexus.nvim -> nexus.nvim)
+  return git_root:match('([^/]+)$')
 end
 
 -- Authentication implementation

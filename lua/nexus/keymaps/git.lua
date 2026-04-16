@@ -57,7 +57,7 @@ function M.handle_vgit_file_diff(current_line)
   end
 
   -- Get full path
-  local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+  local git_root = require('nexus.git.root').get()
   local full_path = git_root and (git_root .. '/' .. filename) or filename
 
   -- Open file diff in vgit
@@ -72,7 +72,7 @@ function M.handle_enter_git_status(current_line, config)
   if filename then
     filename = filename:gsub("^%s+", ""):gsub("%s+$", "")
     
-    local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+    local git_root = require('nexus.git.root').get()
     local full_path = git_root and (git_root .. '/' .. filename) or filename
     
     local first_line = M.get_first_changed_line(filename)

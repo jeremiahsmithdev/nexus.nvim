@@ -3,7 +3,7 @@ local M = {}
 local git_commits = require('nexus.git.commits')
 
 function M.get_claude_conversations(config)
-  local git_root = vim.fn.systemlist('git rev-parse --show-toplevel 2>/dev/null')[1]
+  local git_root = require('nexus.git.root').get()
   if not git_root then
     return {}
   end
