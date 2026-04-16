@@ -120,11 +120,10 @@ function M.open(is_manual_open)
     if config_mod.is_section_enabled("beads_issues") then
       local beads_state_mod = require('nexus.state.beads')
       if beads_state_mod.is_beads_available() and beads_state_mod.is_cli_installed() then
-        local beads_issues_done = false
-        local beads_epics_done = false
-
-        local function beads_re_render()
-          if not (beads_issues_done and beads_epics_done) then return end
+        -- Single combined fetch: one CLI call for non-ready filters (br list --json +
+        -- Lua partition), or two concurrent calls joined internally for the ready filter.
+        -- Either way, the callback fires exactly once when both caches are populated.
+        beads_state_mod.fetch_issues_and_epics_async(function()
           if not vim.api.nvim_buf_is_valid(buf) then return end
           logger.log_timing_event("BEADS_ASYNC_RENDER_START")
           local bf, br = render.render_git_status(buf, current_config, git_data.files, git_data.commits)
@@ -132,17 +131,6 @@ function M.open(is_manual_open)
             render.render_git_status(rbuf, current_config, cf)
           end, br)
           logger.log_timing_event("BEADS_ASYNC_RENDER_COMPLETE")
-        end
-
-        -- Invalidate caches so get_issues_async fires a fresh CLI call
-        -- (sets _loading=true synchronously, causing the initial render to show "Loading...")
-        beads_state_mod.refresh_async(nil, function()
-          beads_issues_done = true
-          beads_re_render()
-        end)
-        beads_state_mod.get_sorted_epics_async(false, function()
-          beads_epics_done = true
-          beads_re_render()
         end)
       end
     end

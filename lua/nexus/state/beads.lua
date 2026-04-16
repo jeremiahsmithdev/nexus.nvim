@@ -589,4 +589,109 @@ function M.refresh_async(filter, callback)
   M.get_issues_async(filter, callback or function() end)
 end
 
+--- Fetch issues AND epics in a single round-trip where possible, then call
+--- callback once both caches are populated.
+---
+--- * Non-'ready' filters: one `br list --json` call; results are partitioned
+---   in Lua into _cached_issues (filtered by config filter) and _cached_epics
+---   (type == 'epic').  One subprocess instead of two.
+---
+--- * 'ready' filter: fires `br ready --json` and `br list --type epic --json`
+---   concurrently (two subprocesses) because the CLI has special unblocked-leaf
+---   semantics that cannot be replicated by Lua-side filtering.  Join counter
+---   ensures callback fires exactly once after both complete.
+---
+--- Invalidates both caches before fetching (force-fresh semantics, matching
+--- the behaviour of `refresh_async` which is what init.lua previously called).
+---@param callback function Called with no arguments once both caches are updated
+function M.fetch_issues_and_epics_async(callback)
+  local config = require('nexus.config').get()
+  local filter = (config.beads and config.beads.filter) or 'ready'
+
+  if not M.is_beads_available() or not M.is_cli_installed() then
+    callback()
+    return
+  end
+
+  -- Invalidate both caches so the CLI calls always fire (force-fresh).
+  _last_refresh = 0
+  _last_epic_refresh = 0
+
+  if filter == 'ready' then
+    -- Two concurrent CLI calls; join fires callback once both complete.
+    local done_count = 0
+    local function on_done()
+      done_count = done_count + 1
+      if done_count == 2 then callback() end
+    end
+
+    M.get_issues_async('ready', function() on_done() end)
+    M.get_sorted_epics_async(true, function() on_done() end)
+  else
+    -- Single `br list --json` call; partition in Lua.
+    -- Set _loading so the initial render shows "Loading issues..." placeholder.
+    _loading = true
+    _error = nil
+    run_cli_command_async('list --json', function(result, err)
+      _loading = false
+      if err or type(result) ~= 'table' then
+        _error = err or 'failed to parse br output'
+        logger.warn('BEADS', 'fetch_issues_and_epics_async: CLI error: ' .. (err or 'unknown'))
+        callback()
+        return
+      end
+
+      local all_issues = normalize_issues(result)
+      local now = os.time()
+
+      -- Partition: epics go to the epic cache, everything else to issues cache.
+      -- Apply filter to the issues partition (e.g. 'in_progress', 'all').
+      local epics = {}
+      local issues = {}
+      local status_order = { in_progress = 1, open = 2, blocked = 3, deferred = 4, closed = 5 }
+
+      for _, issue in ipairs(all_issues) do
+        if issue.type == 'epic' then
+          table.insert(epics, issue)
+        else
+          -- Apply status filter for the issues partition
+          local include = false
+          if filter == 'all' then
+            include = true
+          elseif filter == 'in_progress' then
+            include = issue.status == 'in_progress'
+          else
+            -- Default: show open + in_progress (same as 'br list' default view)
+            include = issue.status == 'open' or issue.status == 'in_progress'
+          end
+          if include then table.insert(issues, issue) end
+        end
+      end
+
+      -- Sort epics by status then priority (mirrors get_sorted_epics_async)
+      table.sort(epics, function(a, b)
+        local as = status_order[a.status] or 99
+        local bs = status_order[b.status] or 99
+        if as ~= bs then return as < bs end
+        return (a.priority or 2) < (b.priority or 2)
+      end)
+
+      _cached_issues = issues
+      _cached_epics = epics
+      _last_refresh = now
+      _last_epic_refresh = now
+
+      local state_mod = require('nexus.state')
+      state_mod.set('beads', 'issues', issues)
+      state_mod.set('beads', 'loaded', true)
+
+      logger.debug('BEADS', string.format(
+        'fetch_issues_and_epics_async: %d issues (filter: %s), %d epics (single call)',
+        #issues, filter, #epics
+      ))
+      callback()
+    end)
+  end
+end
+
 return M
