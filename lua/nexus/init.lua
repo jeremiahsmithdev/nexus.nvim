@@ -133,6 +133,26 @@ function M.open(is_manual_open)
     M.position_cursor_on_actionable_line(buf, section_ranges)
     logger.log_timing_event("CURSOR_POSITIONING_COMPLETE")
 
+    -- Trigger async Claude conversation scan (if section enabled).
+    -- The initial render already showed a "Loading conversations..." placeholder.
+    -- When the scan completes (disk cache hit = immediate; full scan = background),
+    -- re-render the buffer so the section updates with actual conversation data.
+    local config_mod = require('nexus.config')
+    if config_mod.is_section_enabled("claude_conversations") then
+      local claude_mod = require('nexus.claude')
+      logger.log_timing_event("CLAUDE_SCAN_START")
+      claude_mod.refresh_async(current_config, function(conversations)
+        logger.log_timing_event("CLAUDE_SCAN_CALLBACK")
+        if not vim.api.nvim_buf_is_valid(buf) then return end
+        -- Re-render so the Claude section shows loaded data instead of the placeholder
+        local new_files, new_ranges = render.render_git_status(buf, current_config, git_data.files, git_data.commits)
+        keymaps.setup_keymaps(buf, new_files, current_config, is_git_repo, function(refresh_buf, cached_files)
+          render.render_git_status(refresh_buf, current_config, cached_files)
+        end, new_ranges)
+        logger.log_timing_event("CLAUDE_SCAN_RENDER_COMPLETE")
+      end)
+    end
+
     logger.log_timing_event("ASYNC_LOAD_CALLBACK_COMPLETE")
   end)
 

@@ -146,10 +146,28 @@ function M.build_sections(config, is_git_repo, files, commits)
     sections.beads_issues = beads_component.build_beads_section(config)
   end
 
-  -- Claude conversations section (placeholder for future implementation)
+  -- Claude conversations section (async-loaded; shows cached data or a loading placeholder)
   if config_module.is_section_enabled("claude_conversations") then
-    -- This would be implemented when the feature is added
-    sections.claude_conversations = {"Claude Conversations:", "", "  (Feature not yet implemented)"}
+    local claude = require('nexus.claude')
+    local conversations = claude.get_cached()
+    if conversations == nil then
+      -- Scan not yet complete; refresh_async will trigger a re-render when ready
+      sections.claude_conversations = {"Claude Conversations:", "", "  Loading conversations..."}
+    elseif #conversations == 0 then
+      sections.claude_conversations = {"Claude Conversations:", "", "  No conversations found"}
+    else
+      local lines = {"Claude Conversations:", ""}
+      local max_show = (config.claude_conversations_count or 5)
+      for i, conv in ipairs(conversations) do
+        if i > max_show then break end
+        local summary = conv.content or 'No summary'
+        -- Truncate long summaries so lines stay readable
+        if #summary > 55 then summary = summary:sub(1, 52) .. '...' end
+        local line = string.format(" %d. [%s msgs] %s (%s)", i, conv.messages, summary, conv.modified)
+        table.insert(lines, line)
+      end
+      sections.claude_conversations = lines
+    end
   end
   
   return sections

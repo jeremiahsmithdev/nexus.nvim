@@ -57,6 +57,8 @@ function M.get_current_section(lines, line_num, config)
         return "commits"
       elseif line:match("Git Status:%s*$") then
         return "git_status"
+      elseif line:match("Claude Conversations:%s*$") then
+        return "claude_conversations"
       elseif line:match("^%s*Dashboard:%s*$") or line:match("Find file") or line:match("Recently opened files") then
         return "dashboard"
       elseif line:match("^%s*Keyboard Shortcuts:%s*$") then
