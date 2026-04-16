@@ -42,7 +42,12 @@ function M.process_git_files(files, limit)
   local visible_files = {}
   local hidden_files = {}
   local all_file_data = {}
-  
+
+  -- Pre-fetch the batched diff_stats map from state (populated by async loader).
+  -- This avoids N io.popen calls in the loop below.
+  local state = require('nexus.state')
+  local cached_diff_stats = state.get('git', 'diff_stats') or {}
+
   -- Calculate max filename width across ALL files first
   local max_filename_width = 0
   for i, item in ipairs(files) do
@@ -50,10 +55,23 @@ function M.process_git_files(files, limit)
     local full_name = status_icon .. " " .. item.file
     max_filename_width = math.max(max_filename_width, #full_name)
   end
-  
+
   -- Single pass: build data and separate visible/hidden
   for i, item in ipairs(files) do
-    local added, deleted = git_status.get_diff_stats(item.file, item.status)
+    -- Use pre-computed diff stats to avoid N+1 subprocess spawns.
+    -- Priority: (1) stats embedded on item by async loader, (2) state diff_stats map,
+    -- (3) sync fallback for items that arrived outside the async load path.
+    local added, deleted
+    if item.added ~= nil then
+      added, deleted = item.added or 0, item.deleted or 0
+    else
+      local cached = cached_diff_stats[item.file]
+      if cached then
+        added, deleted = cached.added, cached.deleted
+      else
+        added, deleted = git_status.get_diff_stats(item.file, item.status)
+      end
+    end
     local status_icon = git_status.format_status_icon(item.status)
     local full_name = status_icon .. " " .. item.file
     

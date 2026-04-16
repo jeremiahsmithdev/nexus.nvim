@@ -257,16 +257,18 @@ function M.parse_async_git_output(output)
     sections[current_section] = current_content
   end
   
+  -- Parse diff stats first so they are available both for file embedding and state storage
+  local all_diff_stats = M.parse_diffstats_async(sections.diffstat or {})
+
   -- Parse files
   local files = {}
   if sections.status then
-    local diffstats = M.parse_diffstats_async(sections.diffstat or {})
     for _, line in ipairs(sections.status) do
       if line ~= '' then
         local status = line:sub(1, 2)
         local file = line:sub(4)
-        local stats = diffstats[file] or {added = 0, deleted = 0}
-        
+        local stats = all_diff_stats[file] or {added = 0, deleted = 0}
+
         table.insert(files, {
           status = status,
           file = file,
@@ -304,7 +306,8 @@ function M.parse_async_git_output(output)
   return {
     files = files,
     commits = commits,
-    is_git_repo = is_git_repo
+    is_git_repo = is_git_repo,
+    diff_stats = all_diff_stats  -- Exposed for state caching; eliminates re-fetch in consumers
   }
 end
 
