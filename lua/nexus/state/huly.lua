@@ -1,3 +1,7 @@
+--- DORMANT MODULE: Huly integration is currently disabled.
+--- Provider implementation is broken (assumes GraphQL; Huly uses WebSocket via Node client).
+--- Awaiting Node bridge implementation. See HULY_INTEGRATION_STATUS.md.
+
 local M = {}
 
 local logger = require('nexus.logger')

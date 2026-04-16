@@ -190,17 +190,18 @@ function M.detect_section_by_content(line_content)
     return "linear_issues"
   end
 
-  -- Check for Huly issues
-  local huly_component = require('nexus.render.components.huly')
-  local is_huly_issue, _ = huly_component.is_huly_issue_line(line_content)
-  if is_huly_issue then
-    return "huly_issues"
-  end
-
-  -- Check for Huly error/setup messages
-  if line_content:match("Huly token not configured") or line_content:match("Huly workspace not configured") or
-     line_content:match("Press 'H' to configure") or line_content:match("Huly integration disabled") then
-    return "huly_issues"
+  -- Check for Huly issues (DORMANT: only when huly explicitly enabled)
+  local huly_cfg = (state.get('ui', 'config') or {}).huly
+  if huly_cfg and huly_cfg.enabled then
+    local huly_component = require('nexus.render.components.huly')
+    local is_huly_issue, _ = huly_component.is_huly_issue_line(line_content)
+    if is_huly_issue then
+      return "huly_issues"
+    end
+    if line_content:match("Huly token not configured") or line_content:match("Huly workspace not configured") or
+       line_content:match("Press 'H' to configure") or line_content:match("Huly integration disabled") then
+      return "huly_issues"
+    end
   end
 
   -- Check for Beads issues
@@ -285,16 +286,19 @@ function M.is_actionable_line(section_name, line_content)
            line_content:match("Invalid API key")
   end
 
-  -- Huly issues are actionable
+  -- Huly issues are actionable (DORMANT: only when huly explicitly enabled)
   if section_name == "huly_issues" then
-    local huly_component = require('nexus.render.components.huly')
-    local is_issue, _ = huly_component.is_huly_issue_line(line_content)
-    -- Issues are actionable, and so are error/setup messages
-    return is_issue or
-           line_content:match("Huly token not configured") or
-           line_content:match("Huly workspace not configured") or
-           line_content:match("Press 'H' to configure") or
-           line_content:match("Huly integration disabled")
+    local huly_cfg2 = (state.get('ui', 'config') or {}).huly
+    if huly_cfg2 and huly_cfg2.enabled then
+      local huly_component = require('nexus.render.components.huly')
+      local is_issue, _ = huly_component.is_huly_issue_line(line_content)
+      return is_issue or
+             line_content:match("Huly token not configured") or
+             line_content:match("Huly workspace not configured") or
+             line_content:match("Press 'H' to configure") or
+             line_content:match("Huly integration disabled")
+    end
+    return false
   end
 
   -- Beads issues are actionable

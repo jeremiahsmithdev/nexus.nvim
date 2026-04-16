@@ -134,8 +134,8 @@ function M.build_sections(config, is_git_repo, files, commits)
     sections.linear_issues = linear_component.build_linear_section(config)
   end
 
-  -- Huly issues section (show even if not configured, to allow setup)
-  if config_module.is_section_enabled("huly_issues") then
+  -- Huly issues section (DORMANT: only rendered when explicitly enabled)
+  if config_module.is_section_enabled("huly_issues") and config.huly and config.huly.enabled then
     local huly_component = require('nexus.render.components.huly')
     sections.huly_issues = huly_component.build_huly_section(config)
   end

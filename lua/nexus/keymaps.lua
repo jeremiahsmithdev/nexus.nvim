@@ -12,7 +12,7 @@ local navigation = require('nexus.navigation')
 -- Section-specific keymap handlers
 local todo_keymaps = require('nexus.keymaps.todo')
 local linear_keymaps = require('nexus.keymaps.linear')
-local huly_keymaps = require('nexus.keymaps.huly')
+-- huly_keymaps loaded lazily inside enabled gates only (DORMANT module)
 local beads_keymaps = require('nexus.keymaps.beads')
 local dashboard_keymaps = require('nexus.keymaps.dashboard')
 local git_keymaps = require('nexus.keymaps.git')
@@ -133,8 +133,8 @@ function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
   elseif section == "linear" then
     linear_keymaps.handle_enter(current_line, config, buf, render_callback)
 
-  elseif section == "huly" then
-    huly_keymaps.handle_enter(current_line, config, buf, render_callback)
+  elseif section == "huly" and config.huly and config.huly.enabled then
+    require('nexus.keymaps.huly').handle_enter(current_line, config, buf, render_callback)
 
   elseif section == "beads" then
     beads_keymaps.handle_enter(current_line, line_num, config, buf, render_callback)
@@ -287,8 +287,8 @@ local function setup_git_keymaps(buf, config, render_callback)
       local section = M.get_current_section(line_num, vim.b[buf].nexus_section_ranges)
       local current_line = vim.api.nvim_buf_get_lines(buf, line_num - 1, line_num, false)[1]
 
-      if section == "huly" and current_line then
-        huly_keymaps.handle_status_update(current_line, buf, render_callback, config)
+      if section == "huly" and current_line and config.huly and config.huly.enabled then
+        require('nexus.keymaps.huly').handle_status_update(current_line, buf, render_callback, config)
       elseif section == "beads" and current_line then
         beads_keymaps.handle_status_update(current_line, line_num, buf, render_callback, config)
       elseif section == "linear" then
@@ -319,8 +319,8 @@ local function setup_git_keymaps(buf, config, render_callback)
 
       if section == "linear" then
         linear_keymaps.handle_create(buf, render_callback, config)
-      elseif section == "huly" then
-        huly_keymaps.handle_create(buf, render_callback, config)
+      elseif section == "huly" and config.huly and config.huly.enabled then
+        require('nexus.keymaps.huly').handle_create(buf, render_callback, config)
       elseif section == "beads" then
         beads_keymaps.handle_create(buf, render_callback, config)
       elseif section == "todo" or (config_module.is_section_enabled("todos") and section == "unknown") then
@@ -480,11 +480,12 @@ end
 ---@param config table Nexus configuration
 ---@param render_callback function Function to re-render the buffer
 local function setup_huly_setup_keymap(buf, config, render_callback)
+  -- DORMANT: only reached when huly.enabled = true (see caller guard)
   vim.api.nvim_buf_set_keymap(buf, 'n', 'H', '', {
     noremap = true,
     silent = true,
     callback = function()
-      huly_keymaps.handle_setup(buf, render_callback, config)
+      require('nexus.keymaps.huly').handle_setup(buf, render_callback, config)
     end
   })
 end
@@ -495,12 +496,14 @@ end
 ---@param render_callback function Function to re-render the buffer
 local function setup_huly_keymaps(buf, config, render_callback)
   if not (config.huly and config.huly.enabled) then return end
+  -- DORMANT: this function never executes while huly.enabled = false
+  local hm = require('nexus.keymaps.huly')
 
   vim.api.nvim_buf_set_keymap(buf, 'n', 'w', '', {
     noremap = true,
     silent = true,
     callback = function()
-      huly_keymaps.handle_workspace_selection(buf, render_callback, config)
+      hm.handle_workspace_selection(buf, render_callback, config)
     end
   })
 
@@ -508,7 +511,7 @@ local function setup_huly_keymaps(buf, config, render_callback)
     noremap = true,
     silent = true,
     callback = function()
-      huly_keymaps.handle_project_selection(buf, render_callback, config)
+      hm.handle_project_selection(buf, render_callback, config)
     end
   })
   -- Note: 's' key is handled in setup_git_keymaps with context-awareness
@@ -627,9 +630,8 @@ function M.setup_keymaps(buf, files, config, is_git_repo, render_callback, secti
     setup_beads_keymaps(buf, config, render_callback)
   end
 
-  -- Huly setup keymap (always available, regardless of git repo or enabled state)
-  local config_module = require('nexus.config')
-  if config_module.is_section_enabled("huly_issues") then
+  -- Huly setup keymap (only when explicitly enabled; module is DORMANT by default)
+  if config.huly and config.huly.enabled then
     setup_huly_setup_keymap(buf, config, render_callback)
   end
 

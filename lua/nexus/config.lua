@@ -69,9 +69,10 @@ local default_config = {
     }
   },
 
-  -- Huly integration (requires huly-bridge server: scripts/huly-bridge/)
+  -- Huly integration (DORMANT: see HULY_INTEGRATION_STATUS.md, broken provider, awaiting Node bridge)
+  -- Provider assumes GraphQL; Huly uses WebSocket. Keep enabled=false until Node bridge is implemented.
   huly = {
-    enabled = false,                    -- Enable Huly integration
+    enabled = false,                    -- DORMANT: do not set true until Node bridge is implemented
     bridge_url = "http://localhost:8088",  -- Huly bridge server URL
     token = vim.env.HULY_TOKEN,         -- Huly API token (JWT from workspace settings)
     workspace = vim.env.HULY_WORKSPACE, -- Workspace name (required, no default)
