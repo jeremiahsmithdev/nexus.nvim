@@ -54,27 +54,48 @@ function M.apply_logo_highlighting(buf, lines, config, logo_section)
             -- Highlight project name (before " on")
             local project_start = line_content:find("%S")  -- First non-whitespace
             if project_start then
-              vim.api.nvim_buf_add_highlight(buf, logo_ns, "DiagnosticWarn", i - 1, project_start - 1, on_pattern_start - 1)
+              vim.api.nvim_buf_set_extmark(buf, logo_ns, i - 1, project_start - 1, {
+                end_col = on_pattern_start - 1,
+                hl_group = "DiagnosticWarn",
+              })
             end
             -- Highlight " on " in Comment color (dimmed)
-            vim.api.nvim_buf_add_highlight(buf, logo_ns, "Comment", i - 1, on_pattern_start - 1, on_pattern_end)
+            vim.api.nvim_buf_set_extmark(buf, logo_ns, i - 1, on_pattern_start - 1, {
+              end_col = on_pattern_end,
+              hl_group = "Comment",
+            })
             -- Find the git icon (nerd font icon after "on ")
             local icon_start, icon_end = line_content:find("", on_pattern_end, true)
             if icon_start then
               -- Highlight git icon in String color (green)
-              vim.api.nvim_buf_add_highlight(buf, logo_ns, "String", i - 1, icon_start - 1, icon_end)
+              vim.api.nvim_buf_set_extmark(buf, logo_ns, i - 1, icon_start - 1, {
+                end_col = icon_end,
+                hl_group = "String",
+              })
               -- Highlight branch name (after icon) in Function color
-              vim.api.nvim_buf_add_highlight(buf, logo_ns, "Function", i - 1, icon_end, -1)
+              vim.api.nvim_buf_set_extmark(buf, logo_ns, i - 1, icon_end, {
+                end_col = #line_content,
+                hl_group = "Function",
+              })
             else
               -- No icon found, highlight rest as branch
-              vim.api.nvim_buf_add_highlight(buf, logo_ns, "Function", i - 1, on_pattern_end, -1)
+              vim.api.nvim_buf_set_extmark(buf, logo_ns, i - 1, on_pattern_end, {
+                end_col = #line_content,
+                hl_group = "Function",
+              })
             end
           else
             -- No branch info, highlight entire project name
-            vim.api.nvim_buf_add_highlight(buf, logo_ns, "DiagnosticWarn", i - 1, 0, -1)
+            vim.api.nvim_buf_set_extmark(buf, logo_ns, i - 1, 0, {
+              end_col = #line_content,
+              hl_group = "DiagnosticWarn",
+            })
           end
         else
-          vim.api.nvim_buf_add_highlight(buf, logo_ns, logo_color, i - 1, 0, -1)
+          vim.api.nvim_buf_set_extmark(buf, logo_ns, i - 1, 0, {
+            end_col = #line_content,
+            hl_group = logo_color,
+          })
         end
       end
     end
@@ -93,12 +114,18 @@ function M.apply_button_highlighting(buf, lines, config)
     if line:match('Find file') or line:match('Recently opened') or line:match('Find word') or 
        line:match('New file') or line:match('Bookmarks') or line:match('Restore session') then
       -- Highlight the entire line gray
-      vim.api.nvim_buf_add_highlight(buf, button_ns, 'Comment', i - 1, 0, -1)
-      
+      vim.api.nvim_buf_set_extmark(buf, button_ns, i - 1, 0, {
+        end_col = #line,
+        hl_group = 'Comment',
+      })
+
       -- Find and highlight the icon green
       local icon_start, icon_end = line:find('[󰈞󰋚󰊄󰈔󰃃󰁯]')
       if icon_start then
-        vim.api.nvim_buf_add_highlight(buf, button_ns, 'String', i - 1, icon_start - 1, icon_end)
+        vim.api.nvim_buf_set_extmark(buf, button_ns, i - 1, icon_start - 1, {
+          end_col = icon_end,
+          hl_group = 'String',
+        })
       end
     end
   end
@@ -120,11 +147,20 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo)
       local review_warning = line:find('⚠')
       
       if review_check then
-        vim.api.nvim_buf_add_highlight(buf, commits_ns, 'DiagnosticOk', i - 1, review_check - 1, review_check)
+        vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, review_check - 1, {
+          end_col = review_check,
+          hl_group = 'DiagnosticOk',
+        })
       elseif review_warning then
-        vim.api.nvim_buf_add_highlight(buf, commits_ns, 'DiagnosticWarn', i - 1, review_warning - 1, review_warning)
+        vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, review_warning - 1, {
+          end_col = review_warning,
+          hl_group = 'DiagnosticWarn',
+        })
       elseif review_box then
-        vim.api.nvim_buf_add_highlight(buf, commits_ns, 'Comment', i - 1, review_box - 1, review_box)
+        vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, review_box - 1, {
+          end_col = review_box,
+          hl_group = 'Comment',
+        })
       end
     end
     
@@ -135,21 +171,30 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo)
       local actual_hash_start = line:find('[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+', hash_start)
       if actual_hash_start then
         local actual_hash_end = actual_hash_start + 6 -- 7 char hash - 1
-        vim.api.nvim_buf_add_highlight(buf, commits_ns, 'Number', i - 1, actual_hash_start - 1, actual_hash_end)
+        vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, actual_hash_start - 1, {
+          end_col = actual_hash_end,
+          hl_group = 'Number',
+        })
       end
-      
+
       -- Look for HEAD decoration
       local head_start, head_end = line:find('HEAD')
       if head_start then
-        vim.api.nvim_buf_add_highlight(buf, commits_ns, 'Title', i - 1, head_start - 1, head_end)
+        vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, head_start - 1, {
+          end_col = head_end,
+          hl_group = 'Title',
+        })
       end
-      
+
       -- Look for branch names (simple approach)
       local paren_start, paren_end = line:find('%(.*%)')
       if paren_start and paren_end then
         -- Skip highlighting if it contains HEAD (already highlighted above)
         if not line:sub(paren_start, paren_end):match('HEAD') then
-          vim.api.nvim_buf_add_highlight(buf, commits_ns, 'Function', i - 1, paren_start - 1, paren_end)
+          vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, paren_start - 1, {
+            end_col = paren_end,
+            hl_group = 'Function',
+          })
         end
       end
     end
@@ -203,22 +248,45 @@ function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
       if status_start then
         -- Special case for MM (staged + unstaged): first M green, second M red
         if data.item.status == 'MM' then
-          vim.api.nvim_buf_add_highlight(buf, git_ns, 'DiagnosticOk', line_num - 1, status_start - 1, status_start)  -- First M green
-          vim.api.nvim_buf_add_highlight(buf, git_ns, 'DiagnosticError', line_num - 1, status_start, status_start + 1)  -- Second M red
+          vim.api.nvim_buf_set_extmark(buf, git_ns, line_num - 1, status_start - 1, {
+            end_col = status_start,
+            hl_group = 'DiagnosticOk',
+          })
+          vim.api.nvim_buf_set_extmark(buf, git_ns, line_num - 1, status_start, {
+            end_col = status_start + 1,
+            hl_group = 'DiagnosticError',
+          })
         else
           local color_group = git_status.get_status_color(data.item.status)
-          vim.api.nvim_buf_add_highlight(buf, git_ns, color_group, line_num - 1, status_start - 1, status_start + 1)
+          vim.api.nvim_buf_set_extmark(buf, git_ns, line_num - 1, status_start - 1, {
+            end_col = status_start + 1,
+            hl_group = color_group,
+          })
         end
       end
-      
-      -- Highlight diff stats (+ and - chars)
-      for j = 1, #line_content do
-        local char = line_content:sub(j, j)
-        if char == '+' then
-          vim.api.nvim_buf_add_highlight(buf, git_ns, 'DiagnosticOk', line_num - 1, j - 1, j)
-        elseif char == '-' then
-          vim.api.nvim_buf_add_highlight(buf, git_ns, 'DiagnosticError', line_num - 1, j - 1, j)
-        end
+
+      -- Highlight diff stats: scan for contiguous runs of + and - instead of
+      -- iterating per character.  Drops API calls from O(line_length) to
+      -- O(runs) — typically 2-4 per file vs 50+ for a wide diff bar.
+      local pos = 1
+      while pos <= #line_content do
+        local s, e = line_content:find('%++', pos)
+        if not s then break end
+        vim.api.nvim_buf_set_extmark(buf, git_ns, line_num - 1, s - 1, {
+          end_col = e,
+          hl_group = 'DiagnosticOk',
+        })
+        pos = e + 1
+      end
+      pos = 1
+      while pos <= #line_content do
+        local s, e = line_content:find('%-+', pos)
+        if not s then break end
+        vim.api.nvim_buf_set_extmark(buf, git_ns, line_num - 1, s - 1, {
+          end_col = e,
+          hl_group = 'DiagnosticError',
+        })
+        pos = e + 1
       end
     end
   end
@@ -268,59 +336,92 @@ function M.apply_linear_highlighting(buf, lines, config)
         local state_icon_end = line_content:find('%s', 3) or 4 -- Find first space after icons
         if state_icon_end > 3 then
           local state_color = linear_component.get_state_color(issue.state)
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, state_color, i - 1, 2, state_icon_end - 1)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, 2, {
+            end_col = state_icon_end - 1,
+            hl_group = state_color,
+          })
         end
-        
+
         -- Highlight priority icon if present (after state, before identifier)
         if issue.priority and type(issue.priority) == "number" and issue.priority >= 2 then
           local priority_start = line_content:find('[🟢🟡🟠🔴]', state_icon_end or 4)
           if priority_start then
             local priority_color = linear_component.get_priority_color(issue.priority)
-            vim.api.nvim_buf_add_highlight(buf, linear_ns, priority_color, i - 1, priority_start - 1, priority_start)
+            vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, priority_start - 1, {
+              end_col = priority_start,
+              hl_group = priority_color,
+            })
           end
         end
-        
+
         -- Highlight identifier [LIN-123]
         local id_start, id_end = line_content:find('%[' .. vim.pesc(identifier) .. '%]')
         if id_start then
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Number', i - 1, id_start - 1, id_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, id_start - 1, {
+            end_col = id_end,
+            hl_group = 'Number',
+          })
         end
-        
+
         -- Highlight assignee (@username)
         local assignee_start, assignee_end = line_content:find('@[^)]+')
         if assignee_start then
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Function', i - 1, assignee_start - 1, assignee_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, assignee_start - 1, {
+            end_col = assignee_end,
+            hl_group = 'Function',
+          })
         end
-        
+
         -- Highlight estimate (Np)
         local estimate_start, estimate_end = line_content:find('%(%d+p%)')
         if estimate_start then
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'String', i - 1, estimate_start - 1, estimate_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, estimate_start - 1, {
+            end_col = estimate_end,
+            hl_group = 'String',
+          })
         end
-        
+
         -- Highlight cycle [CycleName]
         local cycle_start, cycle_end = line_content:find('%[[^]]+%]', (id_end or 0) + 1)
         if cycle_start then
-          vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Type', i - 1, cycle_start - 1, cycle_end)
+          vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, cycle_start - 1, {
+            end_col = cycle_end,
+            hl_group = 'Type',
+          })
         end
       end
     elseif line_content:match("Loading issues") then
       -- Highlight loading message
-      vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticInfo', i - 1, 0, -1)
+      vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, 0, {
+        end_col = #line_content,
+        hl_group = 'DiagnosticInfo',
+      })
     elseif line_content:match("No issues found") then
       -- Highlight no issues message
-      vim.api.nvim_buf_add_highlight(buf, linear_ns, 'Comment', i - 1, 0, -1)
+      vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, 0, {
+        end_col = #line_content,
+        hl_group = 'Comment',
+      })
     elseif line_content:match("No API key found") or line_content:match("Invalid API key") then
       -- Highlight API key setup messages as actionable
-      vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticWarn', i - 1, 0, -1)
+      vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, 0, {
+        end_col = #line_content,
+        hl_group = 'DiagnosticWarn',
+      })
       -- Highlight the action hint
       local enter_start, enter_end = line_content:find("<Enter>")
       if enter_start then
-        vim.api.nvim_buf_add_highlight(buf, linear_ns, 'String', i - 1, enter_start - 1, enter_end)
+        vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, enter_start - 1, {
+          end_col = enter_end,
+          hl_group = 'String',
+        })
       end
     elseif line_content:match("❌") then
       -- Highlight other error messages
-      vim.api.nvim_buf_add_highlight(buf, linear_ns, 'DiagnosticError', i - 1, 0, -1)
+      vim.api.nvim_buf_set_extmark(buf, linear_ns, i - 1, 0, {
+        end_col = #line_content,
+        hl_group = 'DiagnosticError',
+      })
     end
   end
 end
@@ -339,7 +440,10 @@ function M.apply_shortcuts_highlighting(buf, lines, config, section_ranges)
   for i = shortcuts_section.start_line, shortcuts_section.end_line do
     local line_content = lines[i]
     if line_content and #line_content > 0 then -- Only highlight non-empty lines
-      vim.api.nvim_buf_add_highlight(buf, shortcuts_ns, 'Comment', i - 1, 0, -1)
+      vim.api.nvim_buf_set_extmark(buf, shortcuts_ns, i - 1, 0, {
+        end_col = #line_content,
+        hl_group = 'Comment',
+      })
     end
   end
 end
