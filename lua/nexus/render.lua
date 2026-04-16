@@ -6,6 +6,7 @@ local M = {}
 
 function M.render_git_status(buf, config, cached_files, cached_commits)
   -- Lazy load all dependencies inside function to avoid startup blocking
+  local logger = require('nexus.logger')
   local layout = require('nexus.render.layout')
   local sections_component = require('nexus.render.components.sections')
   local highlighting = require('nexus.render.components.highlighting')
@@ -68,11 +69,19 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
     events.setup_dynamic_shortcuts(buf, config, is_git_repo, section_ranges)
   end
 
-  -- Initialize all folds to open state (establishes baseline before applying saved states)
-  folding.initialize_folds_to_open(buf, section_ranges)
-
-  -- Apply saved fold states from persistent storage
-  folding.apply_fold_states(buf, section_ranges)
+  -- Conditionally initialize and apply fold states.
+  -- Skipped when layout is identical to the last apply and no fold toggles occurred,
+  -- avoiding redundant cursor movement (and visible flicker) on stable 'r' refreshes.
+  local fold_state_mod = require('nexus.state.folds')
+  local ranges_hash = folding.compute_ranges_hash(section_ranges)
+  if fold_state_mod.is_apply_needed(ranges_hash) then
+    -- Initialize all folds to open state (establishes baseline before applying saved states)
+    folding.initialize_folds_to_open(buf, section_ranges)
+    -- Apply saved fold states from persistent storage (pass hash to avoid recompute)
+    folding.apply_fold_states(buf, section_ranges, ranges_hash)
+  else
+    logger.debug("FOLD", "Skipping fold state apply (layout and state unchanged)")
+  end
 
   -- Update section arrows to reflect fold states
   folding.update_section_arrows(buf, section_ranges)
