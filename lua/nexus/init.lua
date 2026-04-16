@@ -110,14 +110,47 @@ function M.open(is_manual_open)
     state.set('cache', 'git_commits_timestamp', os.time())
     logger.log_timing_event("GIT_STATE_CACHE_UPDATED")
 
-    -- Full render with actual git data (pass both files AND commits)
+    -- Kick off beads async refresh BEFORE the full render so the initial render
+    -- shows "Loading issues..." instead of a misleading "No ready issues".
+    -- The callback re-renders after both issues and epics finish loading.
+    local config_mod = require('nexus.config')
+    local is_git_repo = git_data.is_git_repo
     local render = registry.get('nexus.render')
+
+    if config_mod.is_section_enabled("beads_issues") then
+      local beads_state_mod = require('nexus.state.beads')
+      if beads_state_mod.is_beads_available() and beads_state_mod.is_cli_installed() then
+        local beads_issues_done = false
+        local beads_epics_done = false
+
+        local function beads_re_render()
+          if not (beads_issues_done and beads_epics_done) then return end
+          if not vim.api.nvim_buf_is_valid(buf) then return end
+          logger.log_timing_event("BEADS_ASYNC_RENDER_START")
+          local bf, br = render.render_git_status(buf, current_config, git_data.files, git_data.commits)
+          keymaps.setup_keymaps(buf, bf, current_config, is_git_repo, function(rbuf, cf)
+            render.render_git_status(rbuf, current_config, cf)
+          end, br)
+          logger.log_timing_event("BEADS_ASYNC_RENDER_COMPLETE")
+        end
+
+        -- Invalidate caches so get_issues_async fires a fresh CLI call
+        -- (sets _loading=true synchronously, causing the initial render to show "Loading...")
+        beads_state_mod.refresh_async(nil, function()
+          beads_issues_done = true
+          beads_re_render()
+        end)
+        beads_state_mod.get_sorted_epics_async(false, function()
+          beads_epics_done = true
+          beads_re_render()
+        end)
+      end
+    end
+
+    -- Full render with actual git data (pass both files AND commits)
     logger.log_timing_event("FULL_RENDER_START")
     local files, section_ranges = render.render_git_status(buf, current_config, git_data.files, git_data.commits)
     logger.log_timing_event("FULL_RENDER_COMPLETE")
-
-    -- Get git repo status from async data
-    local is_git_repo = git_data.is_git_repo
 
     -- Set up full keymaps with file navigation
     logger.log_timing_event("KEYMAPS_FULL_START")
@@ -137,7 +170,6 @@ function M.open(is_manual_open)
     -- The initial render already showed a "Loading conversations..." placeholder.
     -- When the scan completes (disk cache hit = immediate; full scan = background),
     -- re-render the buffer so the section updates with actual conversation data.
-    local config_mod = require('nexus.config')
     if config_mod.is_section_enabled("claude_conversations") then
       local claude_mod = require('nexus.claude')
       logger.log_timing_event("CLAUDE_SCAN_START")

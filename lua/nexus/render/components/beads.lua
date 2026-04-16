@@ -250,14 +250,12 @@ function M.build_beads_section(config)
     return lines
   end
 
-  -- Get issues (will use cache or refresh as needed)
-  beads_state.refresh_if_needed(config)
+  -- Use only cached data; background refresh is triggered from init.lua
+  -- (same stale-while-revalidate pattern as claude_conversations).
   local raw_issues = beads_state.get_cached_issues() or {}
 
-  -- Always surface epics at the top, even when the active filter
-  -- (e.g. "ready") would otherwise exclude them. br ready only returns
-  -- unblocked leaf work; epics must be fetched independently.
-  local epics = beads_state.get_sorted_epics(false) or {}
+  -- Surface epics from their dedicated cache (never blocks the main thread)
+  local epics = beads_state.get_cached_epics() or {}
   local seen = {}
   local merged = {}
   for _, epic in ipairs(epics) do
