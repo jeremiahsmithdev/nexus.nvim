@@ -31,42 +31,34 @@ local claude = require('nexus.claude')
 local tmux = require('nexus.tmux')
 local git_state = require('nexus.state.git')
 
---- Determine which section the cursor is currently in
----@param lines table All buffer lines
----@param line_num number Current cursor line number
----@param config table Nexus configuration
----@return string section_name The section the cursor is in
-function M.get_current_section(lines, line_num, config)
-  local current_line = lines[line_num]
-  if not current_line then return "unknown" end
-  
-  -- Look backwards from current line to find the section header
-  for i = line_num, 1, -1 do
-    local line = lines[i]
-    if line then
-      -- Check for section headers (with or without fold indicators)
-      if line:match("Linear Issues:%s*$") then
-        return "linear"
-      elseif line:match("Huly Issues:%s*$") then
-        return "huly"
-      elseif line:match("Beads Issues:%s*$") then
-        return "beads"
-      elseif line:match("Todo:%s*$") then
-        return "todo"
-      elseif line:match("Recent Commits:%s*$") then
-        return "commits"
-      elseif line:match("Git Status:%s*$") then
-        return "git_status"
-      elseif line:match("Claude Conversations:%s*$") then
-        return "claude_conversations"
-      elseif line:match("^%s*Dashboard:%s*$") or line:match("Find file") or line:match("Recently opened files") then
-        return "dashboard"
-      elseif line:match("^%s*Keyboard Shortcuts:%s*$") then
-        return "shortcuts"
-      end
+-- Maps section_ranges keys (from render layout) to the short names used by keymap handlers.
+-- section_ranges uses full config-key names; keymaps historically used abbreviated aliases.
+local SECTION_NAME_MAP = {
+  todos                = "todo",
+  recent_commits       = "commits",
+  beads_issues         = "beads",
+  linear_issues        = "linear",
+  huly_issues          = "huly",
+  git_status           = "git_status",
+  claude_conversations = "claude_conversations",
+  dashboard_buttons    = "dashboard",
+  keyboard_shortcuts   = "shortcuts",
+  project_name         = "project_name",
+}
+
+--- Determine which section the cursor is currently in (O(1) range lookup).
+--- Reads from the pre-computed section_ranges produced by render and stored in
+--- vim.b[buf].nexus_section_ranges — no buffer line scanning required.
+---@param line_num number Current cursor line number (1-indexed)
+---@param section_ranges table|nil Pre-computed section ranges map from render
+---@return string section_name Short section name, or "unknown"
+function M.get_current_section(line_num, section_ranges)
+  if not section_ranges then return "unknown" end
+  for name, range in pairs(section_ranges) do
+    if line_num >= range.start_line and line_num <= range.end_line then
+      return SECTION_NAME_MAP[name] or name
     end
   end
-  
   return "unknown"
 end
 
@@ -78,14 +70,13 @@ function M.handle_e_key(buf, config, render_callback)
   local cursor = vim.api.nvim_win_get_cursor(0)
   local line_num = cursor[1]
 
-  -- Get all lines in the buffer
+  local section = M.get_current_section(line_num, vim.b[buf].nexus_section_ranges)
+
+  -- Get current line (needed by handlers below)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local current_line = lines[line_num]
 
   if not current_line then return end
-
-  -- Determine which section we're in
-  local section = M.get_current_section(lines, line_num, config)
 
   if section == "todo" then
     -- Handle todo editing
@@ -118,14 +109,13 @@ function M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
   local cursor = vim.api.nvim_win_get_cursor(0)
   local line_num = cursor[1]
   
-  -- Get all lines in the buffer
+  local section = M.get_current_section(line_num, vim.b[buf].nexus_section_ranges)
+
+  -- Get current line (needed by handlers below)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local current_line = lines[line_num]
-  
+
   if not current_line then return end
-  
-  -- Determine which section we're in
-  local section = M.get_current_section(lines, line_num, config)
   
   -- Handle based on section
   if section == "dashboard" then
@@ -293,10 +283,9 @@ local function setup_git_keymaps(buf, config, render_callback)
     silent = true,
     callback = function()
       -- Context-aware 's' key - stage in git, update status in issue trackers
-      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
       local line_num = vim.api.nvim_win_get_cursor(0)[1]
-      local section = M.get_current_section(lines, line_num, config)
-      local current_line = lines[line_num]
+      local section = M.get_current_section(line_num, vim.b[buf].nexus_section_ranges)
+      local current_line = vim.api.nvim_buf_get_lines(buf, line_num - 1, line_num, false)[1]
 
       if section == "huly" and current_line then
         huly_keymaps.handle_status_update(current_line, buf, render_callback, config)
@@ -324,9 +313,8 @@ local function setup_git_keymaps(buf, config, render_callback)
     silent = true,
     callback = function()
       -- Handle 'c' key - could be commit or create todo
-      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
       local line_num = vim.api.nvim_win_get_cursor(0)[1]
-      local section = M.get_current_section(lines, line_num, config)
+      local section = M.get_current_section(line_num, vim.b[buf].nexus_section_ranges)
       local config_module = require('nexus.config')
 
       if section == "linear" then
@@ -357,17 +345,16 @@ local function setup_git_keymaps(buf, config, render_callback)
     silent = true,
     callback = function()
       -- Handle 'v' in commits and git_status sections, otherwise use default visual mode
-      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
       local line_num = vim.api.nvim_win_get_cursor(0)[1]
-      local section = M.get_current_section(lines, line_num, config)
+      local section = M.get_current_section(line_num, vim.b[buf].nexus_section_ranges)
 
       if section == "commits" then
-        local current_line = lines[line_num]
+        local current_line = vim.api.nvim_buf_get_lines(buf, line_num - 1, line_num, false)[1]
         if current_line then
           git_keymaps.handle_vgit_commit(current_line)
         end
       elseif section == "git_status" then
-        local current_line = lines[line_num]
+        local current_line = vim.api.nvim_buf_get_lines(buf, line_num - 1, line_num, false)[1]
         if current_line then
           git_keymaps.handle_vgit_file_diff(current_line)
         end
@@ -406,10 +393,9 @@ local function setup_context_keymaps(buf, config, render_callback)
       noremap = true,
       silent = true,
       callback = function()
-        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
         local line_num = vim.api.nvim_win_get_cursor(0)[1]
-        local section = M.get_current_section(lines, line_num, config)
-        local current_line = lines[line_num]
+        local section = M.get_current_section(line_num, vim.b[buf].nexus_section_ranges)
+        local current_line = vim.api.nvim_buf_get_lines(buf, line_num - 1, line_num, false)[1]
 
         if section == "beads" and current_line then
           beads_keymaps.handle_done(current_line, line_num, buf, render_callback, config)
@@ -430,8 +416,7 @@ local function setup_context_keymaps(buf, config, render_callback)
       silent = true,
       callback = function()
         local line_num = vim.api.nvim_win_get_cursor(0)[1]
-        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-        local section = M.get_current_section(lines, line_num, config)
+        local section = M.get_current_section(line_num, vim.b[buf].nexus_section_ranges)
         if section == "todo" then
           local todo_id = todo_component.get_todo_id_from_line_num(line_num)
           if todo_id then
@@ -461,9 +446,8 @@ local function setup_context_keymaps(buf, config, render_callback)
       noremap = true,
       silent = true,
       callback = function()
-        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
         local line_num = vim.api.nvim_win_get_cursor(0)[1]
-        local section = M.get_current_section(lines, line_num, config)
+        local section = M.get_current_section(line_num, vim.b[buf].nexus_section_ranges)
 
         if section == "todo" then
           todo_keymaps.handle_edit_all(buf, render_callback, config)
@@ -545,9 +529,8 @@ local function setup_beads_keymaps(buf, config, render_callback)
     noremap = true,
     silent = true,
     callback = function()
-      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
       local line_num = vim.api.nvim_win_get_cursor(0)[1]
-      local section = M.get_current_section(lines, line_num, config)
+      local section = M.get_current_section(line_num, vim.b[buf].nexus_section_ranges)
 
       if section == "beads" then
         beads_keymaps.handle_show_ready(buf, render_callback, config)

@@ -32,6 +32,10 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
   -- Layout sections using component
   local lines, section_ranges, logo_section = layout.layout_sections(sections, config, width)
 
+  -- Store section ranges as buffer-local var so keymap handlers can access it
+  -- for O(1) section detection without it being threaded through every closure.
+  vim.b[buf].nexus_section_ranges = section_ranges
+
   -- Update beads line mapping with absolute line numbers (if beads section exists)
   if section_ranges.beads_issues then
     local beads_component = require('nexus.render.components.beads')

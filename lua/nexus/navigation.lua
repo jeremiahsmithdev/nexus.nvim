@@ -110,13 +110,13 @@ end
 function M.navigate_to_previous_section(get_current_section, config, logo_end_line, section_ranges)
   local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
   local current_line = vim.api.nvim_win_get_cursor(0)[1]
-  local current_section = get_current_section(lines, current_line, config)
-  
+  local current_section = get_current_section(current_line, section_ranges)
+
   -- Find previous section header
   for i = current_line - 1, 1, -1 do
     local line = lines[i]
     if line and line:match("^%s*[^%s].*:%s*$") then
-      local section = get_current_section(lines, i, config)
+      local section = get_current_section(i, section_ranges)
       if section ~= current_section then
         -- Found different section, move to its first actionable line
         vim.api.nvim_win_set_cursor(0, {i + 1, 0})
@@ -138,13 +138,13 @@ end
 function M.navigate_to_next_section(get_current_section, config, logo_end_line, section_ranges)
   local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
   local current_line = vim.api.nvim_win_get_cursor(0)[1]
-  local current_section = get_current_section(lines, current_line, config)
-  
+  local current_section = get_current_section(current_line, section_ranges)
+
   -- Find next section header
   for i = current_line + 1, #lines do
     local line = lines[i]
     if line and line:match("^%s*[^%s].*:%s*$") then
-      local section = get_current_section(lines, i, config)
+      local section = get_current_section(i, section_ranges)
       if section ~= current_section then
         -- Found different section, move to its first actionable line
         vim.api.nvim_win_set_cursor(0, {i + 1, 0})
