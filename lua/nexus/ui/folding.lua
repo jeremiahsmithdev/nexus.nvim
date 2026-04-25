@@ -212,9 +212,13 @@ function M.get_fold_text(fold_start_line, base_text)
   end
 end
 
--- Sections that can be folded (skip project_name and keyboard_shortcuts)
+-- Sections that can be folded.
+-- Foldable sections must follow the [Header:, "", content...] structure so that
+-- `fold_start = start_line + 2` lands on the first content line. Sections that
+-- don't follow that shape (project_name, keyboard_shortcuts, dashboard_buttons)
+-- are intentionally excluded — folding them would land the fold start in the
+-- middle of their content and produce nonsense fold markers.
 M.foldable_sections = {
-  'dashboard_buttons',
   'todos',
   'recent_commits',
   'git_status',
@@ -239,25 +243,17 @@ local function set_fold_window_options(buf)
   end)
 end
 
--- Setup folds for all collapsible sections
-function M.setup_section_folds(buf, section_ranges)
-  -- Validate buffer
-  if not buf or not vim.api.nvim_buf_is_valid(buf) then
-    logger.error("FOLD", "Invalid buffer provided for section folding setup")
-    return
-  end
+-- Build a sorted, validated plan of fold ranges for every foldable section.
+-- This is the single source of truth for fold boundaries. The invariant we
+-- enforce: folds are strictly non-overlapping AND separated by at least one
+-- unfolded line (so adjacent folds can never visually merge or compete for
+-- the cursor). Any candidate that would violate this invariant is dropped
+-- with a loud warning rather than silently corrupting the buffer.
+local function plan_section_folds(buf, section_ranges)
+  local plan = {}
 
-  if not section_ranges or vim.tbl_isempty(section_ranges) then
-    logger.debug("FOLD", "No section ranges provided for folding")
-    return
-  end
-
-  -- Set fold options on the window displaying this buffer (not buffer-local defaults)
-  set_fold_window_options(buf)
-
-  local foldable_sections = M.foldable_sections
-
-  -- Build a sorted list of ALL section start lines to use as boundaries
+  -- Collect every section's start_line so each candidate fold knows where its
+  -- successor begins, regardless of which section is foldable.
   local all_section_starts = {}
   for _, range in pairs(section_ranges) do
     if range and range.start_line then
@@ -269,26 +265,26 @@ function M.setup_section_folds(buf, section_ranges)
   local total_lines = vim.api.nvim_buf_line_count(buf)
   local buf_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 
-  -- Create folds for each foldable section
-  for _, section_name in ipairs(foldable_sections) do
+  for _, section_name in ipairs(M.foldable_sections) do
     local range = section_ranges[section_name]
-
     if range and range.start_line and range.end_line then
-      local fold_start = range.start_line + 2  -- Skip header and empty line
+      local fold_start = range.start_line + 2  -- Skip header + empty separator
 
-      -- Find the next section's start_line to use as upper boundary
+      -- Upper bound: at least one full line gap before next section's header.
+      -- next_start - 1 = spacer line (must remain unfolded), so we cap
+      -- fold_end at next_start - 2 to guarantee a visible separator.
       local max_fold_end = total_lines
       for _, start in ipairs(all_section_starts) do
         if start > range.start_line then
-          -- Fold must end before the next section's header line
-          max_fold_end = start - 1
+          max_fold_end = start - 2
           break
         end
       end
 
       local fold_end = math.min(range.end_line, max_fold_end)
 
-      -- Trim trailing empty lines from fold range
+      -- Trim trailing whitespace-only lines so the fold doesn't visually
+      -- absorb blank space the user expects to see between sections.
       while fold_end >= fold_start do
         local line = buf_lines[fold_end]
         if line and line:match("^%s*$") then
@@ -298,31 +294,90 @@ function M.setup_section_folds(buf, section_ranges)
         end
       end
 
-      if fold_start <= fold_end then
-        local success, err = pcall(function()
-          vim.api.nvim_buf_call(buf, function()
-            local cmd = string.format('%d,%dfold', fold_start, fold_end)
-            vim.cmd(cmd)
-          end)
-        end)
-
-        if not success then
-          logger.warn("FOLD", "Failed to create fold for section", {
-            section = section_name,
-            start = fold_start,
-            end_line = fold_end,
-            error = err
-          })
-        else
-          logger.debug("FOLD", "Created fold for section", {
-            section = section_name,
-            fold_start = fold_start,
-            fold_end = fold_end,
-            range_end = range.end_line,
-            clamped_to = max_fold_end
-          })
-        end
+      if fold_start <= fold_end and fold_start >= 1 and fold_end <= total_lines then
+        table.insert(plan, {
+          section = section_name,
+          fold_start = fold_start,
+          fold_end = fold_end,
+          range_end = range.end_line,
+          clamped_to = max_fold_end,
+        })
+      else
+        logger.debug("FOLD", "Skipping fold (degenerate range)", {
+          section = section_name,
+          fold_start = fold_start,
+          fold_end = fold_end,
+          range_start = range.start_line,
+          range_end = range.end_line,
+        })
       end
+    end
+  end
+
+  -- Sort by fold_start so we can validate the overlap invariant in one pass.
+  table.sort(plan, function(a, b) return a.fold_start < b.fold_start end)
+
+  -- Invariant: previous fold must end at least 2 lines before the next fold
+  -- begins (i.e. there is at least one unfolded line between them, which is
+  -- the spacer). If this ever fires, we drop the offending entry and log so
+  -- the user can see *which* sections collided in /tmp/nexus-debug.log.
+  local validated = {}
+  for _, entry in ipairs(plan) do
+    local prev = validated[#validated]
+    if prev and entry.fold_start <= prev.fold_end + 1 then
+      logger.warn("FOLD", "Boundary invariant violated; dropping fold", {
+        section = entry.section,
+        fold_start = entry.fold_start,
+        fold_end = entry.fold_end,
+        prev_section = prev.section,
+        prev_fold_end = prev.fold_end,
+      })
+    else
+      table.insert(validated, entry)
+    end
+  end
+
+  return validated
+end
+
+-- Setup folds for all collapsible sections
+function M.setup_section_folds(buf, section_ranges)
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    logger.error("FOLD", "Invalid buffer provided for section folding setup")
+    return
+  end
+
+  if not section_ranges or vim.tbl_isempty(section_ranges) then
+    logger.debug("FOLD", "No section ranges provided for folding")
+    return
+  end
+
+  set_fold_window_options(buf)
+
+  local plan = plan_section_folds(buf, section_ranges)
+
+  for _, entry in ipairs(plan) do
+    local success, err = pcall(function()
+      vim.api.nvim_buf_call(buf, function()
+        vim.cmd(string.format('%d,%dfold', entry.fold_start, entry.fold_end))
+      end)
+    end)
+
+    if not success then
+      logger.warn("FOLD", "Failed to create fold for section", {
+        section = entry.section,
+        start = entry.fold_start,
+        end_line = entry.fold_end,
+        error = err,
+      })
+    else
+      logger.debug("FOLD", "Created fold for section", {
+        section = entry.section,
+        fold_start = entry.fold_start,
+        fold_end = entry.fold_end,
+        range_end = entry.range_end,
+        clamped_to = entry.clamped_to,
+      })
     end
   end
 end
@@ -355,7 +410,11 @@ function M.initialize_folds_to_open(buf, section_ranges)
     foldable_set[name] = true
   end
 
-  -- Open all folds to establish consistent baseline
+  -- Save full view so we can restore the viewport after any cursor movements
+  -- triggered by `normal! zo`. Without this, cursor moves to each fold line
+  -- scroll the viewport and leave topline wherever the last scroll landed.
+  local saved_view = vim.fn.winsaveview()
+
   for section_name, range in pairs(section_ranges) do
     if foldable_set[section_name] and range and range.start_line then
       local fold_line = range.start_line + 2
@@ -375,6 +434,9 @@ function M.initialize_folds_to_open(buf, section_ranges)
       end
     end
   end
+
+  -- Restore full view (cursor + topline + leftcol + curswant) atomically.
+  pcall(vim.fn.winrestview, saved_view)
 end
 
 -- Compute a lightweight hash of section_ranges structure.
@@ -415,8 +477,11 @@ function M.apply_fold_states(buf, section_ranges, ranges_hash)
     foldable_set[name] = true
   end
 
-  -- Save initial cursor position
-  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  -- Save full view (cursor + topline + leftcol + curswant) atomically so we can
+  -- restore the viewport exactly at the end. Restoring cursor-only via
+  -- nvim_win_set_cursor is insufficient — it leaves topline wherever the last
+  -- scroll landed, which is how the dashboard ended up "jumping" after render.
+  local saved_view = vim.fn.winsaveview()
 
   -- Apply fold states only for foldable sections (skip keyboard_shortcuts, project_name, etc.)
   for section_name, range in pairs(section_ranges) do
@@ -426,17 +491,19 @@ function M.apply_fold_states(buf, section_ranges, ranges_hash)
       -- Calculate actual fold start (header + empty line are not part of fold)
       local fold_line = range.start_line + 2
 
-      -- Apply fold state
+      -- Apply fold state via cursor-based zo/zc. We deliberately use the
+      -- proven cursor+normal! approach rather than :foldopen/:foldclose ex
+      -- commands because the ex-command form failed to actually toggle state
+      -- in this codebase (fold persistence broke entirely). Viewport scrolling
+      -- caused by cursor movement is mitigated by the winsaveview/winrestview
+      -- wrap outside this loop.
       local success = pcall(function()
         vim.api.nvim_buf_call(buf, function()
           -- Ensure folding is properly enabled on the window (fixes initial state issue)
           vim.wo[0].foldenable = true
           vim.wo[0].foldmethod = 'manual'
 
-          -- Move cursor to the fold start line
           vim.api.nvim_win_set_cursor(0, {fold_line, 0})
-
-          -- Open or close the fold
           if is_open then
             vim.cmd('normal! zo')  -- Open fold
           else
@@ -454,9 +521,21 @@ function M.apply_fold_states(buf, section_ranges, ranges_hash)
     end
   end
 
-  -- Restore initial cursor position
+  -- Restore full view atomically (cursor + topline + leftcol + curswant).
+  -- If the saved cursor now lies inside a closed fold, nudge it to the fold's
+  -- header line to avoid Neovim auto-relocating the cursor unpredictably.
   pcall(function()
-    vim.api.nvim_win_set_cursor(0, initial_cursor)
+    local target_line = saved_view.lnum
+    if target_line and vim.api.nvim_buf_is_valid(buf) then
+      vim.api.nvim_buf_call(buf, function()
+        local fold_start = vim.fn.foldclosed(target_line)
+        if fold_start and fold_start > 0 then
+          saved_view.lnum = fold_start
+          saved_view.col = 0
+        end
+      end)
+    end
+    vim.fn.winrestview(saved_view)
   end)
 
   -- Record that we successfully applied for this layout; skip on next render
@@ -541,10 +620,10 @@ end
 
 -- Custom fold text function for sections
 function M.get_section_fold_text()
-  -- Get fold level info
-  local fold_lines = vim.v.foldend - vim.v.foldstart
-
-  -- Show just the line count
+  -- foldstart and foldend are inclusive line numbers, so the count is
+  -- (end - start + 1). Without the +1, a fold covering lines 18-22 (5 lines)
+  -- would display "(4 lines hidden)".
+  local fold_lines = vim.v.foldend - vim.v.foldstart + 1
   return string.format("    (%d lines hidden)", fold_lines)
 end
 

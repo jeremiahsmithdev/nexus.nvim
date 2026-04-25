@@ -52,6 +52,18 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
     logo.render_image_logo(buf, config, 0, 0)
   end
 
+  -- Wipe all existing folds before recreating them. Without this, repeated
+  -- full renders (which happen during async startup: placeholder render →
+  -- data-arrived render → state-update renders) stack new fold definitions
+  -- on top of old ones. Vim's `:N,M fold` doesn't replace overlapping folds —
+  -- it nests them — and the resulting fold tree can extend a closed fold
+  -- across multiple sections (e.g. git_status's closed fold swallowing the
+  -- next section's header). The incremental render path (render_section)
+  -- already does this; the full path needs it too.
+  pcall(vim.api.nvim_buf_call, buf, function()
+    vim.cmd('normal! zE')
+  end)
+
   -- Set up folding for git status overflow
   sections_component.setup_folding(buf, lines, config, files)
 
@@ -75,19 +87,16 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
     events.setup_dynamic_shortcuts(buf, config, is_git_repo, section_ranges)
   end
 
-  -- Conditionally initialize and apply fold states.
-  -- Skipped when layout is identical to the last apply and no fold toggles occurred,
-  -- avoiding redundant cursor movement (and visible flicker) on stable 'r' refreshes.
-  local fold_state_mod = require('nexus.state.folds')
+  -- Always re-apply fold states after setup_section_folds recreates the folds.
+  -- nvim_buf_set_lines destroys manual folds every render, so setup_section_folds
+  -- always yields fresh CLOSED folds (Vim's :fold default). Skipping re-apply
+  -- would leave sections closed even when saved state says "open", which was a
+  -- regression introduced by the previous is_apply_needed optimization.
+  -- Safe to always run now that apply_fold_states uses ex commands (no cursor
+  -- movement, no viewport flicker).
   local ranges_hash = folding.compute_ranges_hash(section_ranges)
-  if fold_state_mod.is_apply_needed(ranges_hash) then
-    -- Initialize all folds to open state (establishes baseline before applying saved states)
-    folding.initialize_folds_to_open(buf, section_ranges)
-    -- Apply saved fold states from persistent storage (pass hash to avoid recompute)
-    folding.apply_fold_states(buf, section_ranges, ranges_hash)
-  else
-    logger.debug("FOLD", "Skipping fold state apply (layout and state unchanged)")
-  end
+  folding.initialize_folds_to_open(buf, section_ranges)
+  folding.apply_fold_states(buf, section_ranges, ranges_hash)
 
   -- Update section arrows to reflect fold states
   folding.update_section_arrows(buf, section_ranges)
@@ -136,6 +145,9 @@ function M.render_section(buf, section_name)
   if section_name == 'beads_issues' then
     local beads_component = require('nexus.render.components.beads')
     raw_lines = beads_component.build_beads_section(current_config)
+  elseif section_name == 'todos' then
+    local todo_component = require('nexus.render.components.todo')
+    raw_lines = todo_component.build_todo_section(current_config)
   else
     -- Generic fallback: rebuild all sections and extract the one we need.
     local git_state_mod = require('nexus.state.git')
@@ -213,7 +225,35 @@ function M.render_section(buf, section_name)
     local new_end   = new_ranges.beads_issues.end_line
     vim.api.nvim_buf_clear_namespace(buf, ns_id, new_start - 1, new_end)
     beads_component.apply_beads_highlighting(buf, new_start)
+  elseif section_name == 'todos' and new_ranges.todos then
+    -- Clear stale todo highlights in the replaced range, then re-apply.
+    local todo_component = require('nexus.render.components.todo')
+    local ns_id = vim.api.nvim_create_namespace('nexus_todo')
+    local new_start = new_ranges.todos.start_line
+    local new_end   = new_ranges.todos.end_line
+    vim.api.nvim_buf_clear_namespace(buf, ns_id, new_start - 1, new_end)
+    todo_component.apply_todo_highlighting(buf, new_start)
   end
+
+  -- Rebuild folds with fresh ranges. A partial line replacement leaves the
+  -- old section without a fold mark (its lines were destroyed) and may leave
+  -- stale fold boundaries on neighbouring sections. `zE` wipes all folds so
+  -- setup_section_folds can recreate them cleanly against the new layout.
+  local folding = require('nexus.ui.folding')
+  vim.api.nvim_buf_set_option(buf, 'modifiable', true)
+  pcall(vim.api.nvim_buf_call, buf, function()
+    vim.cmd('normal! zE')
+  end)
+  folding.setup_section_folds(buf, new_ranges)
+
+  -- Apply saved open/closed states. apply_fold_states calls fold_state.mark_clean
+  -- internally, so the next full render's is_apply_needed check will correctly
+  -- skip redundant re-application when nothing has changed.
+  local ranges_hash = folding.compute_ranges_hash(new_ranges)
+  folding.initialize_folds_to_open(buf, new_ranges)
+  folding.apply_fold_states(buf, new_ranges, ranges_hash)
+  folding.update_section_arrows(buf, new_ranges)
+  vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 end
 
 
