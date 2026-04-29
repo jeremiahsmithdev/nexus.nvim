@@ -180,45 +180,18 @@ function M.open(is_manual_open)
   logger.end_timing_session()
 end
 
--- Position cursor on first actionable line (dashboard buttons)
+-- Position cursor at the top of the buffer so the logo and all sections are
+-- visible. We previously hunted for the "first actionable line" (first dashboard
+-- button) as a QoL optimization, but that forced the viewport to scroll past the
+-- logo whenever the target line sat below window height. Neovim's internal
+-- invariant (topline <= cursor_line <= topline + win_height) overrides any
+-- winrestview topline=1 when the cursor is deep in the buffer — there's no way
+-- to show both the logo AND a cursor halfway down the buffer in a small window.
+-- Keeping cursor at line 1 guarantees the dashboard renders as designed.
 function M.position_cursor_on_actionable_line(buf, section_ranges)
   logger.log_timing_event("CURSOR_POSITIONING_INNER_START")
-  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  local logo = registry.get('nexus.ui.logo')
-  local current_config = registry.get('nexus.config').get()
-  local logo_lines = logo.get_neovim_logo(current_config)
-  local logo_end_line = #logo_lines  -- Logo only
-
-  -- Find first actionable line (should be first dashboard button)
-  for i = logo_end_line + 1, #lines do
-    if lines[i] then
-      -- Skip keyboard shortcuts section
-      if section_ranges and section_ranges.keyboard_shortcuts then
-        local shortcuts_range = section_ranges.keyboard_shortcuts
-        if i >= shortcuts_range.start_line and i <= shortcuts_range.end_line then
-          goto continue
-        end
-      end
-
-      -- Skip empty lines
-      if lines[i]:match("^%s*$") then
-        goto continue
-      end
-
-      -- Skip section titles (lines ending with colon)
-      if lines[i]:match(":$") then
-        goto continue
-      end
-
-      -- This is an actionable line
-      logger.log_timing_event("CURSOR_POSITIONING_INNER_COMPLETE")
-      -- First scroll to top to keep logo visible, then set cursor
-      vim.cmd('normal! gg')
-      vim.api.nvim_win_set_cursor(0, {i, 0})
-      break
-    end
-    ::continue::
-  end
+  pcall(vim.api.nvim_win_set_cursor, 0, {1, 0})
+  logger.log_timing_event("CURSOR_POSITIONING_INNER_COMPLETE")
 end
 
 -- Function to refresh an existing Nexus buffer
