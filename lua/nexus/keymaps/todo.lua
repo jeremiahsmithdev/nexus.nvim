@@ -6,6 +6,13 @@ local todo_state = require('nexus.state.todo')
 local todo_component = require('nexus.render.components.todo')
 local logger = require('nexus.logger')
 
+-- Incremental todo re-render. Matches the pattern used by beads keymaps:
+-- mutate state, then patch just the todos section rather than doing a full
+-- buffer rewrite. Keeps cursor stable and prevents fold/layout flicker.
+local function rerender_todos(buf)
+  require('nexus.render').render_section(buf, 'todos')
+end
+
 --- Handle Enter key in todo section
 function M.handle_enter(current_line, line_num, config)
   local todo_id = todo_component.get_todo_id_from_line_num(line_num)
@@ -19,7 +26,7 @@ end
 
 --- Handle 'c' key in todo section - create new todo
 function M.handle_create(buf, render_callback, config)
-  vim.ui.input({ 
+  vim.ui.input({
     prompt = 'New todo: ',
     default = ''
   }, function(input)
@@ -27,8 +34,7 @@ function M.handle_create(buf, render_callback, config)
       actions.execute('todo.create', {
         text = input
       })
-      -- Refresh the buffer after creating todo
-      render_callback(buf)
+      rerender_todos(buf)
     end
   end)
 end
@@ -50,8 +56,7 @@ function M.handle_edit(todo_id, buf, render_callback, config)
         id = todo_id,
         text = input
       })
-      -- Refresh the buffer after editing
-      render_callback(buf)
+      rerender_todos(buf)
     end
   end)
 end
@@ -61,9 +66,7 @@ function M.handle_done(todo_id, buf, render_callback, config)
   actions.execute('todo.done', {
     id = todo_id
   })
-  -- Refresh the buffer after marking done
-  vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-  render_callback(buf)
+  rerender_todos(buf)
 end
 
 --- Handle '!' key in todo section - toggle important
@@ -71,8 +74,7 @@ function M.handle_important(todo_id, buf, render_callback, config)
   actions.execute('todo.important', {
     id = todo_id
   })
-  vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-  render_callback(buf)
+  rerender_todos(buf)
 end
 
 --- Handle 'D' key in todo section - delete todo
@@ -91,9 +93,7 @@ function M.handle_delete(todo_id, buf, render_callback, config)
       actions.execute('todo.delete', {
         id = todo_id
       })
-      -- Refresh the buffer after deleting
-      vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-      render_callback(buf)
+      rerender_todos(buf)
     end
   end)
 end
@@ -209,7 +209,7 @@ function M.handle_edit_all(buf, render_callback, config)
     end
 
     vim.notify(string.format("Saved %d todos", #new_todos), vim.log.levels.INFO)
-    render_callback(buf)
+    rerender_todos(buf)
   end
 
   local function close_popup()

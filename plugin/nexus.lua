@@ -21,14 +21,13 @@ vim.api.nvim_create_autocmd('VimEnter', {
     -- Only open if startup is enabled and no files were passed as arguments
     if not config.open_on_startup or vim.fn.argc() ~= 0 then return end
 
-    -- Async git repo check — does not block the main thread
-    vim.system({ 'git', 'rev-parse', '--is-inside-work-tree' }, { text = true }, function(obj)
-      if obj.code == 0 and (obj.stdout or ''):match('true') then
-        vim.schedule(function()
-          require('nexus').open(false)  -- Pass false to indicate auto-open
-        end)
-      end
-    end)
+    -- Synchronous git check. Must finish before Vim paints the default intro
+    -- screen, otherwise the intro flashes before Nexus takes over. The cost is
+    -- ~10-30ms of startup blocking, which is invisible; the flash is very visible.
+    local result = vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null')
+    if vim.v.shell_error == 0 and result:match('true') then
+      require('nexus').open(false)  -- Pass false to indicate auto-open
+    end
   end,
   desc = 'Open Nexus on startup if configured and no files specified and in git repo'
 })
