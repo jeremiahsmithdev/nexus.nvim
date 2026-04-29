@@ -145,7 +145,27 @@ function M.show_linear_issue_details(issue, config)
   }
   
   local popup_win = vim.api.nvim_open_win(popup_buf, true, popup_opts)
-  
+
+  -- Recenter (and clamp) the popup on terminal resize without rebuilding it.
+  -- Preserves cursor, edit mode (e.g. mid-description-edit), and extmarks.
+  vim.api.nvim_create_autocmd('VimResized', {
+    buffer = popup_buf,
+    callback = function()
+      if not vim.api.nvim_win_is_valid(popup_win) then
+        return
+      end
+      local new_width = math.min(actual_width, vim.o.columns - 4)
+      local new_height = math.min(actual_height, vim.o.lines - 4)
+      vim.api.nvim_win_set_config(popup_win, {
+        relative = 'editor',
+        width = new_width,
+        height = new_height,
+        col = math.floor((vim.o.columns - new_width) / 2),
+        row = math.floor((vim.o.lines - new_height) / 2),
+      })
+    end
+  })
+
   -- Set popup window options
   vim.api.nvim_win_set_option(popup_win, 'wrap', true)
   vim.api.nvim_win_set_option(popup_win, 'number', false)

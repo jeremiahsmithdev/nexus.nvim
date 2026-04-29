@@ -293,12 +293,24 @@ function M._setup_popup_keymaps(buf, win, issue, config)
     end)
   end, { buffer = buf, nowait = true, silent = true })
 
-  -- Window resize handling
+  -- Reposition the popup on terminal resize without tearing it down. Recomputes
+  -- the same width/height/row/col expressions used at spawn and applies them via
+  -- nvim_win_set_config — preserves cursor, mode, extmarks, and any in-flight edit.
   vim.api.nvim_create_autocmd('VimResized', {
     buffer = buf,
     callback = function()
-      close_popup()
-      M.show_issue_details(issue, config)
+      if not vim.api.nvim_win_is_valid(win) then
+        return
+      end
+      local new_width = math.min(80, vim.o.columns - 4)
+      local new_height = math.min(20, vim.o.lines - 4)
+      vim.api.nvim_win_set_config(win, {
+        relative = 'editor',
+        width = new_width,
+        height = new_height,
+        col = math.floor((vim.o.columns - new_width) / 2),
+        row = math.floor((vim.o.lines - new_height) / 2),
+      })
     end
   })
 

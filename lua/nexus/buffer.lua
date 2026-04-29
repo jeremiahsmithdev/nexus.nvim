@@ -4,13 +4,6 @@
 local M = {}
 local logger = require('nexus.logger')
 
--- Debounced resize state management
-local resize_state = {
-  timers = {},  -- Per-buffer timers
-  debounce_ms = 50,  -- Debounce delay
-  batch_queue = {}   -- Batch operations queue
-}
-
 function M.create_nexus_buffer(is_manual_open)
   -- Create listed buffer for manual opens, unlisted for auto opens
   local buf = vim.api.nvim_create_buf(is_manual_open, not is_manual_open)
@@ -100,10 +93,7 @@ function M.setup_image_autocommands(buf)
       if logo.has_image_for_buffer(buf) then
         logo.cleanup_image()
       end
-      
-      -- Clean up all resize state for this buffer
-      M.cleanup_resize_state(buf)
-      
+
       -- Clean up the autocmd group
       pcall(vim.api.nvim_del_augroup_by_name, group_name)
     end
@@ -173,152 +163,31 @@ function M.setup_image_autocommands(buf)
   --   })
   -- end
   
-  -- Handle all resize events using debounced handler
-  vim.api.nvim_create_autocmd({'VimResized', 'WinResized'}, {
+  -- Re-render on terminal resize so the centered logo and right-aligned
+  -- diff bars track the new window width. VimResized fires once per
+  -- terminal-size change (not per intermediate frame), so no debounce is
+  -- needed. render_git_status reuses cached git state — no shellout.
+  vim.api.nvim_create_autocmd('VimResized', {
     group = group_name,
     callback = function()
-      M.debounced_resize(buf, vim.v.event and vim.v.event.windows or {})
-    end
-  })
-  
-  -- Handle splits using debounced handler
-  vim.api.nvim_create_autocmd({'WinNew', 'WinEnter', 'BufWinEnter'}, {
-    group = group_name,
-    callback = function(ev)
-      -- Only resize if the event is for THIS Nexus buffer
-      local event_buf = ev.buf or vim.api.nvim_get_current_buf()
-      if event_buf ~= buf then
+      if not vim.api.nvim_buf_is_valid(buf) then
         return
       end
-      -- Use immediate resize for splits to handle layout changes
-      M.debounced_resize(buf, {}, true)  -- immediate = true
+      local visible = false
+      for _, win_id in ipairs(vim.api.nvim_list_wins()) do
+        if vim.api.nvim_win_get_buf(win_id) == buf then
+          visible = true
+          break
+        end
+      end
+      if not visible then
+        return
+      end
+      local render = require('nexus.render')
+      local config = require('nexus.config').get()
+      render.render_git_status(buf, config)
     end
   })
-  
-  -- Note: Buffer cleanup is handled in the consolidated BufDelete autocmd above
-end
-
---- Debounced resize handler with improved performance and batching
----@param buf number Buffer number of the Nexus buffer
----@param changed_windows table List of changed window IDs
----@param immediate boolean Whether to execute immediately (for splits)
-function M.debounced_resize(buf, changed_windows, immediate)
-  if not vim.api.nvim_buf_is_valid(buf) then
-    return
-  end
-  
-  -- Find windows that need updating
-  local windows_to_update = M.find_nexus_windows(buf, changed_windows)
-  if #windows_to_update == 0 then
-    return
-  end
-  
-  -- Clean up existing timer for this buffer
-  M.cleanup_resize_state(buf)
-  
-  if immediate then
-    M.execute_resize(buf, windows_to_update)
-  else
-    -- Start debounced timer
-    resize_state.timers[buf] = vim.defer_fn(function()
-      resize_state.timers[buf] = nil
-      M.execute_resize(buf, windows_to_update)
-    end, resize_state.debounce_ms)
-  end
-end
-
---- Find all windows showing the Nexus buffer that need updating
----@param buf number Buffer number
----@param changed_windows table Specific windows that changed (empty for all)
----@return table List of window IDs to update
-function M.find_nexus_windows(buf, changed_windows)
-  local windows_to_update = {}
-  
-  if #changed_windows > 0 then
-    -- Check only specific changed windows
-    for _, win_id in ipairs(changed_windows) do
-      if vim.api.nvim_win_is_valid(win_id) and vim.api.nvim_win_get_buf(win_id) == buf then
-        table.insert(windows_to_update, win_id)
-      end
-    end
-  else
-    -- Check all windows
-    for _, win_id in ipairs(vim.api.nvim_list_wins()) do
-      if vim.api.nvim_win_is_valid(win_id) and vim.api.nvim_win_get_buf(win_id) == buf then
-        table.insert(windows_to_update, win_id)
-      end
-    end
-  end
-  
-  return windows_to_update
-end
-
---- Execute resize operation with batched buffer operations
----@param buf number Buffer number
----@param windows_to_update table List of window IDs
-function M.execute_resize(buf, windows_to_update)
-  if not vim.api.nvim_buf_is_valid(buf) or #windows_to_update == 0 then
-    return
-  end
-  
-  local config = require('nexus.config').get()
-  local render = require('nexus.render')
-  local original_win = vim.api.nvim_get_current_win()
-  
-  -- Batch all window operations
-  local cursor_positions = {}
-  
-  -- Store cursor positions for all windows
-  for _, win_id in ipairs(windows_to_update) do
-    if vim.api.nvim_win_is_valid(win_id) then
-      cursor_positions[win_id] = vim.api.nvim_win_get_cursor(win_id)
-    end
-  end
-  
-  -- Re-render for the first window (content will be same for all)
-  vim.api.nvim_set_current_win(windows_to_update[1])
-  render.render_git_status(buf, config)
-  
-  -- Restore cursor positions for all windows
-  local line_count = vim.api.nvim_buf_line_count(buf)
-  for _, win_id in ipairs(windows_to_update) do
-    if vim.api.nvim_win_is_valid(win_id) and cursor_positions[win_id] then
-      local cursor_pos = cursor_positions[win_id]
-      if cursor_pos[1] <= line_count then
-        vim.api.nvim_win_set_cursor(win_id, cursor_pos)
-      end
-    end
-  end
-  
-  -- Restore original window
-  if vim.api.nvim_win_is_valid(original_win) then
-    vim.api.nvim_set_current_win(original_win)
-  end
-end
-
---- Clean up resize state for a specific buffer
----@param buf number Buffer number
-function M.cleanup_resize_state(buf)
-  if resize_state.timers[buf] then
-    resize_state.timers[buf]:stop()
-    resize_state.timers[buf]:close()
-    resize_state.timers[buf] = nil
-  end
-  
-  -- Clear any batch queue entries for this buffer
-  resize_state.batch_queue[buf] = nil
-end
-
---- Clean up all resize state (called on plugin shutdown)
-function M.cleanup_all_resize_state()
-  for buf, timer in pairs(resize_state.timers) do
-    if timer then
-      timer:stop()
-      timer:close()
-    end
-  end
-  resize_state.timers = {}
-  resize_state.batch_queue = {}
 end
 
 return M
