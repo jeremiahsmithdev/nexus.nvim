@@ -265,19 +265,13 @@ local function setup_git_keymaps(buf, config, render_callback)
     noremap = true,
     silent = true,
     callback = function()
-      -- Refresh Linear data if enabled
-      if config.linear and config.linear.enabled then
-        linear_state.refresh_data(config)
-      end
-      -- Refresh Huly data if enabled
-      if config.huly and config.huly.enabled then
-        local huly_state = require('nexus.state.huly')
-        huly_state.refresh_data(config)
-      end
-      render_callback(buf)
+      -- Delegate to nexus.refresh_buffer: async git fetch + cache repopulation +
+      -- full re-render + Linear/Huly refresh. Single source of truth, matches
+      -- the minimal-keymap 'r' installed during Phase 1.
+      require('nexus').refresh_buffer(buf)
     end
   })
-  
+
   vim.api.nvim_buf_set_keymap(buf, 'n', 's', '', {
     noremap = true,
     silent = true,

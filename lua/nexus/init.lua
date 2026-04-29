@@ -194,7 +194,11 @@ function M.position_cursor_on_actionable_line(buf, section_ranges)
   logger.log_timing_event("CURSOR_POSITIONING_INNER_COMPLETE")
 end
 
--- Function to refresh an existing Nexus buffer
+-- Refresh an existing Nexus buffer asynchronously.
+-- Mirrors M.open()'s Phase-2 path: kicks off load_git_data_async, updates the
+-- state cache when it returns, then re-renders and re-installs keymaps. Linear
+-- and Huly refreshes piggy-back on the same trigger so a single 'r' press
+-- refreshes everything the dashboard shows.
 function M.refresh_buffer(buf)
   logger.log_timing_event("REFRESH_BUFFER_START")
   if not buf or not vim.api.nvim_buf_is_valid(buf) then
@@ -202,38 +206,71 @@ function M.refresh_buffer(buf)
     return
   end
 
-  -- Check if this is actually a Nexus buffer
-  logger.log_timing_event("REFRESH_BUFFER_VALIDATION_START")
   local buf_name = vim.api.nvim_buf_get_name(buf)
   if not buf_name:match('Nexus$') then
     logger.log_timing_event("REFRESH_BUFFER_NOT_NEXUS")
     return
   end
-  logger.log_timing_event("REFRESH_BUFFER_VALIDATION_COMPLETE")
 
   local current_config = config.get()
+  local refresh_start = vim.uv and vim.uv.hrtime() or vim.loop.hrtime()
 
-  -- Force refresh git data before re-rendering (user expects fresh data on manual refresh)
-  logger.log_timing_event("REFRESH_GIT_STATE_START")
+  -- Fire-and-forget refresh for issue trackers, deferred to the next event-loop
+  -- tick. Linear's refresh_data does a *synchronous* HTTP call to api.linear.app
+  -- and would otherwise block the keypress (and delay the async git fetch from
+  -- starting). Deferring lets the git child process launch immediately; Linear
+  -- paints in later via state.notify when its call returns.
+  vim.defer_fn(function()
+    if current_config.linear and current_config.linear.enabled then
+      local linear_state = require('nexus.state.linear')
+      linear_state.refresh_data(current_config)
+    end
+    if current_config.huly and current_config.huly.enabled then
+      local huly_state = require('nexus.state.huly')
+      huly_state.refresh_data(current_config)
+    end
+  end, 0)
+
+  -- Invalidate git cache so any concurrent reader doesn't see stale data while
+  -- the async fetch is in flight. The async callback below will repopulate it.
   local git_state = registry.get('nexus.state.git')
-  git_state.force_refresh(current_config)
-  local is_git_repo = git_state.is_git_repo()
-  logger.log_timing_event("REFRESH_GIT_STATE_COMPLETE")
+  git_state.invalidate_cache()
 
-  logger.log_timing_event("REFRESH_RENDER_START")
+  local async_loader = registry.get('nexus.async_loader')
   local render = registry.get('nexus.render')
-  local files, section_ranges = render.render_git_status(buf, current_config)
-  logger.log_timing_event("REFRESH_RENDER_COMPLETE")
-
-  logger.log_timing_event("REFRESH_KEYMAPS_START")
   local keymaps = registry.get('nexus.keymaps')
-  keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(buf, cached_files)
-    logger.log_timing_event("REFRESH_CALLBACK_START")
-    render.render_git_status(buf, current_config, cached_files)
-    logger.log_timing_event("REFRESH_CALLBACK_COMPLETE")
-  end, section_ranges)
-  logger.log_timing_event("REFRESH_KEYMAPS_COMPLETE")
-  logger.log_timing_event("REFRESH_BUFFER_COMPLETE")
+
+  logger.log_timing_event("REFRESH_ASYNC_LOAD_START")
+  async_loader.load_git_data_async(buf, current_config, function(git_data)
+    if not vim.api.nvim_buf_is_valid(buf) then
+      logger.log_timing_event("REFRESH_BUFFER_INVALIDATED_DURING_LOAD")
+      return
+    end
+
+    -- Repopulate git_state cache so subsequent re-renders (including those
+    -- triggered by other state.notify subscribers) see the fresh data.
+    local state = require('nexus.state')
+    state.set('git', 'files', git_data.files or {})
+    state.set('git', 'commits', git_data.commits or {})
+    state.set('git', 'is_git_repo', git_data.is_git_repo)
+    state.set('git', 'diff_stats', git_data.diff_stats or {})
+    state.set('cache', 'git_status_timestamp', os.time())
+    state.set('cache', 'git_commits_timestamp', os.time())
+
+    local is_git_repo = git_data.is_git_repo
+    logger.log_timing_event("REFRESH_RENDER_START")
+    local files, section_ranges = render.render_git_status(buf, current_config, git_data.files, git_data.commits)
+    logger.log_timing_event("REFRESH_RENDER_COMPLETE")
+
+    keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(refresh_buf, cached_files)
+      render.render_git_status(refresh_buf, current_config, cached_files)
+    end, section_ranges)
+
+    local elapsed_ms = ((vim.uv and vim.uv.hrtime() or vim.loop.hrtime()) - refresh_start) / 1e6
+    vim.notify(string.format('Nexus refreshed (%dms)', math.floor(elapsed_ms)), vim.log.levels.INFO)
+
+    logger.log_timing_event("REFRESH_BUFFER_COMPLETE")
+  end)
 end
 
 return M
