@@ -92,25 +92,48 @@ function M.handle_important(todo_id, buf, render_callback, config)
   rerender_todos(buf)
 end
 
---- Handle 'D' key in todo section - delete todo
+--- Handle 'D' key in todo section - confirm deletion of cursor's todo via fzf
 function M.handle_delete(todo_id, buf, render_callback, config)
   sync_before_action(buf)
+
   local todo = todo_state.get_todo_by_id(todo_id)
   if not todo then
     vim.notify("Todo not found", vim.log.levels.ERROR)
     return
   end
 
-  -- Confirm deletion
-  vim.ui.select({'Yes', 'No'}, {
-    prompt = string.format('Delete todo: "%s"?', todo.text)
+  local function do_delete()
+    actions.execute('todo.delete', { id = todo_id })
+    rerender_todos(buf)
+    vim.notify(string.format('Deleted: %s', todo.text), vim.log.levels.INFO)
+  end
+
+  local ok_fzf, fzf = pcall(require, 'fzf-lua')
+  if ok_fzf then
+    fzf.fzf_exec({ 'Yes', 'No' }, {
+      prompt = string.format('Delete "%s"? ', todo.text),
+      winopts = {
+        width = 0.4,
+        height = 0.2,
+        row = 0.4,
+        col = 0.5,
+        border = 'rounded',
+        preview = { hidden = 'hidden' },
+      },
+      actions = {
+        ['default'] = function(selected)
+          if selected and selected[1] == 'Yes' then do_delete() end
+        end,
+      },
+    })
+    return
+  end
+
+  -- Fallback: vim.ui.select (uses dressing.nvim / telescope-ui-select if installed)
+  vim.ui.select({ 'Yes', 'No' }, {
+    prompt = string.format('Delete todo: "%s"?', todo.text),
   }, function(choice)
-    if choice == 'Yes' then
-      actions.execute('todo.delete', {
-        id = todo_id
-      })
-      rerender_todos(buf)
-    end
+    if choice == 'Yes' then do_delete() end
   end)
 end
 
