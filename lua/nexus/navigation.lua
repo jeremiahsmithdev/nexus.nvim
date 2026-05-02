@@ -5,37 +5,18 @@
 
 local M = {}
 
---- Check if a line is actionable (can be interacted with)
----@param line string The line content
+--- Check if a line is actionable (can be interacted with).
+--- Thin wrapper around cursor_guard.is_forbidden_line — the guard is the
+--- single source of truth for forbidden-zone rules. Kept for callers that
+--- already have line content + logo_end_line in hand.
+---@param line string The line content (unused — guard reads buffer directly)
 ---@param line_num number The line number (1-indexed)
----@param logo_end_line number The last line of the logo section
----@param section_ranges table|nil Section ranges for skipping non-actionable sections
+---@param logo_end_line number Unused — guard derives from section_ranges
+---@param section_ranges table|nil Unused — guard reads vim.b[buf]
 ---@return boolean true if the line is actionable
 function M.is_actionable_line(line, line_num, logo_end_line, section_ranges)
-  -- Skip logo section completely
-  if line_num <= logo_end_line then
-    return false
-  end
-
-  -- Skip keyboard shortcuts section completely
-  if section_ranges and section_ranges.keyboard_shortcuts then
-    local shortcuts_range = section_ranges.keyboard_shortcuts
-    if line_num >= shortcuts_range.start_line and line_num <= shortcuts_range.end_line then
-      return false
-    end
-  end
-
-  -- Skip empty lines
-  if line:match("^%s*$") then
-    return false
-  end
-
-  -- Skip section titles (lines ending with colon)
-  if line:match(":$") then
-    return false
-  end
-
-  return true
+  local cursor_guard = require('nexus.cursor_guard')
+  return not cursor_guard.is_forbidden_line(0, line_num)
 end
 
 --- Move cursor to the next actionable line in specified direction

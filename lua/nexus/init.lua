@@ -180,17 +180,16 @@ function M.open(is_manual_open)
   logger.end_timing_session()
 end
 
--- Position cursor at the top of the buffer so the logo and all sections are
--- visible. We previously hunted for the "first actionable line" (first dashboard
--- button) as a QoL optimization, but that forced the viewport to scroll past the
--- logo whenever the target line sat below window height. Neovim's internal
--- invariant (topline <= cursor_line <= topline + win_height) overrides any
--- winrestview topline=1 when the cursor is deep in the buffer — there's no way
--- to show both the logo AND a cursor halfway down the buffer in a small window.
--- Keeping cursor at line 1 guarantees the dashboard renders as designed.
+-- Place the cursor on the first legal line of the dashboard. Delegates to
+-- cursor_guard which owns the forbidden-zone rules. On small windows the
+-- viewport may scroll past the logo to keep the cursor visible — that's the
+-- correct trade because cursor-in-section is the priority.
 function M.position_cursor_on_actionable_line(buf, section_ranges)
   logger.log_timing_event("CURSOR_POSITIONING_INNER_START")
+  local cursor_guard = require('nexus.cursor_guard')
+  -- Plant cursor at line 1 first so snap_to_legal scans forward from the top.
   pcall(vim.api.nvim_win_set_cursor, 0, {1, 0})
+  cursor_guard.snap_to_legal(buf)
   logger.log_timing_event("CURSOR_POSITIONING_INNER_COMPLETE")
 end
 

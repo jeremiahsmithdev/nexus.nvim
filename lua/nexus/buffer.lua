@@ -121,7 +121,12 @@ function M.setup_image_autocommands(buf)
   local window = vim.env.TMUX and vim.fn.system("tmux display-message -p '#{window_id}'"):gsub('\n', '') or nil
   local pane = vim.env.TMUX and vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '') or nil
   logger.buf_created(buf, window, pane)
-  
+
+  -- Install the cursor guard. Forbids cursor from logo / project_name /
+  -- keyboard_shortcuts / empty / header lines. Snaps on every CursorMoved,
+  -- BufEnter, WinEnter, FocusGained — covers tmux pane switches too.
+  require('nexus.cursor_guard').install(buf)
+
   -- Consolidated buffer lifecycle management
   vim.api.nvim_create_autocmd('BufDelete', {
     group = group_name,

@@ -39,6 +39,11 @@ function M.layout_sections(sections, config, width)
     end_line = #centered_logo
   }
 
+  -- Expose the logo as a section_range entry too. Cursor_guard reads
+  -- section_ranges to decide forbidden zones; without this, logo lines
+  -- look "actionable" because they aren't empty and don't end with ":".
+  section_ranges.logo = logo_section
+
   -- Separate different section types for different alignment
   local button_sections = {}
   local git_sections_data = {}

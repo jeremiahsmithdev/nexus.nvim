@@ -102,7 +102,12 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
   folding.update_section_arrows(buf, section_ranges)
 
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
-  
+
+  -- Re-anchor cursor in case the new layout left it on a forbidden line.
+  -- nvim_buf_set_lines doesn't fire CursorMoved when a stationary cursor's
+  -- underlying content changes, so an explicit snap is required.
+  require('nexus.cursor_guard').snap_to_legal(buf)
+
   return files, section_ranges
 end
 
@@ -254,6 +259,10 @@ function M.render_section(buf, section_name)
   folding.apply_fold_states(buf, new_ranges, ranges_hash)
   folding.update_section_arrows(buf, new_ranges)
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+
+  -- Same rationale as in M.render: a partial re-render may shift content
+  -- under a stationary cursor without firing CursorMoved.
+  require('nexus.cursor_guard').snap_to_legal(buf)
 end
 
 
