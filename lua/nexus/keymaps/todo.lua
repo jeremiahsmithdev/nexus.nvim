@@ -13,8 +13,19 @@ local function rerender_todos(buf)
   require('nexus.render').render_section(buf, 'todos')
 end
 
+-- Pull latest todos from disk and repaint the dashboard. Called before every
+-- todo operation so the user always acts on the freshest state from any
+-- parallel Neovim session.
+local function sync_before_action(buf)
+  todo_state.refresh()
+  if buf and vim.api.nvim_buf_is_valid(buf) then
+    rerender_todos(buf)
+  end
+end
+
 --- Handle Enter key in todo section
 function M.handle_enter(current_line, line_num, config)
+  todo_state.refresh()
   local todo_id = todo_component.get_todo_id_from_line_num(line_num)
   if todo_id then
     local todo = todo_state.get_todo_by_id(todo_id)
@@ -26,6 +37,7 @@ end
 
 --- Handle 'c' key in todo section - create new todo
 function M.handle_create(buf, render_callback, config)
+  sync_before_action(buf)
   vim.ui.input({
     prompt = 'New todo: ',
     default = ''
@@ -41,12 +53,13 @@ end
 
 --- Handle 'e' key in todo section - edit todo
 function M.handle_edit(todo_id, buf, render_callback, config)
+  sync_before_action(buf)
   local todo = todo_state.get_todo_by_id(todo_id)
   if not todo then
     vim.notify("Todo not found", vim.log.levels.ERROR)
     return
   end
-  
+
   vim.ui.input({
     prompt = 'Edit todo: ',
     default = todo.text
@@ -63,6 +76,7 @@ end
 
 --- Handle 'd' key in todo section - mark todo as done
 function M.handle_done(todo_id, buf, render_callback, config)
+  sync_before_action(buf)
   actions.execute('todo.done', {
     id = todo_id
   })
@@ -71,6 +85,7 @@ end
 
 --- Handle '!' key in todo section - toggle important
 function M.handle_important(todo_id, buf, render_callback, config)
+  sync_before_action(buf)
   actions.execute('todo.important', {
     id = todo_id
   })
@@ -79,12 +94,13 @@ end
 
 --- Handle 'D' key in todo section - delete todo
 function M.handle_delete(todo_id, buf, render_callback, config)
+  sync_before_action(buf)
   local todo = todo_state.get_todo_by_id(todo_id)
   if not todo then
     vim.notify("Todo not found", vim.log.levels.ERROR)
     return
   end
-  
+
   -- Confirm deletion
   vim.ui.select({'Yes', 'No'}, {
     prompt = string.format('Delete todo: "%s"?', todo.text)
@@ -100,6 +116,7 @@ end
 
 --- Handle 'E' key - edit all todos in a popup buffer
 function M.handle_edit_all(buf, render_callback, config)
+  sync_before_action(buf)
   local todos = todo_state.get_todos()
 
   -- Build editable lines with checkbox syntax (stored order)
