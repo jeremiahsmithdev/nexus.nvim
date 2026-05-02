@@ -4,13 +4,51 @@
 local M = {}
 local logger = require('nexus.logger')
 
+-- Registered once: strips centering whitespace from the yank register whenever
+-- text is yanked from any nexus filetype buffer.
+local _yank_autocmd_registered = false
+
+local function setup_yank_stripping()
+  if _yank_autocmd_registered then return end
+  _yank_autocmd_registered = true
+
+  vim.api.nvim_create_autocmd('TextYankPost', {
+    group = vim.api.nvim_create_augroup('NexusYankStrip', { clear = true }),
+    callback = function()
+      if vim.bo.filetype ~= 'nexus' then return end
+      local lines = vim.v.event.regcontents
+      if not lines or #lines == 0 then return end
+
+      local min_indent = math.huge
+      for _, line in ipairs(lines) do
+        if line ~= '' then
+          local n = #line:match('^%s*')
+          if n < min_indent then min_indent = n end
+        end
+      end
+
+      if min_indent > 0 and min_indent < math.huge then
+        local reg = vim.v.event.regname == '' and '"' or vim.v.event.regname
+        local regtype = vim.v.event.regtype
+        local stripped = {}
+        for _, line in ipairs(lines) do
+          stripped[#stripped + 1] = line:sub(min_indent + 1)
+        end
+        vim.fn.setreg(reg, stripped, regtype)
+      end
+    end,
+  })
+end
+
 function M.create_nexus_buffer(is_manual_open)
+  setup_yank_stripping()
+
   -- Create listed buffer for manual opens, unlisted for auto opens
   local buf = vim.api.nvim_create_buf(is_manual_open, not is_manual_open)
   vim.api.nvim_buf_set_option(buf, 'filetype', 'nexus')
   vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
   vim.api.nvim_buf_set_option(buf, 'swapfile', false)
-  
+
   -- Make persistent if manually opened, otherwise wipe on hide
   if is_manual_open then
     vim.api.nvim_buf_set_option(buf, 'bufhidden', 'hide')
@@ -19,7 +57,7 @@ function M.create_nexus_buffer(is_manual_open)
     vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
     vim.api.nvim_buf_set_option(buf, 'buflisted', false)
   end
-  
+
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
   return buf
 end

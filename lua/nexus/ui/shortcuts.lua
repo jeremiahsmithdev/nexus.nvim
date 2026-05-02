@@ -74,9 +74,9 @@ function M.update_contextual_shortcuts(buf, config, is_git_repo, section_ranges)
   local center = require('nexus.ui.center')
   local centered_lines = center.center_lines_individually({contextual_line}, width)
   local new_line = centered_lines[1]
-  
+
   vim.api.nvim_buf_set_lines(buf, contextual_line_num - 1, contextual_line_num, false, {new_line})
-  
+
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 end
 

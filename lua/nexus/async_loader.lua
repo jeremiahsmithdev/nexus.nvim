@@ -17,37 +17,37 @@ function M.render_immediate_ui(buf, config)
   
   -- Build immediate content (no git operations)
   local lines = {}
-  
+
   -- Add logo immediately
   local logo_lines = logo.get_neovim_logo(config)
   local centered_logo = center.center_lines(logo_lines, width)
   for _, line in ipairs(centered_logo) do
     table.insert(lines, line)
   end
-  
+
   -- Add some spacing
   table.insert(lines, "")
-  
+
   -- Add dashboard buttons if enabled
   local config_module = require('nexus.config')
   if config_module.is_section_enabled("dashboard_buttons") then
     local buttons = {
       "  Find file",
-      "  Recently opened files", 
+      "  Recently opened files",
       "  Find word",
       "  New file",
       "  Bookmarks",
       "  Restore session"
     }
-    
+
     local centered_buttons = center.center_lines(buttons, width)
     for _, line in ipairs(centered_buttons) do
       table.insert(lines, line)
     end
-    
+
     table.insert(lines, "")
   end
-  
+
   -- Add loading placeholders for git data (with centering to match final layout)
   local loading_sections = {}
 
@@ -81,14 +81,14 @@ function M.render_immediate_ui(buf, config)
       table.insert(lines, padding_str .. line)
     end
   end
-  
+
   -- Set buffer content immediately
   vim.api.nvim_buf_set_option(buf, 'modifiable', true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  
+
   -- Apply immediate highlighting
   M.apply_immediate_highlighting(buf, logo_lines, config)
-  
+
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
   
   logger.debug('ASYNC_LOADER', 'Immediate UI rendered')

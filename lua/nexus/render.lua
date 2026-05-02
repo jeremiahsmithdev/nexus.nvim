@@ -28,7 +28,7 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
 
   -- Build sections using component (pass both files and commits)
   local sections = sections_component.build_sections(config, is_git_repo, files, commits)
-  
+
   -- Layout sections using component
   local lines, section_ranges, logo_section, left_padding = layout.layout_sections(sections, config, width)
 

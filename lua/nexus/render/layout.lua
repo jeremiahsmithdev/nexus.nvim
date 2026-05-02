@@ -23,22 +23,22 @@ end
 function M.layout_sections(sections, config, width)
   local lines = {}
   local section_ranges = {}
-  
+
   -- Start with centered logo
   local logo_lines = logo.get_neovim_logo(config)
   local centered_logo = center.center_lines(logo_lines, width)
-  
+
   -- Add centered logo lines to buffer
   for _, line in ipairs(centered_logo) do
     table.insert(lines, line)
   end
-  
+
   -- Store logo section info for highlighting
   local logo_section = {
     start_line = 1,
     end_line = #centered_logo
   }
-  
+
   -- Separate different section types for different alignment
   local button_sections = {}
   local git_sections_data = {}
@@ -56,14 +56,14 @@ function M.layout_sections(sections, config, width)
       end
     end
   end
-  
+
   -- Add button sections with center alignment
   for i, section_info in ipairs(button_sections) do
     -- Add spacing before section (except first section)
     if i > 1 or #lines > #logo_lines then
       table.insert(lines, "")
     end
-    
+
     local centered_section
     if section_info.name == "keyboard_shortcuts" then
       -- Use individual centering for keyboard shortcuts (each line centered independently)
@@ -72,27 +72,27 @@ function M.layout_sections(sections, config, width)
       -- Use block centering for other sections (like dashboard buttons)
       centered_section = center.center_lines(section_info.data, width)
     end
-    
+
     local section_start = #lines + 1
     for _, line in ipairs(centered_section) do
       table.insert(lines, line)
     end
     local section_end = #lines
-    
+
     -- Store section ranges for navigation
     section_ranges[section_info.name] = {
       start_line = section_start,
       end_line = section_end
     }
   end
-  
+
   -- Find the longest line across all git sections to calculate common alignment
   local max_git_line_length = 0
   for _, section_info in ipairs(git_sections_data) do
     local section_max = center.longest_line(section_info.data)
     max_git_line_length = math.max(max_git_line_length, section_max)
   end
-  
+
   -- Apply same left padding to all git sections
   local left_padding = 0
   if max_git_line_length > 0 then
