@@ -10,7 +10,7 @@ function M.get_keyboard_shortcuts(config, is_git_repo)
     return {}
   end
   
-  local global_line = "r -> refresh" .. (is_git_repo and ", c -> commit" or "")
+  local global_line = "r -> refresh" .. (is_git_repo and ", c -> commit" or "") .. ", ',' -> config"
   
   return {
     global_line,
