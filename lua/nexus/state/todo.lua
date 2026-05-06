@@ -34,23 +34,37 @@ local function now_ts()
   return os.time()
 end
 
--- Read raw items (including tombstones) from disk. Returns {} on any failure
--- so callers can keep working; pruning happens here.
+-- Read and parse the JSON list at `path`. Returns nil on any failure so the
+-- caller can decide whether to fall back to a backup. No pruning here.
+local function read_raw(path)
+  if not path then return nil end
+  local file = io.open(path, 'r')
+  if not file then return nil end
+  local content = file:read('*a')
+  file:close()
+  if not content or content == '' then return nil end
+  local ok, items = pcall(vim.json.decode, content)
+  if not ok or type(items) ~= 'table' then return nil end
+  return items
+end
+
+-- Read items from disk. If the main file is missing, empty, or unparseable,
+-- transparently fall back to the .bak we wrote on the previous successful
+-- save. Tombstones older than the TTL are pruned.
 local function read_disk()
   local file_path = get_todo_file_path()
   if not file_path then return {} end
 
-  local file = io.open(file_path, 'r')
-  if not file then return {} end
-
-  local content = file:read('*a')
-  file:close()
-  if not content or content == '' then return {} end
-
-  local ok, items = pcall(vim.json.decode, content)
-  if not ok or type(items) ~= 'table' then
-    logger.warn('TODO', 'Failed to parse todo file', { file_path = file_path })
-    return {}
+  local items = read_raw(file_path)
+  if not items then
+    items = read_raw(file_path .. '.bak')
+    if items then
+      logger.warn('TODO', 'Main file unreadable; recovered from .bak', {
+        file_path = file_path,
+      })
+    else
+      return {}
+    end
   end
 
   local cutoff = now_ts() - TOMBSTONE_TTL_SECONDS
