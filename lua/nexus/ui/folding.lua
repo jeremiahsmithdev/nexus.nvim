@@ -637,8 +637,15 @@ function M.update_section_arrows(buf, section_ranges)
     return
   end
 
+  -- Only update arrows for foldable sections (skip logo, keyboard_shortcuts, etc.)
+  local foldable_set = {}
+  for _, name in ipairs(M.foldable_sections) do
+    foldable_set[name] = true
+  end
+
   vim.api.nvim_buf_call(buf, function()
     for section_name, range in pairs(section_ranges) do
+      if not foldable_set[section_name] then goto continue end
       if range and range.start_line then
         local header_line = range.start_line
         local fold_line = header_line + 2  -- Where the fold actually starts
@@ -683,6 +690,7 @@ function M.update_section_arrows(buf, section_ranges)
           end
         end
       end
+      ::continue::
     end
   end)
 end
