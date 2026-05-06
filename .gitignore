@@ -4,4 +4,6 @@ functional-specs
 .nexus-todo.json
 .nexus
 .review.md
+.ralph
+.atuin
 node_modules/
