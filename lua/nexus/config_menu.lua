@@ -22,6 +22,11 @@ local SECTIONS = {
 -- Logo options
 local LOGOS = { "neovim", "nexus", "project", "image" }
 
+-- Boolean toggles (displayed below sections, above logo)
+local TOGGLES = {
+  { id = "collapse_untracked", name = "Collapse Untracked", config_key = "collapse_untracked" },
+}
+
 -- Menu state
 local state = {
   buf = nil,
@@ -30,6 +35,7 @@ local state = {
   sections = {},      -- Current section order with enabled state
   logo_selection = "nexus",
   counts = {},        -- Count values for sections that have them
+  toggles = {},       -- Boolean toggle states { id, name, value }
 }
 
 -- Get the .nexus config file path
@@ -115,6 +121,11 @@ local function save_persisted_config(cfg)
     end
   end
 
+  -- Add boolean toggle settings
+  for _, toggle in ipairs(cfg.toggles or {}) do
+    table.insert(lines, string.format("  %s = %s,", toggle.config_key, tostring(toggle.value)))
+  end
+
   table.insert(lines, "}")
 
   local content = table.concat(lines, "\n")
@@ -141,6 +152,17 @@ local function init_state()
 
   state.logo_selection = config.logo_selection or "nexus"
   state.counts = {}
+  state.toggles = {}
+
+  -- Initialize boolean toggles
+  for _, t in ipairs(TOGGLES) do
+    table.insert(state.toggles, {
+      id = t.id,
+      name = t.name,
+      config_key = t.config_key,
+      value = config[t.config_key] or false,
+    })
+  end
 
   -- Build sections list with enabled state
   state.sections = {}
@@ -239,6 +261,26 @@ local function render()
 
   table.insert(lines, "")
 
+  -- Boolean toggles
+  local toggle_start_line = #lines
+  for i, toggle in ipairs(state.toggles) do
+    local checkbox = toggle.value and "[✓]" or "[ ]"
+    local line = string.format("   %s %s", checkbox, toggle.name)
+    table.insert(lines, line)
+
+    local hl_group = toggle.value and "DiagnosticOk" or "Comment"
+    table.insert(highlights, {
+      line = #lines - 1,
+      col_start = 3,
+      col_end = 6,
+      group = hl_group,
+    })
+  end
+  state.toggle_start_line = toggle_start_line
+  state.toggle_end_line = toggle_start_line + #state.toggles - 1
+
+  table.insert(lines, "")
+
   -- Logo selection
   local logo_line = #lines
   local logo_str = string.format("  Logo: %s", state.logo_selection)
@@ -278,6 +320,8 @@ local function render()
   -- Highlight current line
   if state.cursor_line >= state.section_start_line and state.cursor_line <= state.section_end_line then
     api.nvim_buf_set_extmark(state.buf, ns, state.cursor_line, 0, { end_row = state.cursor_line + 1, end_col = 0, hl_group = 'CursorLine', strict = false })
+  elseif state.toggle_start_line and state.cursor_line >= state.toggle_start_line and state.cursor_line <= state.toggle_end_line then
+    api.nvim_buf_set_extmark(state.buf, ns, state.cursor_line, 0, { end_row = state.cursor_line + 1, end_col = 0, hl_group = 'CursorLine', strict = false })
   elseif state.cursor_line == state.logo_line then
     api.nvim_buf_set_extmark(state.buf, ns, state.cursor_line, 0, { end_row = state.cursor_line + 1, end_col = 0, hl_group = 'CursorLine', strict = false })
   end
@@ -291,8 +335,23 @@ local function get_section_index()
   return nil
 end
 
--- Toggle current section
+-- Get toggle index from cursor line
+local function get_toggle_index()
+  if state.toggle_start_line and state.cursor_line >= state.toggle_start_line and state.cursor_line <= state.toggle_end_line then
+    return state.cursor_line - state.toggle_start_line + 1
+  end
+  return nil
+end
+
+-- Toggle current section or boolean toggle
 local function toggle_section()
+  -- Check if on a boolean toggle row
+  local tidx = get_toggle_index()
+  if tidx then
+    state.toggles[tidx].value = not state.toggles[tidx].value
+    render()
+    return
+  end
   local idx = get_section_index()
   if idx then
     state.sections[idx].enabled = not state.sections[idx].enabled
@@ -370,11 +429,13 @@ end
 local function move_cursor(direction)
   local new_line = state.cursor_line + direction
 
-  -- Clamp to valid range (sections + logo)
+  -- Clamp to valid range (sections + toggles + logo)
   if new_line < state.section_start_line then
     new_line = state.section_start_line
-  elseif new_line > state.section_end_line and new_line < state.logo_line then
-    new_line = direction > 0 and state.logo_line or state.section_end_line
+  elseif new_line > state.section_end_line and new_line < (state.toggle_start_line or state.logo_line) then
+    new_line = direction > 0 and (state.toggle_start_line or state.logo_line) or state.section_end_line
+  elseif state.toggle_end_line and new_line > state.toggle_end_line and new_line < state.logo_line then
+    new_line = direction > 0 and state.logo_line or state.toggle_end_line
   elseif new_line > state.logo_line then
     new_line = state.logo_line
   end
@@ -390,6 +451,7 @@ local function save_and_close()
     sections = state.sections,
     logo_selection = state.logo_selection,
     counts = state.counts,
+    toggles = state.toggles,
   }
 
   if save_persisted_config(cfg) then
@@ -410,6 +472,9 @@ local function save_and_close()
     }
     for key, val in pairs(state.counts) do
       new_config[key] = val
+    end
+    for _, toggle in ipairs(state.toggles) do
+      new_config[toggle.config_key] = toggle.value
     end
 
     config.setup(new_config)
@@ -449,7 +514,7 @@ function M.open()
 
   -- Calculate window size
   local width = 45
-  local height = #state.sections + 12
+  local height = #state.sections + #state.toggles + 12
   local ui = api.nvim_list_uis()[1]
   local col = math.floor((ui.width - width) / 2)
   local row = math.floor((ui.height - height) / 2)

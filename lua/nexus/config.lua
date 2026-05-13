@@ -27,6 +27,7 @@ local default_config = {
   recent_commits_count = 3,          -- Number of recent commits to show
   show_commit_review = true,         -- Show commit review status indicators
   git_status_count = nil,            -- Limit git status files (nil = no limit)
+  collapse_untracked = false,        -- Collapse untracked files into a summary line (e.g., "+15 untracked files")
   max_todos = 10,                    -- Maximum todos to show (nil = no limit)
   section_order = {                  -- Order of sections after logo (only sections in this list are enabled)
     "dashboard_buttons",

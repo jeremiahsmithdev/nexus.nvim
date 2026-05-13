@@ -88,10 +88,30 @@ function M.build_sections(config, is_git_repo, files, commits)
       sections.git_status = no_changes_lines
     else
       local git_status_lines = {"Git Status:", ""}
-      
-      -- Process files with optional limit
-      local processed = folding.process_git_files(files, config.git_status_count)
-      
+
+      -- Separate untracked files if collapse_untracked is enabled
+      local tracked_files = files
+      local untracked_count = 0
+      if config.collapse_untracked then
+        tracked_files = {}
+        for _, f in ipairs(files) do
+          if f.status == "??" then
+            untracked_count = untracked_count + 1
+          else
+            table.insert(tracked_files, f)
+          end
+        end
+        -- If all files are untracked, show only the summary
+        if #tracked_files == 0 and untracked_count > 0 then
+          table.insert(git_status_lines, string.format("  +%d untracked files", untracked_count))
+          sections.git_status = git_status_lines
+          goto git_status_done
+        end
+      end
+
+      -- Process tracked files with optional limit
+      local processed = folding.process_git_files(tracked_files, config.git_status_count)
+
       -- Render visible files (optimized for performance)
       -- Pre-allocate the git_status_lines table to avoid repeated reallocations
       local visible_count = #processed.visible
@@ -106,15 +126,20 @@ function M.build_sections(config, is_git_repo, files, commits)
         -- Optimized: Use table pre-allocation and direct assignment instead of table.insert
         git_status_lines[i + 2] = string.format("  %s%s%s", data.full_name, padding, diff_stat)
       end
-      
+
+      -- Add untracked summary line if collapse is on and there are untracked files
+      if config.collapse_untracked and untracked_count > 0 then
+        table.insert(git_status_lines, string.format("  +%d untracked files", untracked_count))
+      end
+
       -- Add folded overflow content if files were hidden
       if #processed.hidden > 0 then
         logger.debug("GIT_STATUS", "Adding fold for hidden files", {
-          total_files = #files,
+          total_files = #tracked_files,
           visible_count = #processed.visible,
           hidden_count = #processed.hidden
         })
-        
+
         -- Add the hidden files directly (they will be folded with custom fold text)
         for i, data in ipairs(processed.hidden) do
           local padding = string.rep(" ", processed.max_filename_width - #data.full_name)
@@ -123,9 +148,10 @@ function M.build_sections(config, is_git_repo, files, commits)
           table.insert(git_status_lines, line)
         end
       end
-      
+
       sections.git_status = git_status_lines
     end
+    ::git_status_done::
   end
   
   -- Linear issues section
@@ -175,7 +201,18 @@ end
 
 -- Setup folding for git status sections
 function M.setup_folding(buf, lines, config, files)
-  folding.setup_git_status_folding(buf, lines, config, files)
+  -- When collapse_untracked is on, pass only tracked files to folding
+  -- so overflow fold calculations match the rendered output
+  local folding_files = files
+  if config.collapse_untracked then
+    folding_files = {}
+    for _, f in ipairs(files) do
+      if f.status ~= "??" then
+        table.insert(folding_files, f)
+      end
+    end
+  end
+  folding.setup_git_status_folding(buf, lines, config, folding_files)
 end
 
 return M
