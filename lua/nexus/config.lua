@@ -29,8 +29,12 @@ local default_config = {
   git_status_count = nil,            -- Limit git status files (nil = no limit)
   collapse_untracked = false,        -- Collapse untracked files into a summary line (e.g., "+15 untracked files")
   git_auto_refresh = {               -- Live-refresh dashboard on git state changes
-    enabled = true,                  -- Watch HEAD/index/logs/HEAD with mtime gating
-    debounce_ms = 200,               -- Coalesce bursts (git commit touches many files)
+    enabled = true,                  -- fs_event on HEAD/index/logs/HEAD + BufWritePost/FocusGained/CursorHold,
+                                     -- all gated by a hashed `git status` confirm before any render.
+    debounce_ms = 150,               -- Coalesce bursts before running the confirm `git status`.
+    hold_throttle_s = 10,            -- Minimum seconds between CursorHold-triggered confirms.
+                                     -- Caps lag for external edits (VSCode/sed/etc.) made while
+                                     -- nvim is foregrounded and the cursor is idle.
   },
   max_todos = 10,                    -- Maximum todos to show (nil = no limit)
   section_order = {                  -- Order of sections after logo (only sections in this list are enabled)
