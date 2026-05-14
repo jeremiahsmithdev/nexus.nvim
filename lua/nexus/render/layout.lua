@@ -3,19 +3,34 @@ local M = {}
 local center = require('nexus.ui.center')
 local logo = require('nexus.ui.logo')
 
--- Get the actual display width with tmux pane awareness
+-- Get the actual display width with tmux pane awareness.
+--
+-- IMPORTANT: when called from refresh paths the *currently focused* window
+-- may not be the Nexus pane (the user switched windows; an async fetch
+-- finished while focus was elsewhere). `winwidth(0)` would return the wrong
+-- width and produce mis-centered content. If a Nexus buffer is loaded, look
+-- up the window that hosts it and measure that instead.
 function M.get_display_width()
-  local width = vim.fn.winwidth(0)
+  local width
 
-  -- If we're in tmux, get the actual pane width for more accurate centering
-  if vim.env.TMUX then
-    local pane_width = vim.fn.system("tmux display-message -p '#{pane_width}' 2>/dev/null"):gsub('\n', '')
-    local tmux_width = tonumber(pane_width)
-    if tmux_width and tmux_width > 0 then
-      width = tmux_width
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    if vim.api.nvim_buf_is_valid(buf) then
+      local name = vim.api.nvim_buf_get_name(buf)
+      if name:match('Nexus$') then
+        width = vim.api.nvim_win_get_width(win)
+        break
+      end
     end
   end
 
+  if not width then
+    width = vim.fn.winwidth(0)
+  end
+
+  -- Avoid the tmux subprocess fallback during refresh: shelling out on every
+  -- fs_event tick adds latency, and the per-window width above is already the
+  -- correct measure for centering inside the Nexus pane.
   return width
 end
 

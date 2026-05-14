@@ -7,7 +7,12 @@
 --- Signals (cheapest first):
 ---   * fs_event on `.git/`   -> covers commits, branch switches, add/reset (index)
 ---   * BufWritePost          -> covers in-nvim edits that change working-tree status
----   * FocusGained           -> covers edits made in another terminal while away
+---
+--- Intentionally NOT watching FocusGained: tmux focus-events and intra-nvim
+--- window switches fire it on every pane change, causing visible flash and a
+--- mis-centered re-render (render uses the *currently focused* window's width
+--- for centering, which isn't the Nexus pane when focus moved elsewhere).
+--- fs_event already catches external git ops at the source within ~ms.
 ---
 --- All signals collapse into one shared debounce timer that fires
 --- `nexus.refresh_buffer(buf)` — the same path the manual `r` keybinding uses.
@@ -102,11 +107,10 @@ function M.start(buf, config)
     end
   end
 
-  -- Autocmds: catch the cases fs_event can't see cheaply.
-  --   BufWritePost — working-tree edits (status changes without index write).
-  --   FocusGained  — external git operations while nvim was unfocused.
+  -- Autocmd: BufWritePost catches in-nvim edits that change working-tree status.
+  -- We deliberately do NOT watch FocusGained — see header note.
   M._augroup = vim.api.nvim_create_augroup('NexusGitWatcher', { clear = true })
-  vim.api.nvim_create_autocmd({ 'BufWritePost', 'FocusGained' }, {
+  vim.api.nvim_create_autocmd('BufWritePost', {
     group = M._augroup,
     callback = function(args)
       -- Skip writes to the Nexus buffer itself (it's nofile anyway, but cheap guard).
