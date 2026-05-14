@@ -53,23 +53,26 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
   end
 
   -- Wipe all existing folds before recreating them. Without this, repeated
-  -- full renders (which happen during async startup: placeholder render →
-  -- data-arrived render → state-update renders) stack new fold definitions
-  -- on top of old ones. Vim's `:N,M fold` doesn't replace overlapping folds —
-  -- it nests them — and the resulting fold tree can extend a closed fold
-  -- across multiple sections (e.g. git_status's closed fold swallowing the
-  -- next section's header). The incremental render path (render_section)
-  -- already does this; the full path needs it too.
-  pcall(vim.api.nvim_buf_call, buf, function()
-    vim.cmd('normal! zE')
-  end)
-
-  -- Set up folding for git status overflow
-  sections_component.setup_folding(buf, lines, config, files)
-
-  -- Set up section folds for all collapsible sections
+  -- full renders stack new fold definitions on top of old ones; Vim's
+  -- `:N,M fold` doesn't replace overlapping folds — it nests them — and
+  -- the resulting fold tree can extend a closed fold across sections.
+  --
+  -- IMPORTANT: folds are window-local. nvim_buf_call uses a hidden aucmd
+  -- window when the buffer isn't current, so fold ops there evaporate.
+  -- The watcher fires refreshes from any focus context (other tmux pane,
+  -- other split), so we must resolve and switch into the real Nexus
+  -- window for every fold-touching call. nvim_win_call below makes all
+  -- nested nvim_buf_calls in folding.lua a no-op switch.
   local folding = require('nexus.ui.folding')
-  folding.setup_section_folds(buf, section_ranges)
+  local nexus_win = (vim.fn.win_findbuf(buf) or {})[1]
+  local function do_fold_setup()
+    pcall(function() vim.cmd('normal! zE') end)
+    sections_component.setup_folding(buf, lines, config, files)
+    folding.setup_section_folds(buf, section_ranges)
+  end
+  if nexus_win and vim.api.nvim_win_is_valid(nexus_win) then
+    vim.api.nvim_win_call(nexus_win, do_fold_setup)
+  end
 
   -- Update state with section ranges and logo info
   ui_state.update_section_ranges(section_ranges)
@@ -89,17 +92,23 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
 
   -- Always re-apply fold states after setup_section_folds recreates the folds.
   -- nvim_buf_set_lines destroys manual folds every render, so setup_section_folds
-  -- always yields fresh CLOSED folds (Vim's :fold default). Skipping re-apply
-  -- would leave sections closed even when saved state says "open", which was a
-  -- regression introduced by the previous is_apply_needed optimization.
-  -- Safe to always run now that apply_fold_states uses ex commands (no cursor
-  -- movement, no viewport flicker).
+  -- always yields fresh CLOSED folds (Vim's :fold default).
+  --
+  -- IMPORTANT: folds are *window-local*. When refresh fires from the watcher
+  -- and the user is focused in another window, nvim_buf_call falls back to
+  -- nvim's hidden autocmd window — fold ops there get discarded when it
+  -- closes, leaving the visible Nexus window with stale folds while saved
+  -- state and arrows say otherwise (▶ shown but content visible). Switching
+  -- into the actual window hosting the Nexus buffer once here makes every
+  -- downstream nvim_buf_call land in that real window.
   local ranges_hash = folding.compute_ranges_hash(section_ranges)
-  folding.initialize_folds_to_open(buf, section_ranges)
-  folding.apply_fold_states(buf, section_ranges, ranges_hash)
-
-  -- Update section arrows to reflect fold states
-  folding.update_section_arrows(buf, section_ranges)
+  if nexus_win and vim.api.nvim_win_is_valid(nexus_win) then
+    vim.api.nvim_win_call(nexus_win, function()
+      folding.initialize_folds_to_open(buf, section_ranges)
+      folding.apply_fold_states(buf, section_ranges, ranges_hash)
+      folding.update_section_arrows(buf, section_ranges)
+    end)
+  end
 
   vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 
