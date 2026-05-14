@@ -46,6 +46,9 @@ function M.open(is_manual_open)
         logger.info('NEXUS', 'Switching to existing Nexus buffer')
         logger.log_timing_event("EXISTING_BUFFER_FOUND")
         buffer_mod.open_buffer(buf, is_manual_open)
+        pcall(function()
+          require('nexus.watchers.git').start(buf, config.get())
+        end)
         logger.log_timing_event("SWITCH_TO_EXISTING_BUFFER_COMPLETE")
         logger.end_timing_session()
         return
@@ -87,6 +90,12 @@ function M.open(is_manual_open)
   logger.log_timing_event("KEYMAPS_MINIMAL_START")
   keymaps.setup_minimal_keymaps(buf, current_config)
   logger.log_timing_event("KEYMAPS_MINIMAL_COMPLETE")
+
+  -- Start the live git watcher early. Idle cost is one fs_event handle; bursts
+  -- collapse via a shared debounce timer. Self-tears-down on BufWipeout.
+  pcall(function()
+    require('nexus.watchers.git').start(buf, current_config)
+  end)
 
   -- Phase 2: Async load git data and update buffer when ready
   logger.log_timing_event("ASYNC_LOAD_START")
