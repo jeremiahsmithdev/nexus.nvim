@@ -320,7 +320,10 @@ function M.parse_async_git_output(output)
         finalize_commit()
         local hash, rest = line:match('^([%w]+)%s+(.*)')
         if hash and rest then
-          local decoration, message = rest:match('^(%([^%)]+%))%s*(.*)')
+          -- Capture only the inside of the decoration parens; sections.lua
+          -- formats the rendered line with `(%s)` and will add the parens
+          -- back. Capturing the parens here produced `((HEAD -> master))`.
+          local decoration, message = rest:match('^%(([^%)]+)%)%s*(.*)')
           if not decoration then
             message = rest
           end

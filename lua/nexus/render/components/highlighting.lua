@@ -16,8 +16,8 @@ function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_secti
   -- 3. Commits highlighting
   M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_ranges)
   
-  -- 4. Git status highlighting  
-  M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
+  -- 4. Git status highlighting
+  M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files, section_ranges)
   
   -- 5. Linear issues highlighting
   M.apply_linear_highlighting(buf, lines, config)
@@ -220,7 +220,7 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_r
 end
 
 -- Git status highlighting that works with processed data
-function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
+function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files, section_ranges)
   local config_module = require('nexus.config')
   if not is_git_repo or not config_module.is_section_enabled("git_status") or not files or #files == 0 then
     return
@@ -228,15 +228,23 @@ function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
 
   local git_ns = vim.api.nvim_create_namespace('nexus_git_status')
   local git_status_start = nil
-  
-  -- Find Git Status section
-  for i, line in ipairs(lines) do
-    if line:match('Git Status:') then
-      git_status_start = i
-      break
+  local section_end = nil
+
+  -- Prefer the authoritative range from section_ranges (covers the case where
+  -- a `+N untracked files` summary line shifts the visible offset relative to
+  -- display_files index). Fall back to header-string scan if not provided.
+  if section_ranges and section_ranges.git_status then
+    git_status_start = section_ranges.git_status.start_line
+    section_end      = section_ranges.git_status.end_line
+  else
+    for i, line in ipairs(lines) do
+      if line:match('Git Status:') then
+        git_status_start = i
+        break
+      end
     end
   end
-  
+
   if not git_status_start then
     return
   end
@@ -258,8 +266,14 @@ function M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
   -- Apply highlighting to displayed files in correct order
   for display_index, data in ipairs(display_files) do
     local line_num = git_status_start + 1 + display_index -- +1 for empty line after "Git Status:"
+    -- Hard-cap at the git_status section's end_line. Without this, a
+    -- collapse_untracked summary line (which sits in the buffer but is not
+    -- part of display_files) shifts the index, and the loop's tail
+    -- overshoots into Recent Commits — painting `A` from "HEAD" as a status
+    -- char (red) and `-` from "->" as a deletion marker.
+    if section_end and line_num > section_end then break end
     local line_content = lines[line_num]
-    
+
     if line_content then
       -- Find the status characters in the line
       local status_start = line_content:find('[MADRCU?]')

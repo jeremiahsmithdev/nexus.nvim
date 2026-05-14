@@ -176,9 +176,14 @@ function M.parse_batch_commits(commits_output)
   local commits = {}
   for line in commits_output:gmatch('[^\r\n]+') do
     if line ~= '' then
-      -- Try to match hash with decoration first, then without
+      -- Try to match hash with decoration first, then without. Strip the
+      -- outer parens from the decoration so downstream consumers
+      -- (sections.lua formats it with `(%s)`) don't double-wrap into
+      -- `((HEAD -> master))`.
       local hash, decoration, message = line:match('([%w]+)%s+(%b())%s*(.*)')
-      if not hash then
+      if hash and decoration then
+        decoration = decoration:sub(2, -2)
+      else
         -- No decoration, just hash and message
         hash, message = line:match('([%w]+)%s+(.*)')
       end
