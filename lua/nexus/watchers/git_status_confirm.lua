@@ -166,9 +166,16 @@ function M.start(buf, opts)
     end,
   })
 
+  -- FocusGained: throttled identically to CursorHold. Some terminals/tmux
+  -- emit focus events many times per second; un-throttled, each one spawns
+  -- a git status subprocess for nothing (recursive tree watch already
+  -- catches real edits).
   vim.api.nvim_create_autocmd('FocusGained', {
     group = g,
-    callback = function() M.poke('FocusGained') end,
+    callback = function()
+      local since_s = (uv.hrtime() - state.last_confirm_ns) / 1e9
+      if since_s >= state.hold_throttle_s then M.poke('FocusGained') end
+    end,
   })
 
   vim.api.nvim_create_autocmd('CursorHold', {

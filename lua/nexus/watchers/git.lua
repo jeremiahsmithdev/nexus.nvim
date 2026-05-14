@@ -90,7 +90,7 @@ local function watch_file(path)
         return  -- spurious wake (atime tick); ignore.
       end
       M._mtimes[path] = current
-      require('nexus.watchers.git_status_confirm').poke()
+      require('nexus.watchers.git_status_confirm').poke('file:' .. vim.fn.fnamemodify(path, ':t'))
     end))
   end)
   if ok then
@@ -147,7 +147,7 @@ function M.start(buf, config)
             return
           end
         end
-        require('nexus.watchers.git_status_confirm').poke()
+        require('nexus.watchers.git_status_confirm').poke('tree:' .. (filename or '?'))
       end))
     end)
     if ok then
