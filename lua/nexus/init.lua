@@ -278,6 +278,40 @@ function M.refresh_buffer(buf, opts)
 
     local is_git_repo = git_data.is_git_repo
     local prev_is_git_repo = vim.b[buf].nexus_is_git_repo
+
+    -- Bail out if the visible git state is byte-for-byte the same as the last
+    -- render. fs_event on .git/ is noisy (loose object writes, packfile
+    -- updates, fsmonitor probes) and BufWritePost fires on every :w, but most
+    -- of those produce zero change in `git status` / `git log` output. Doing a
+    -- full nvim_buf_set_lines rewrite for a no-op refresh causes a visible
+    -- screen flash on the user's cursor row. Hash + skip removes the flash for
+    -- the common case while still letting genuine changes through.
+    --
+    -- The keymap reinstall is gated on is_git_repo flipping (which can't
+    -- happen if the data is identical), so it's safe to skip that block too.
+    local function fingerprint(data)
+      local parts = { tostring(data.is_git_repo) }
+      for _, f in ipairs(data.files or {}) do
+        parts[#parts + 1] = (f.status or '') .. ':' ..
+          (f.file or f.path or '') .. ':' ..
+          tostring(f.added or 0) .. '/' .. tostring(f.deleted or 0)
+      end
+      parts[#parts + 1] = '|'
+      for _, c in ipairs(data.commits or {}) do
+        parts[#parts + 1] = (c.hash or '') .. ':' ..
+          (c.decoration or '') .. ':' ..
+          (c.review_status or '') .. ':' ..
+          (c.message or '')
+      end
+      return table.concat(parts, '\n')
+    end
+    local fp = fingerprint(git_data)
+    if opts.quiet and vim.b[buf].nexus_git_fingerprint == fp then
+      logger.log_timing_event("REFRESH_BUFFER_SKIPPED_UNCHANGED")
+      return
+    end
+    vim.b[buf].nexus_git_fingerprint = fp
+
     logger.log_timing_event("REFRESH_RENDER_START")
     local files, section_ranges = render.render_git_status(buf, current_config, git_data.files, git_data.commits)
     logger.log_timing_event("REFRESH_RENDER_COMPLETE")
