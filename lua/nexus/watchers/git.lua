@@ -24,6 +24,7 @@ local M = {}
 local uv = vim.uv or vim.loop
 
 M._handles  = {}    -- fs_event handles, one per watched file
+M._mtimes   = {}    -- last-seen mtime per path; gates spurious events
 M._timer    = nil   -- shared debounce timer
 M._augroup  = nil   -- BufWipeout teardown autocmd group
 M._buf      = nil   -- watched Nexus buffer
@@ -70,18 +71,37 @@ local function schedule_refresh()
   end))
 end
 
+-- Read mtime as a packed string (sec + nsec). Returns nil if file gone.
+-- We compare equality of this string between events; a write advances either
+-- field. Using a string sidesteps Lua-number precision on nanoseconds.
+local function read_mtime(path)
+  local st = uv.fs_stat(path)
+  if not st or not st.mtime then return nil end
+  return tostring(st.mtime.sec) .. '.' .. tostring(st.mtime.nsec or 0)
+end
+
 -- Open one fs_event handle on a single file. git uses atomic rename-into-place
--- for HEAD / index / logs/HEAD, so the handle survives the write. If the file
--- doesn't exist yet (rare: a fresh repo with no commits has no logs/HEAD), we
--- just skip it — once a commit creates the file, subsequent updates won't fire
--- until the next Nexus open. Acceptable trade for the simpler watcher.
+-- for HEAD / index / logs/HEAD, so the handle survives the write.
+--
+-- IMPORTANT: fs_event fires on *any* inode metadata change, including atime
+-- updates from external `stat()` calls (statusline plugins, language servers,
+-- shell prompts all stat .git/index constantly). Without a content-change gate
+-- the dashboard would re-render on every spurious wake. We gate on mtime: only
+-- schedule a refresh when mtime actually advanced since the last event.
 local function watch_file(path)
   if vim.fn.filereadable(path) == 0 then return end
+  M._mtimes[path] = read_mtime(path)
   local handle = uv.new_fs_event()
   if not handle then return end
   local ok = pcall(function()
     handle:start(path, {}, vim.schedule_wrap(function(err)
       if err then return end
+      local current = read_mtime(path)
+      if current == M._mtimes[path] then
+        -- Spurious wake (atime tick, fsnotify quirk). Ignore.
+        return
+      end
+      M._mtimes[path] = current
       schedule_refresh()
     end))
   end)
@@ -124,6 +144,7 @@ function M.stop()
   safe_close(M._timer); M._timer = nil
   for _, h in ipairs(M._handles) do safe_close(h) end
   M._handles = {}
+  M._mtimes = {}
   if M._augroup then
     pcall(vim.api.nvim_del_augroup_by_id, M._augroup)
     M._augroup = nil
