@@ -217,7 +217,7 @@ function M.apply_commit_popup_highlighting(buf, lines, commit_hash)
       -- 5. Highlight summary lines (lines with file counts and insertions/deletions)
       if line:match('files? changed') or line:match('insertions?') or line:match('deletions?') then
         -- Highlight numbers in summary
-        for num_start, num_end in line:gmatch('()(%d+)()') do
+        for num_start, _digits, num_end in line:gmatch('()(%d+)()') do
           vim.api.nvim_buf_set_extmark(buf, commit_ns, i - 1, num_start - 1, { end_col = num_end - 1, hl_group = 'Number' })
         end
 
