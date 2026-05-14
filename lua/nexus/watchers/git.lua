@@ -1,32 +1,35 @@
 --- lua/nexus/watchers/git.lua
 ---
---- Live-refresh the Nexus dashboard on git state changes with minimum cost.
---- Idle cost is one libuv fs_event handle + two autocmds — no polling, no timers
---- running while nothing is happening.
+--- Live-refresh the Nexus dashboard on real git state changes only.
 ---
---- Signals (cheapest first):
----   * fs_event on `.git/`   -> covers commits, branch switches, add/reset (index)
----   * BufWritePost          -> covers in-nvim edits that change working-tree status
+--- Strictly event-scoped: we watch three specific files that git writes
+--- atomically when (and only when) user-meaningful state changes:
 ---
---- Intentionally NOT watching FocusGained: tmux focus-events and intra-nvim
---- window switches fire it on every pane change, causing visible flash and a
---- mis-centered re-render (render uses the *currently focused* window's width
---- for centering, which isn't the Nexus pane when focus moved elsewhere).
---- fs_event already catches external git ops at the source within ~ms.
+---   .git/HEAD       — branch switch, detached HEAD
+---   .git/index      — `git add` / `git reset` / commit (stage/unstage)
+---   .git/logs/HEAD  — every commit, every checkout (appends a line)
 ---
---- All signals collapse into one shared debounce timer that fires
---- `nexus.refresh_buffer(buf)` — the same path the manual `r` keybinding uses.
+--- We do NOT:
+---   * watch `.git/` as a directory   (loose objects, packfiles, fsmonitor,
+---                                     FETCH_HEAD churn from statuslines,
+---                                     lockfiles — all noise)
+---   * watch BufWritePost             (a save isn't a git event until `add`)
+---   * watch FocusGained              (tmux/nvim pane switches aren't events)
+---
+--- All three handles funnel into one shared 200ms debounce timer so a single
+--- `git commit` (touches HEAD + index + logs/HEAD) coalesces into one refresh.
 
 local M = {}
 
 local uv = vim.uv or vim.loop
 
-M._fs_handle = nil   -- single fs_event on .git/
-M._timer     = nil   -- shared debounce timer
-M._augroup   = nil   -- autocmd group id
-M._buf       = nil   -- watched Nexus buffer
-M._git_dir   = nil   -- resolved .git path (file or dir)
-M._debounce  = 200   -- ms, overridden in start()
+M._handles  = {}    -- fs_event handles, one per watched file
+M._timer    = nil   -- shared debounce timer
+M._augroup  = nil   -- BufWipeout teardown autocmd group
+M._buf      = nil   -- watched Nexus buffer
+M._debounce = 200
+
+local WATCH_FILES = { 'HEAD', 'index', 'logs/HEAD' }
 
 local function safe_close(handle)
   if handle and not handle:is_closing() then
@@ -35,18 +38,17 @@ local function safe_close(handle)
   end
 end
 
--- Resolve the .git directory for the current cwd. Returns absolute path or nil.
--- `git rev-parse --git-dir` is the only reliable way: it handles worktrees,
--- submodules, and `.git` files (which point elsewhere). Synchronous is fine —
--- this runs once per Nexus open.
+-- Resolve the .git directory for the current cwd. `git rev-parse --git-dir`
+-- handles worktrees, submodules, and `.git` files. Runs once per Nexus open.
 local function resolve_git_dir()
   local out = vim.fn.systemlist({ 'git', 'rev-parse', '--git-dir' })
   if vim.v.shell_error ~= 0 or not out[1] or out[1] == '' then return nil end
   return vim.fn.fnamemodify(out[1], ':p')
 end
 
--- Single entry point for "something git-ish changed". All callbacks land here,
--- and the timer collapses bursts into one refresh.
+-- Single sink for "a watched git file was written". Debounced so a commit
+-- (which touches all three watched files in quick succession) collapses to
+-- one refresh.
 local function schedule_refresh()
   if not (M._buf and vim.api.nvim_buf_is_valid(M._buf)) then return end
 
@@ -64,15 +66,33 @@ local function schedule_refresh()
     if not (M._buf and vim.api.nvim_buf_is_valid(M._buf)) then return end
     local ok, nexus = pcall(require, 'nexus')
     if not ok then return end
-    -- quiet:    no "Nexus refreshed (Xms)" toast on every fs event.
-    -- git_only: skip Linear/Huly HTTP refetch — they aren't affected by
-    --           a local `git add` / commit / branch switch.
     pcall(nexus.refresh_buffer, M._buf, { quiet = true, git_only = true })
   end))
 end
 
---- Begin watching for `buf` (the Nexus dashboard buffer). Idempotent: a second
---- call replaces any prior watch. Reads debounce_ms from config.
+-- Open one fs_event handle on a single file. git uses atomic rename-into-place
+-- for HEAD / index / logs/HEAD, so the handle survives the write. If the file
+-- doesn't exist yet (rare: a fresh repo with no commits has no logs/HEAD), we
+-- just skip it — once a commit creates the file, subsequent updates won't fire
+-- until the next Nexus open. Acceptable trade for the simpler watcher.
+local function watch_file(path)
+  if vim.fn.filereadable(path) == 0 then return end
+  local handle = uv.new_fs_event()
+  if not handle then return end
+  local ok = pcall(function()
+    handle:start(path, {}, vim.schedule_wrap(function(err)
+      if err then return end
+      schedule_refresh()
+    end))
+  end)
+  if ok then
+    table.insert(M._handles, handle)
+  else
+    safe_close(handle)
+  end
+end
+
+--- Begin watching for `buf` (the Nexus dashboard buffer). Idempotent.
 function M.start(buf, config)
   M.stop()
   if not (buf and vim.api.nvim_buf_is_valid(buf)) then return end
@@ -84,42 +104,14 @@ function M.start(buf, config)
   M._buf = buf
 
   local git_dir = resolve_git_dir()
-  M._git_dir = git_dir
+  if not git_dir then return end
 
-  -- fs_event on .git/ (non-recursive). Non-recursive is enough: git's atomic
-  -- renames for index/HEAD/refs writes all touch the .git directory entry,
-  -- which fires this watcher. Cheaper than recursive and avoids being woken
-  -- by every loose object write under .git/objects/.
-  if git_dir then
-    local handle = uv.new_fs_event()
-    if handle then
-      M._fs_handle = handle
-      local ok = pcall(function()
-        handle:start(git_dir, {}, vim.schedule_wrap(function(err)
-          if err then return end
-          schedule_refresh()
-        end))
-      end)
-      if not ok then
-        safe_close(handle)
-        M._fs_handle = nil
-      end
-    end
+  for _, rel in ipairs(WATCH_FILES) do
+    watch_file(git_dir .. rel)
   end
 
-  -- Autocmd: BufWritePost catches in-nvim edits that change working-tree status.
-  -- We deliberately do NOT watch FocusGained — see header note.
+  -- Self-teardown when the Nexus buffer is wiped.
   M._augroup = vim.api.nvim_create_augroup('NexusGitWatcher', { clear = true })
-  vim.api.nvim_create_autocmd('BufWritePost', {
-    group = M._augroup,
-    callback = function(args)
-      -- Skip writes to the Nexus buffer itself (it's nofile anyway, but cheap guard).
-      if args.buf == M._buf then return end
-      schedule_refresh()
-    end,
-  })
-
-  -- Tear down automatically when the Nexus buffer goes away.
   vim.api.nvim_create_autocmd('BufWipeout', {
     group = M._augroup,
     buffer = buf,
@@ -127,17 +119,16 @@ function M.start(buf, config)
   })
 end
 
---- Stop watching. Idempotent. Releases the fs_event handle, debounce timer,
---- and autocmd group.
+--- Stop watching. Idempotent.
 function M.stop()
-  safe_close(M._timer);     M._timer = nil
-  safe_close(M._fs_handle); M._fs_handle = nil
+  safe_close(M._timer); M._timer = nil
+  for _, h in ipairs(M._handles) do safe_close(h) end
+  M._handles = {}
   if M._augroup then
     pcall(vim.api.nvim_del_augroup_by_id, M._augroup)
     M._augroup = nil
   end
   M._buf = nil
-  M._git_dir = nil
 end
 
 return M
