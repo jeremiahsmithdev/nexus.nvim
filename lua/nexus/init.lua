@@ -149,6 +149,10 @@ function M.open(is_manual_open)
     local files, section_ranges = render.render_git_status(buf, current_config, git_data.files, git_data.commits)
     logger.log_timing_event("FULL_RENDER_COMPLETE")
 
+    -- Stash state so refresh_buffer can detect whether the env actually
+    -- changed and skip the expensive keymap reinstall on stable refreshes.
+    vim.b[buf].nexus_is_git_repo = is_git_repo
+
     -- Set up full keymaps with file navigation
     logger.log_timing_event("KEYMAPS_FULL_START")
     keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(refresh_buf, cached_files)
@@ -207,7 +211,13 @@ end
 -- state cache when it returns, then re-renders and re-installs keymaps. Linear
 -- and Huly refreshes piggy-back on the same trigger so a single 'r' press
 -- refreshes everything the dashboard shows.
-function M.refresh_buffer(buf)
+--- @param buf number Nexus buffer
+--- @param opts table|nil { quiet = bool, git_only = bool }
+---   quiet    — suppress the "Nexus refreshed (Xms)" notify (set by watcher)
+---   git_only — skip Linear/Huly HTTP refetch; the trigger was a local git
+---              event, so external trackers don't need to be re-queried
+function M.refresh_buffer(buf, opts)
+  opts = opts or {}
   logger.log_timing_event("REFRESH_BUFFER_START")
   if not buf or not vim.api.nvim_buf_is_valid(buf) then
     logger.log_timing_event("REFRESH_BUFFER_INVALID_BUFFER")
@@ -223,21 +233,22 @@ function M.refresh_buffer(buf)
   local current_config = config.get()
   local refresh_start = vim.uv and vim.uv.hrtime() or vim.loop.hrtime()
 
-  -- Fire-and-forget refresh for issue trackers, deferred to the next event-loop
-  -- tick. Linear's refresh_data does a *synchronous* HTTP call to api.linear.app
-  -- and would otherwise block the keypress (and delay the async git fetch from
-  -- starting). Deferring lets the git child process launch immediately; Linear
-  -- paints in later via state.notify when its call returns.
-  vim.defer_fn(function()
-    if current_config.linear and current_config.linear.enabled then
-      local linear_state = require('nexus.state.linear')
-      linear_state.refresh_data(current_config)
-    end
-    if current_config.huly and current_config.huly.enabled then
-      local huly_state = require('nexus.state.huly')
-      huly_state.refresh_data(current_config)
-    end
-  end, 0)
+  -- Fire-and-forget refresh for issue trackers. Skipped when the caller knows
+  -- the trigger was a local git event (watcher) — Linear/Huly state can't have
+  -- changed as a result of `git add`, and Linear's refresh_data is a sync HTTPS
+  -- call to api.linear.app, which would otherwise fire on every keystroke save.
+  if not opts.git_only then
+    vim.defer_fn(function()
+      if current_config.linear and current_config.linear.enabled then
+        local linear_state = require('nexus.state.linear')
+        linear_state.refresh_data(current_config)
+      end
+      if current_config.huly and current_config.huly.enabled then
+        local huly_state = require('nexus.state.huly')
+        huly_state.refresh_data(current_config)
+      end
+    end, 0)
+  end
 
   -- Invalidate git cache so any concurrent reader doesn't see stale data while
   -- the async fetch is in flight. The async callback below will repopulate it.
@@ -266,16 +277,29 @@ function M.refresh_buffer(buf)
     state.set('cache', 'git_commits_timestamp', os.time())
 
     local is_git_repo = git_data.is_git_repo
+    local prev_is_git_repo = vim.b[buf].nexus_is_git_repo
     logger.log_timing_event("REFRESH_RENDER_START")
     local files, section_ranges = render.render_git_status(buf, current_config, git_data.files, git_data.commits)
     logger.log_timing_event("REFRESH_RENDER_COMPLETE")
 
-    keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(refresh_buf, cached_files)
-      render.render_git_status(refresh_buf, current_config, cached_files)
-    end, section_ranges)
+    -- Update the buffer-local files list so the (already-installed) Enter
+    -- keymap handler resolves clicks against fresh data without us re-binding.
+    vim.b[buf].nexus_files = files
 
-    local elapsed_ms = ((vim.uv and vim.uv.hrtime() or vim.loop.hrtime()) - refresh_start) / 1e6
-    vim.notify(string.format('Nexus refreshed (%dms)', math.floor(elapsed_ms)), vim.log.levels.INFO)
+    -- Only reinstall keymaps when is_git_repo actually flipped — that's the
+    -- one branch in setup_keymaps that changes which maps exist. The handler
+    -- closures all read from vim.b[buf] for live data.
+    if prev_is_git_repo ~= is_git_repo then
+      keymaps.setup_keymaps(buf, files, current_config, is_git_repo, function(refresh_buf, cached_files)
+        render.render_git_status(refresh_buf, current_config, cached_files)
+      end, section_ranges)
+      vim.b[buf].nexus_is_git_repo = is_git_repo
+    end
+
+    if not opts.quiet then
+      local elapsed_ms = ((vim.uv and vim.uv.hrtime() or vim.loop.hrtime()) - refresh_start) / 1e6
+      vim.notify(string.format('Nexus refreshed (%dms)', math.floor(elapsed_ms)), vim.log.levels.INFO)
+    end
 
     logger.log_timing_event("REFRESH_BUFFER_COMPLETE")
   end)

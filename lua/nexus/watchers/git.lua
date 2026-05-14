@@ -59,7 +59,10 @@ local function schedule_refresh()
     if not (M._buf and vim.api.nvim_buf_is_valid(M._buf)) then return end
     local ok, nexus = pcall(require, 'nexus')
     if not ok then return end
-    pcall(nexus.refresh_buffer, M._buf)
+    -- quiet:    no "Nexus refreshed (Xms)" toast on every fs event.
+    -- git_only: skip Linear/Huly HTTP refetch — they aren't affected by
+    --           a local `git add` / commit / branch switch.
+    pcall(nexus.refresh_buffer, M._buf, { quiet = true, git_only = true })
   end))
 end
 

@@ -587,11 +587,17 @@ end
 ---@param is_git_repo boolean Whether current directory is a git repo
 ---@param render_callback function Function to re-render the buffer
 local function setup_enter_keymap(buf, files, config, is_git_repo, render_callback)
+  -- Stash files buffer-locally so the Enter handler reads the *current* list
+  -- on each press. This lets refresh_buffer update files without re-binding
+  -- the keymap (which is expensive — full keymap teardown/rebuild on every
+  -- fs_event tick would defeat the live-refresh).
+  vim.b[buf].nexus_files = files
   vim.api.nvim_buf_set_keymap(buf, 'n', '<CR>', '', {
     noremap = true,
     silent = true,
     callback = function()
-      M.handle_enter_key(buf, files, config, is_git_repo, render_callback)
+      local current_files = vim.b[buf].nexus_files or files
+      M.handle_enter_key(buf, current_files, config, is_git_repo, render_callback)
     end
   })
 end
