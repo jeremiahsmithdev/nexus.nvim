@@ -14,7 +14,7 @@ function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_secti
   M.apply_button_highlighting(buf, lines, config)
   
   -- 3. Commits highlighting
-  M.apply_commits_highlighting(buf, lines, config, is_git_repo)
+  M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_ranges)
   
   -- 4. Git status highlighting  
   M.apply_git_status_highlighting(buf, lines, config, is_git_repo, files)
@@ -132,14 +132,24 @@ function M.apply_button_highlighting(buf, lines, config)
 end
 
 -- Commits highlighting
-function M.apply_commits_highlighting(buf, lines, config, is_git_repo)
+function M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_ranges)
   local config_module = require('nexus.config')
   if not is_git_repo or not config_module.is_section_enabled("recent_commits") then
     return
   end
-  
+
+  -- Scope the scan to the recent_commits section. Without this, the parens /
+  -- hash regexes here trip on any line in the buffer that happens to contain
+  -- 7+ hex chars or parenthesized text (e.g. `fix(watchers)` in another
+  -- section's content), painting it with branch-decoration colors.
+  local range = section_ranges and section_ranges.recent_commits
+  local first_line = range and range.start_line or 1
+  local last_line  = range and range.end_line   or #lines
+
   local commits_ns = vim.api.nvim_create_namespace('nexus_commits')
-  for i, line in ipairs(lines) do
+  for i = first_line, last_line do
+    local line = lines[i]
+    if line then
     -- Check for review status icons first
     if config.show_commit_review then
       local review_check = line:find('✓')
@@ -186,17 +196,25 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo)
         })
       end
 
-      -- Look for branch names (simple approach)
-      local paren_start, paren_end = line:find('%(.*%)')
-      if paren_start and paren_end then
-        -- Skip highlighting if it contains HEAD (already highlighted above)
-        if not line:sub(paren_start, paren_end):match('HEAD') then
-          vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, paren_start - 1, {
+      -- Branch/tag decoration: git log emits `<hash> (<refs>) <message>`, so
+      -- the decoration parens sit immediately after the hash. Use a
+      -- non-greedy match anchored to hash_end + 1 to avoid capturing
+      -- parenthesized text later in the commit subject (e.g. conventional
+      -- commit scopes like `fix(watchers)`).
+      local paren_start, paren_end = line:find('%s+%b()', hash_end)
+      -- Require the parens to sit immediately after the hash (at most one
+      -- space). Anything further is part of the commit subject, not the
+      -- git-log decoration.
+      if paren_start and paren_end and paren_start - hash_end <= 2 then
+        local open_paren = line:find('%(', paren_start)
+        if open_paren and not line:sub(open_paren, paren_end):match('HEAD') then
+          vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, open_paren - 1, {
             end_col = paren_end,
             hl_group = 'Function',
           })
         end
       end
+    end
     end
   end
 end
