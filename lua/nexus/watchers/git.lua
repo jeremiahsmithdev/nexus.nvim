@@ -109,6 +109,43 @@ function M.start(buf, config)
     watch_file(git_dir .. rel)
   end
 
+  -- Recursive fs_event on the working tree itself. This is what makes raw
+  -- working-tree edits appear instantly without manual `r`. Every wake pokes
+  -- the hash-confirm gate; the gate then runs `git status` and only fires a
+  -- visible refresh when porcelain output actually changed. So wakes from
+  -- build artifacts, log writes, swap files, and any gitignored churn cost
+  -- one ~5-10ms subprocess and stop there — no flicker, no render.
+  --
+  -- libuv recursive is supported on macOS (FSEvents) and Windows
+  -- (ReadDirectoryChangesW), but NOT on Linux. On Linux the start() call
+  -- will fail; we ignore the failure and fall back to CursorHold/
+  -- BufWritePost/FocusGained owned by git_status_confirm.
+  local tree_handle = uv.new_fs_event()
+  if tree_handle then
+    local ok = pcall(function()
+      tree_handle:start(repo_root, { recursive = true }, vim.schedule_wrap(function(err, filename)
+        if err then return end
+        -- Skip events under .git/ — the three file-level handles already
+        -- cover those, and the kernel reports a flood of object/pack writes
+        -- during pulls/gc that we don't want to forward. Defensive on path
+        -- separators since libuv may report relative or absolute.
+        if filename then
+          local norm = filename:gsub('\\', '/')
+          if norm == '.git' or norm:find('/%.git/', 1, false)
+             or norm:sub(1, 5) == '.git/' then
+            return
+          end
+        end
+        require('nexus.watchers.git_status_confirm').poke()
+      end))
+    end)
+    if ok then
+      table.insert(M._handles, tree_handle)
+    else
+      safe_close(tree_handle)
+    end
+  end
+
   -- Self-teardown when the Nexus buffer is wiped.
   M._augroup = vim.api.nvim_create_augroup('NexusGitWatcher', { clear = true })
   vim.api.nvim_create_autocmd('BufWipeout', {
