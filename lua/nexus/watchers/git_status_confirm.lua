@@ -1,9 +1,15 @@
 --- lua/nexus/watchers/git_status_confirm.lua
 ---
 --- Hash-confirm gate. Every "something might have changed" signal lands here.
---- We coalesce with a 150ms debounce, then run `git status --porcelain=v2`,
---- hash the output, and only fire the downstream refresh when the hash
---- actually differs from what we last saw.
+--- We coalesce with a 150ms debounce, then run a bundle of
+---   * git status --porcelain=v2 -z --untracked-files=all
+---   * git diff --numstat                  (unstaged +/- per file)
+---   * git diff --cached --numstat         (staged   +/- per file)
+--- hash the combined output, and only fire the downstream refresh when the
+--- hash actually differs from what we last saw. The numstat folds are
+--- required: porcelain=v2 only emits HEAD+index object hashes for modified
+--- files, so it is *blind* to further worktree edits of an already-modified
+--- file. Including numstat makes any +/- change move the bundle hash.
 ---
 --- DESIGN NOTE (avoid the priming race):
 ---   We do NOT prime a baseline hash up-front. last_hash starts nil. The
@@ -53,19 +59,29 @@ local function hash_bytes(s)
   return h
 end
 
+-- Build the hashed bundle. porcelain=v2 alone can't see worktree-content
+-- changes on already-modified files (it only emits HEAD+index object
+-- hashes), so we also fold in diff --numstat (unstaged +/- per file) and
+-- diff --cached --numstat (staged +/-). Any meaningful change to dashboard
+-- content moves the bundle's hash.
 local function run_status(on_done)
-  local cmd = {
-    'git', '-C', state.repo_root,
-    'status', '--porcelain=v2', '-z', '--untracked-files=all',
-  }
+  local script = table.concat({
+    'git status --porcelain=v2 -z --untracked-files=all',
+    "printf '\\0DIFF\\0'",
+    'git diff --numstat',
+    "printf '\\0CACHED\\0'",
+    'git diff --cached --numstat',
+  }, '; ')
+  local cmd = { 'sh', '-c', script }
   if vim.system then
-    vim.system(cmd, { text = true, timeout = 3000 }, vim.schedule_wrap(function(res)
+    vim.system(cmd, { text = true, cwd = state.repo_root, timeout = 3000 }, vim.schedule_wrap(function(res)
       on_done(res.code == 0 and (res.stdout or '') or nil, res.code, res.stderr)
     end))
   else
     local chunks = {}
     local errs = {}
     vim.fn.jobstart(cmd, {
+      cwd = state.repo_root,
       stdout_buffered = true, stderr_buffered = true,
       on_stdout = function(_, data) if data then vim.list_extend(chunks, data) end end,
       on_stderr = function(_, data) if data then vim.list_extend(errs, data) end end,
