@@ -27,7 +27,9 @@ local M = {}
 local uv = vim.uv or vim.loop
 
 local LOG_PATH = '/tmp/nexus-watcher.log'
+local debug_enabled = false
 local function log(msg)
+  if not debug_enabled then return end
   pcall(function()
     local f = io.open(LOG_PATH, 'a')
     if not f then return end
@@ -108,6 +110,7 @@ function M.start(buf, config)
   config = config or {}
   local cfg = config.git_auto_refresh or {}
   if cfg.enabled == false then return end
+  debug_enabled = cfg.debug == true
   M._buf = buf
 
   local git_dir = resolve_git_dir()
@@ -181,7 +184,7 @@ function M.start(buf, config)
     end,
     debounce_ms     = tonumber(cfg.debounce_ms)     or 150,
     hold_throttle_s = tonumber(cfg.hold_throttle_s) or 10,
-    debug           = true,  -- temporarily forced on to diagnose missed-edit reports
+    debug           = cfg.debug == true,
   })
 end
 
