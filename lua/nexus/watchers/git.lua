@@ -26,6 +26,16 @@ local M = {}
 
 local uv = vim.uv or vim.loop
 
+local LOG_PATH = '/tmp/nexus-watcher.log'
+local function log(msg)
+  pcall(function()
+    local f = io.open(LOG_PATH, 'a')
+    if not f then return end
+    f:write(os.date('%H:%M:%S [git] ') .. msg .. '\n')
+    f:close()
+  end)
+end
+
 M._handles  = {}    -- fs_event handles, one per watched file
 M._mtimes   = {}    -- last-seen mtime per path; gates spurious events
 M._augroup  = nil   -- BufWipeout teardown autocmd group
@@ -120,11 +130,12 @@ function M.start(buf, config)
   -- (ReadDirectoryChangesW), but NOT on Linux. On Linux the start() call
   -- will fail; we ignore the failure and fall back to CursorHold/
   -- BufWritePost/FocusGained owned by git_status_confirm.
+  log('start buf=' .. tostring(buf) .. ' repo_root=' .. repo_root .. ' git_dir=' .. git_dir)
   local tree_handle = uv.new_fs_event()
   if tree_handle then
-    local ok = pcall(function()
+    local ok, err_msg = pcall(function()
       tree_handle:start(repo_root, { recursive = true }, vim.schedule_wrap(function(err, filename)
-        if err then return end
+        if err then log('tree fs_event err=' .. tostring(err)); return end
         -- Skip events under .git/ — the three file-level handles already
         -- cover those, and the kernel reports a flood of object/pack writes
         -- during pulls/gc that we don't want to forward. Defensive on path
@@ -141,10 +152,15 @@ function M.start(buf, config)
     end)
     if ok then
       table.insert(M._handles, tree_handle)
+      log('recursive tree watch STARTED on ' .. repo_root)
     else
+      log('recursive tree watch FAILED: ' .. tostring(err_msg))
       safe_close(tree_handle)
     end
+  else
+    log('uv.new_fs_event() returned nil for tree')
   end
+  log('total handles=' .. #M._handles)
 
   -- Self-teardown when the Nexus buffer is wiped.
   M._augroup = vim.api.nvim_create_augroup('NexusGitWatcher', { clear = true })
@@ -165,6 +181,7 @@ function M.start(buf, config)
     end,
     debounce_ms     = tonumber(cfg.debounce_ms)     or 150,
     hold_throttle_s = tonumber(cfg.hold_throttle_s) or 10,
+    debug           = true,  -- temporarily forced on to diagnose missed-edit reports
   })
 end
 
