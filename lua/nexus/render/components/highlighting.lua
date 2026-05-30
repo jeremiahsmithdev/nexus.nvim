@@ -3,6 +3,25 @@ local M = {}
 local git_status = require('nexus.git.status')
 local folding = require('nexus.ui.folding')
 
+-- Conventional-commit type -> built-in highlight group. Chosen so each type is
+-- distinguishable at a glance and theme-adaptive (we reuse semantic groups
+-- rather than defining custom colors). Types not in this table (e.g. "wip",
+-- merge commits, plain messages) are left uncolored, so non-conventional
+-- commits degrade gracefully to the default subject color.
+local CONVENTIONAL_TYPE_HL = {
+  feat     = 'String',           -- green: new capability
+  fix      = 'DiagnosticError',  -- red: bug fix
+  docs     = 'DiagnosticInfo',   -- blue: documentation
+  style    = 'Comment',          -- dim: cosmetic only
+  refactor = 'Keyword',          -- purple: structural change
+  perf     = 'DiagnosticWarn',   -- orange: performance
+  test     = 'Type',             -- accent: tests
+  build    = 'Special',          -- build system
+  ci       = 'Special',          -- CI config
+  chore    = 'Comment',          -- dim: maintenance
+  revert   = 'DiagnosticError',  -- red: undoing a change
+}
+
 -- Main highlighting function - applies all highlighting types
 function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
   vim.api.nvim_buf_clear_namespace(buf, 0, 0, -1)
@@ -215,6 +234,50 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_r
             end_col = paren_end,
             hl_group = 'Function',
           })
+        end
+      end
+
+      -- Conventional-commit header: <type>(<scope>)!: <subject>. Parse it from
+      -- the start of the subject region (after the hash, or after a git-log
+      -- decoration that immediately follows the hash). Colour the type by
+      -- category, the scope, and a breaking-change "!"; the subject is left at
+      -- the default colour so it stays the most readable element on the line.
+      local header_from = hash_end + 1
+      if paren_start and paren_end and paren_start - hash_end <= 2 then
+        header_from = paren_end + 1
+      end
+      local htype_start = line:find('%S', header_from)
+      if htype_start then
+        local type_s, type_e, ctype = line:find('^(%l+)', htype_start)
+        local type_hl = type_s and CONVENTIONAL_TYPE_HL[ctype]
+        if type_hl then
+          local cursor = type_e + 1
+          local scope_s, scope_e = line:find('^%b()', cursor)
+          if scope_s then cursor = scope_e + 1 end
+          local bang_s, bang_e = line:find('^!', cursor)
+          if bang_s then cursor = bang_e + 1 end
+          -- Only colour once the trailing colon is confirmed: this guards
+          -- against a subject that merely starts with a type-like word. We
+          -- require the full `type(scope)!:` shape before treating it as a
+          -- conventional header.
+          if line:find('^:', cursor) then
+            vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, type_s - 1, {
+              end_col = type_e,
+              hl_group = type_hl,
+            })
+            if scope_s then
+              vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, scope_s - 1, {
+                end_col = scope_e,
+                hl_group = 'Identifier',
+              })
+            end
+            if bang_s then
+              vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, bang_s - 1, {
+                end_col = bang_e,
+                hl_group = 'DiagnosticError',
+              })
+            end
+          end
         end
       end
     end
