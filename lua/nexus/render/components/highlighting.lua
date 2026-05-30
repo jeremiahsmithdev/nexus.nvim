@@ -268,7 +268,7 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_r
             if scope_s then
               vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, scope_s - 1, {
                 end_col = scope_e,
-                hl_group = 'Comment',
+                hl_group = 'Function',
               })
             end
             if bang_s then
