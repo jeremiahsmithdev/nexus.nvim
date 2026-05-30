@@ -382,63 +382,6 @@ function M.setup_section_folds(buf, section_ranges)
   end
 end
 
--- Initialize all folds to open state (establishes consistent baseline)
--- Needed because newly created folds have undefined state - foldclosed() may return
--- -1 even though conceptually they're "closed" since they were never opened.
-function M.initialize_folds_to_open(buf, section_ranges)
-  -- Validate buffer
-  if not buf or not vim.api.nvim_buf_is_valid(buf) then
-    logger.error("FOLD", "Invalid buffer for initializing folds")
-    return
-  end
-
-  if not section_ranges or vim.tbl_isempty(section_ranges) then
-    logger.debug("FOLD", "No section ranges for initializing folds")
-    return
-  end
-
-  -- Ensure folding is enabled on window
-  vim.api.nvim_buf_call(buf, function()
-    vim.wo[0].foldenable = true
-    vim.wo[0].foldmethod = 'manual'
-    vim.wo[0].foldlevel = 99
-  end)
-
-  -- Build a lookup set of foldable section names
-  local foldable_set = {}
-  for _, name in ipairs(M.foldable_sections) do
-    foldable_set[name] = true
-  end
-
-  -- Save full view so we can restore the viewport after any cursor movements
-  -- triggered by `normal! zo`. Without this, cursor moves to each fold line
-  -- scroll the viewport and leave topline wherever the last scroll landed.
-  local saved_view = vim.fn.winsaveview()
-
-  for section_name, range in pairs(section_ranges) do
-    if foldable_set[section_name] and range and range.start_line then
-      local fold_line = range.start_line + 2
-
-      local success = pcall(function()
-        vim.api.nvim_buf_call(buf, function()
-          vim.api.nvim_win_set_cursor(0, {fold_line, 0})
-          vim.cmd('normal! zo')  -- Open the fold
-        end)
-      end)
-
-      if not success then
-        logger.debug("FOLD", "Could not open fold during initialization", {
-          section = section_name,
-          fold_line = fold_line
-        })
-      end
-    end
-  end
-
-  -- Restore full view (cursor + topline + leftcol + curswant) atomically.
-  pcall(vim.fn.winrestview, saved_view)
-end
-
 -- Compute a lightweight hash of section_ranges structure.
 -- Used to detect layout shifts (section added/removed or line numbers changed).
 -- Exported so render.lua can compute the hash once and pass it to apply_fold_states.
@@ -483,39 +426,39 @@ function M.apply_fold_states(buf, section_ranges, ranges_hash)
   -- scroll landed, which is how the dashboard ended up "jumping" after render.
   local saved_view = vim.fn.winsaveview()
 
-  -- Apply fold states only for foldable sections (skip keyboard_shortcuts, project_name, etc.)
-  for section_name, range in pairs(section_ranges) do
-    if foldable_set[section_name] and range and range.start_line and range.end_line then
-      local is_open = fold_state.is_section_open(section_name)
+  -- Establish an all-open baseline in ONE command. `:fold` creates folds in a
+  -- closed state, so previously we walked every section with cursor + `normal! zo`
+  -- (the old initialize_folds_to_open pass) just to open them before selectively
+  -- re-closing. `zR` opens every fold in the window in a single op — no cursor
+  -- movement, no per-section loop. After this, the only work left is closing the
+  -- sections the user actually collapsed, which is usually a small subset.
+  vim.api.nvim_buf_call(buf, function()
+    vim.wo[0].foldenable = true
+    vim.wo[0].foldmethod = 'manual'
+    pcall(function() vim.cmd('normal! zR') end)
+  end)
 
+  -- Close only the foldable sections whose saved state is "closed". Open sections
+  -- need no work — the zR baseline already left them open. We keep the proven
+  -- cursor + `normal! zc` approach (the :foldclose ex-command form failed to
+  -- toggle state in this codebase); viewport scrolling from the cursor moves is
+  -- undone by the winrestview below.
+  for section_name, range in pairs(section_ranges) do
+    if foldable_set[section_name] and range and range.start_line and range.end_line
+        and not fold_state.is_section_open(section_name) then
       -- Calculate actual fold start (header + empty line are not part of fold)
       local fold_line = range.start_line + 2
 
-      -- Apply fold state via cursor-based zo/zc. We deliberately use the
-      -- proven cursor+normal! approach rather than :foldopen/:foldclose ex
-      -- commands because the ex-command form failed to actually toggle state
-      -- in this codebase (fold persistence broke entirely). Viewport scrolling
-      -- caused by cursor movement is mitigated by the winsaveview/winrestview
-      -- wrap outside this loop.
       local success = pcall(function()
         vim.api.nvim_buf_call(buf, function()
-          -- Ensure folding is properly enabled on the window (fixes initial state issue)
-          vim.wo[0].foldenable = true
-          vim.wo[0].foldmethod = 'manual'
-
           vim.api.nvim_win_set_cursor(0, {fold_line, 0})
-          if is_open then
-            vim.cmd('normal! zo')  -- Open fold
-          else
-            vim.cmd('normal! zc')  -- Close fold
-          end
+          vim.cmd('normal! zc')  -- Close fold
         end)
       end)
 
       if not success then
-        logger.debug("FOLD", "Could not apply fold state (section may not be foldable)", {
+        logger.debug("FOLD", "Could not close fold (section may not be foldable)", {
           section = section_name,
-          is_open = is_open
         })
       end
     end
