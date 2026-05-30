@@ -56,8 +56,7 @@ are single-line headers, not content containers.
 ### Persistence
 
 `state/folds.lua` keeps `fold_state_cache[repo_path][section_name] = "open" | "closed"`.
-Writes go through `set_section_state`, which also calls `mark_dirty()` so
-the next render re-applies. JSON is serialised via `vim.fn.json_encode`
+Writes go through `set_section_state`. JSON is serialised via `vim.fn.json_encode`
 to `~/.cache/nexus/fold_state.json`.
 
 Default state is **open** — a missing entry means "open", not "unknown".
@@ -69,7 +68,7 @@ Default state is **open** — a missing entry means "open", not "unknown".
 | File | Purpose |
 |------|---------|
 | `lua/nexus/ui/folding.lua` | Fold creation, apply, arrow headers, section detection |
-| `lua/nexus/state/folds.lua` | Disk persistence, dirty tracking |
+| `lua/nexus/state/folds.lua` | Disk persistence of fold state |
 | `lua/nexus/render/components/folding.lua` | Git-status overflow fold |
 
 ### Key Functions
@@ -77,18 +76,10 @@ Default state is **open** — a missing entry means "open", not "unknown".
 - `folding.setup_section_folds(buf, section_ranges)` — creates one manual
   fold per entry in `foldable_sections`. Clamps fold end to the line
   before the next section header to prevent overlap.
-- `folding.initialize_folds_to_open(buf, section_ranges)` — establishes
-  a baseline by opening every fold. Required because newly-created
-  manual folds have undefined state: `foldclosed()` may return `-1`
-  even though the fold has not been opened yet.
-- `folding.apply_fold_states(buf, section_ranges, ranges_hash)` — walks
-  `foldable_sections`, reads each section's saved state, issues `zo`/`zc`
-  with the cursor parked on the fold line, then restores the original
-  cursor position.
-- `folding.compute_ranges_hash(section_ranges)` — lightweight hash of
-  `name:start-end` pairs, sorted for stable iteration order. Used by
-  `state/folds.is_apply_needed` to skip re-apply when layout is identical
-  to the last pass.
+- `folding.apply_fold_states(buf, section_ranges)` — establishes an
+  all-open baseline with `zR`, then walks `foldable_sections`, reads each
+  section's saved state, and issues `zc` on the sections that should be
+  closed, restoring the saved view at the end.
 - `folding.toggle_fold_at_cursor(buf)` — resolves the section under the
   cursor via `section_ranges` in O(1), uses explicit `zo`/`zc` (never
   `za` — see gotcha below), persists the new state.
@@ -99,26 +90,28 @@ Default state is **open** — a missing entry means "open", not "unknown".
   custom text; reads the previous line's leading whitespace and reuses it
   as padding so the summary line lines up with its surrounding section.
 
-### Apply-Gating Logic (T4)
+### Rebuild-Every-Render
+
+Folds are rebuilt unconditionally on every render. `nvim_buf_set_lines`
+destroys all manual folds when it rewrites the buffer, so the render path
+wipes (`zE`), recreates (`setup_section_folds`), and re-applies saved state
+(`apply_fold_states`) as one atomic block inside `nvim_win_call` on the real
+Nexus window:
 
 ```
 render()
-  ranges_hash = compute_ranges_hash(section_ranges)
-  if state.folds.is_apply_needed(ranges_hash):
-      folding.initialize_folds_to_open(buf, section_ranges)
-      folding.apply_fold_states(buf, section_ranges, ranges_hash)
-      // mark_clean(ranges_hash) runs inside apply_fold_states
-  else:
-      log("skipping fold state apply")
+  nvim_buf_set_lines(buf, 0, -1, lines)   // destroys existing folds
+  nvim_win_call(nexus_win):
+      zE                                   // wipe any survivors
+      setup_section_folds(buf, ranges)     // recreate (closed by default)
+      apply_fold_states(buf, ranges)       // zR baseline, then close saved-closed
+      update_section_arrows(buf, ranges)
 ```
 
-`is_apply_needed` returns true when either:
-- `_dirty` is true (a toggle happened since the last apply), **or**
-- `_last_ranges_hash ~= current_hash` (layout shifted).
-
-This prevents the visible cursor-jump flicker that used to occur every
-time the `r` key triggered a full re-render on a dashboard that hadn't
-actually changed.
+Running all fold ops in a single `nvim_win_call` matters: folds are
+window-local, so a refresh fired while the user is focused elsewhere would
+otherwise apply to nvim's hidden autocmd window and evaporate, leaving stale
+folds over fresh content.
 
 ### Window-local Options (Gotcha)
 

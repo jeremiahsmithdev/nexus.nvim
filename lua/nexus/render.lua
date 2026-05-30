@@ -94,13 +94,12 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
     return (vim.fn.win_findbuf(buf) or {})[1]
   end
   local nexus_win = resolve_nexus_win()
-  local ranges_hash = folding.compute_ranges_hash(section_ranges)
   if nexus_win and vim.api.nvim_win_is_valid(nexus_win) then
     vim.api.nvim_win_call(nexus_win, function()
       pcall(function() vim.cmd('normal! zE') end)
       sections_component.setup_folding(buf, lines, config, files)
       folding.setup_section_folds(buf, section_ranges)
-      folding.apply_fold_states(buf, section_ranges, ranges_hash)
+      folding.apply_fold_states(buf, section_ranges)
       folding.update_section_arrows(buf, section_ranges)
     end)
   end
@@ -263,13 +262,12 @@ function M.render_section(buf, section_name)
     return (vim.fn.win_findbuf(buf) or {})[1]
   end
   local nexus_win = resolve_nexus_win()
-  local ranges_hash = folding.compute_ranges_hash(new_ranges)
   vim.api.nvim_buf_set_option(buf, 'modifiable', true)
   if nexus_win and vim.api.nvim_win_is_valid(nexus_win) then
     vim.api.nvim_win_call(nexus_win, function()
       pcall(function() vim.cmd('normal! zE') end)
       folding.setup_section_folds(buf, new_ranges)
-      folding.apply_fold_states(buf, new_ranges, ranges_hash)
+      folding.apply_fold_states(buf, new_ranges)
       folding.update_section_arrows(buf, new_ranges)
     end)
   end

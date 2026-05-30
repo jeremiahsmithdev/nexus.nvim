@@ -384,21 +384,8 @@ end
 
 -- Compute a lightweight hash of section_ranges structure.
 -- Used to detect layout shifts (section added/removed or line numbers changed).
--- Exported so render.lua can compute the hash once and pass it to apply_fold_states.
-function M.compute_ranges_hash(section_ranges)
-  local parts = {}
-  for name, range in pairs(section_ranges) do
-    if range and range.start_line then
-      parts[#parts + 1] = name .. ":" .. (range.start_line) .. "-" .. (range.end_line or 0)
-    end
-  end
-  table.sort(parts) -- stable regardless of pairs() iteration order
-  return table.concat(parts, "|")
-end
-
 -- Apply saved fold states from persistent storage.
--- ranges_hash: pre-computed hash from compute_ranges_hash(); if nil, computed internally.
-function M.apply_fold_states(buf, section_ranges, ranges_hash)
+function M.apply_fold_states(buf, section_ranges)
   local fold_state = require('nexus.state.folds')
 
   -- Validate buffer
@@ -411,8 +398,6 @@ function M.apply_fold_states(buf, section_ranges, ranges_hash)
     logger.debug("FOLD", "No section ranges for applying fold states")
     return
   end
-
-  local current_hash = ranges_hash or M.compute_ranges_hash(section_ranges)
 
   -- Build a lookup set of foldable section names for fast checking
   local foldable_set = {}
@@ -481,9 +466,6 @@ function M.apply_fold_states(buf, section_ranges, ranges_hash)
     vim.fn.winrestview(saved_view)
   end)
 
-  -- Record that we successfully applied for this layout; skip on next render
-  -- unless fold state changes again (set_section_state → mark_dirty) or layout shifts.
-  fold_state.mark_clean(current_hash)
 end
 
 -- Get section name from line number

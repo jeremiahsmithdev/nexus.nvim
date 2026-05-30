@@ -9,36 +9,6 @@ local STATE_FILE = CACHE_DIR .. '/fold_state.json'
 -- In-memory cache
 local fold_state_cache = nil
 
--- Dirty tracking: true means apply_fold_states must run on next render.
--- Starts true so the very first render always applies stored states.
-local _dirty = true
--- Hash of section_ranges from the last apply_fold_states call.
--- If ranges change (layout shift), we must re-apply even when _dirty is false.
-local _last_ranges_hash = nil
-
--- Mark fold state as dirty (triggers re-apply on next render)
-function M.mark_dirty()
-  _dirty = true
-end
-
--- Record that fold states were just applied for the given ranges hash
-function M.mark_clean(ranges_hash)
-  _dirty = false
-  _last_ranges_hash = ranges_hash
-end
-
--- Returns true when apply_fold_states should run.
--- current_ranges_hash: string hash of current section_ranges layout.
-function M.is_apply_needed(current_ranges_hash)
-  if _dirty then
-    return true
-  end
-  if _last_ranges_hash ~= current_ranges_hash then
-    return true
-  end
-  return false
-end
-
 -- Ensure cache directory exists
 local function ensure_cache_dir()
   if vim.fn.isdirectory(CACHE_DIR) == 0 then
@@ -136,9 +106,6 @@ function M.set_section_state(section_name, is_open)
 
   fold_state_cache[repo_path][section_name] = is_open and "open" or "closed"
 
-  -- Fold state changed: next render must re-apply
-  M.mark_dirty()
-
   -- Save to disk
   save_state_to_disk(fold_state_cache)
 
@@ -173,8 +140,6 @@ end
 -- Initialize fold state system
 function M.init()
   fold_state_cache = nil -- Clear cache
-  _dirty = true          -- Force re-apply on next render after init
-  _last_ranges_hash = nil
   logger.debug("FOLD_STATE", "Initialized fold state system")
 end
 
