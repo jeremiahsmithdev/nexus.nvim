@@ -23,7 +23,6 @@ local CACHEABLE_MODULES = {
   'nexus.state.ui',
   'nexus.git.utils',
   'nexus.git.status',
-  'nexus.git.batch',
   'nexus.ui.logo',
   'nexus.actions',
   'nexus.render.components.sections',
