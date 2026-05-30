@@ -69,16 +69,6 @@ function M.precache_common_modules()
   end
 end
 
--- Get cache statistics
-function M.get_stats()
-  return {
-    cache_hits = stats.cache_hits,
-    cache_misses = stats.cache_misses,
-    cached_modules = stats.cached_modules,
-    cache_hit_ratio = stats.cache_hits / (stats.cache_hits + stats.cache_misses + 0.001) -- avoid division by zero
-  }
-end
-
 -- Clear the module cache (for testing or memory cleanup)
 function M.clear_cache()
   module_cache = {}

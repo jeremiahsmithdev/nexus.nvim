@@ -20,8 +20,6 @@ local claude_keymaps = require('nexus.keymaps.claude')
 
 -- UI components
 local logo = require('nexus.ui.logo')
-local commit_popup = require('nexus.ui.popups.commit')
-local linear_popup = require('nexus.ui.popups.linear')
 
 -- State and components for legacy compatibility
 local linear_component = require('nexus.render.components.linear')
@@ -671,25 +669,6 @@ function M.async_quit()
     -- No other real buffers, quit Neovim
     vim.cmd('quit')
   end
-end
-
---- Async esc function  
-function M.async_esc()
-  -- Currently disabled to prevent accidental quitting
-  -- Could be implemented similar to async_quit if needed
-end
-
---- Show commit details popup (legacy compatibility function)
----@param commit_line string The line containing commit information
-function M.show_commit_details(commit_line)
-  commit_popup.show_commit_details(commit_line)
-end
-
---- Show Linear issue details popup (legacy compatibility function) 
----@param issue table The Linear issue object
----@param config table Nexus configuration
-function M.show_linear_issue_details(issue, config)
-  linear_popup.show_linear_issue_details(issue, config)
 end
 
 --- Handle commit review status

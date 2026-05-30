@@ -59,9 +59,6 @@ function M.render_git_status(buf, config, cached_files, cached_commits)
   -- Add syntax highlighting using component
   highlighting.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
 
-  -- Update UI state with section ranges for dynamic shortcuts
-  ui_state.update_section_ranges(section_ranges)
-
   -- Set up dynamic shortcut updating on cursor movement (only if shortcuts are enabled)
   local config_module = require('nexus.config')
   if config_module.is_section_enabled("keyboard_shortcuts") then

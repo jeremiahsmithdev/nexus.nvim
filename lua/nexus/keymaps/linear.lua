@@ -7,7 +7,6 @@ local M = {}
 local linear_state = require('nexus.state.linear')
 local linear_component = require('nexus.render.components.linear')
 local linear_popup = require('nexus.ui.popups.linear')
-local actions = require('nexus.actions')
 local logger = require('nexus.logger')
 
 --- Handle Enter key in Linear section
