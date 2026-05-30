@@ -177,10 +177,13 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_r
     -- Look for commit hash pattern (7+ hex chars after spaces, accounting for review icons)
     local hash_start, hash_end = line:find('%s+[☐✓⚠]?%s*([a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+)')
     if hash_start and hash_end then
-      -- Find the actual hash position within the captured group
-      local actual_hash_start = line:find('[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+', hash_start)
+      -- Find the actual hash span. Capture the full hex run rather than
+      -- assuming a fixed width: git short hashes auto-grow (7, 8, 9+ chars)
+      -- as the repo gains commits, so hardcoding 7 left the trailing
+      -- digit(s) unhighlighted on larger repos.
+      local actual_hash_start, actual_hash_end =
+        line:find('[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]+', hash_start)
       if actual_hash_start then
-        local actual_hash_end = actual_hash_start + 6 -- 7 char hash - 1
         vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, actual_hash_start - 1, {
           end_col = actual_hash_end,
           hl_group = 'Number',
