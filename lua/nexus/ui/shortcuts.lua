@@ -59,17 +59,16 @@ function M.update_contextual_shortcuts(buf, config, is_git_repo, section_ranges)
   
   -- Update the buffer with new contextual shortcuts
   vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-  
-  -- Get window width for centering calculation
-  local width = vim.fn.winwidth(0)
-  if vim.env.TMUX then
-    local pane_width = vim.fn.system("tmux display-message -p '#{pane_width}'"):gsub('\n', '')
-    local tmux_width = tonumber(pane_width)
-    if tmux_width then
-      width = tmux_width
-    end
-  end
-  
+
+  -- Center to the SAME width source the rest of the dashboard uses. The static
+  -- shortcut row directly above this one is laid out with
+  -- layout.get_display_width() (the Nexus window's own width, focus-independent).
+  -- Using winwidth(0)/tmux pane_width here instead let this line center to a
+  -- different width than the row above whenever the focused window or tmux pane
+  -- was wider than the Nexus split — the line then over-padded, wrapped, and
+  -- collided with the section below it.
+  local width = require('nexus.render.layout').get_display_width()
+
   -- Center the contextual line individually
   local center = require('nexus.ui.center')
   local centered_lines = center.center_lines_individually({contextual_line}, width)
