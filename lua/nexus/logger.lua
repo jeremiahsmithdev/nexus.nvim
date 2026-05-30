@@ -33,6 +33,22 @@ local function get_tmux_context()
   return _tmux_window, _tmux_pane
 end
 
+-- Public, memoized tmux window/pane accessor for non-logging callers.
+--
+-- Returns nil,nil outside tmux (rather than the internal "NOT_IN_TMUX"
+-- sentinel) so callers can keep their existing `window or "?"` formatting.
+-- Lets buffer.lua / logo.lua reuse the single resolved context instead of
+-- each spawning their own `tmux display-message` subprocesses.
+---@return string|nil window
+---@return string|nil pane
+function M.tmux_context()
+  local window, pane = get_tmux_context()
+  if window == "NOT_IN_TMUX" then
+    return nil, nil
+  end
+  return window, pane
+end
+
 -- Core logging function
 local function log(level, category, message, extra_data)
   if not LOG_ENABLED then

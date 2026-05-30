@@ -2,6 +2,16 @@ local M = {}
 
 local state = require('nexus.state')
 
+-- Section-detection components hoisted to module scope: both
+-- detect_section_from_line and is_actionable_line run on every cursor move, and
+-- previously re-required each of these per call. Lua memoizes requires, but the
+-- per-call lookup + function-call overhead added up on the cursor hot path.
+-- Huly is deliberately NOT hoisted: its require stays lazy inside the dormant
+-- `huly.enabled` guards so the dormant integration never loads at startup.
+local linear_component = require('nexus.render.components.linear')
+local beads_component = require('nexus.render.components.beads')
+local todo_component = require('nexus.render.components.todo')
+
 -- UI state management
 function M.update_section_ranges(section_ranges)
   state.set('ui', 'section_ranges', section_ranges or {})
@@ -146,7 +156,6 @@ function M.detect_section_by_content(line_content)
   end
   
   -- Check for Linear issues
-  local linear_component = require('nexus.render.components.linear')
   local is_linear_issue, _ = linear_component.is_linear_issue_line(line_content)
   if is_linear_issue then
     return "linear_issues"
@@ -173,7 +182,6 @@ function M.detect_section_by_content(line_content)
   end
 
   -- Check for Beads issues
-  local beads_component = require('nexus.render.components.beads')
   local is_beads_issue, _ = beads_component.is_beads_issue_line(line_content)
   if is_beads_issue then
     return "beads_issues"
@@ -186,7 +194,6 @@ function M.detect_section_by_content(line_content)
   end
 
   -- Check for todos
-  local todo_component = require('nexus.render.components.todo')
   if todo_component.is_todo_line(line_content) then
     return "todos"
   end
@@ -246,7 +253,6 @@ function M.is_actionable_line(section_name, line_content)
   
   -- Linear issues are actionable
   if section_name == "linear_issues" then
-    local linear_component = require('nexus.render.components.linear')
     local is_issue, _ = linear_component.is_linear_issue_line(line_content)
     -- Issues are actionable, and so are error/setup messages
     return is_issue or
@@ -271,7 +277,6 @@ function M.is_actionable_line(section_name, line_content)
 
   -- Beads issues are actionable
   if section_name == "beads_issues" then
-    local beads_component = require('nexus.render.components.beads')
     local is_issue, _ = beads_component.is_beads_issue_line(line_content)
     -- Issues are actionable, and so are setup/error messages
     return is_issue or
@@ -284,7 +289,6 @@ function M.is_actionable_line(section_name, line_content)
 
   -- Todos are actionable
   if section_name == "todos" then
-    local todo_component = require('nexus.render.components.todo')
     -- Todo lines are actionable, and so are empty todo messages
     return todo_component.is_todo_line(line_content) or 
            line_content:match("No todos") or 

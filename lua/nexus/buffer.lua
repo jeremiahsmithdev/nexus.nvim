@@ -117,9 +117,10 @@ function M.setup_image_autocommands(buf)
   local group_name = 'NexusImage' .. buf
   vim.api.nvim_create_augroup(group_name, { clear = true })
   
-  -- Log buffer creation
-  local window = vim.env.TMUX and vim.fn.system("tmux display-message -p '#{window_id}'"):gsub('\n', '') or nil
-  local pane = vim.env.TMUX and vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '') or nil
+  -- Log buffer creation. Reuse the logger's memoized tmux context instead of
+  -- spawning two `tmux display-message` subprocesses on every buffer creation;
+  -- nvim's own window/pane ids are fixed for the life of the process.
+  local window, pane = logger.tmux_context()
   logger.buf_created(buf, window, pane)
 
   -- Install the cursor guard. Forbids cursor from logo / project_name /
