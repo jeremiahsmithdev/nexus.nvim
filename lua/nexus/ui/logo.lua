@@ -332,9 +332,11 @@ end
 -- Re-render the image for the current buffer if it exists and we're in the right tmux pane
 function M.refresh_image()
   if M._current_image and M._current_buffer then
-    -- Validate we're in the correct tmux pane before re-rendering
+    -- Validate we're in the correct tmux pane before re-rendering. nvim's own
+    -- pane id is fixed for the process lifetime, so reuse the logger's memoized
+    -- value instead of spawning another `tmux display-message`.
     if vim.env.TMUX and M._current_tmux_pane then
-      local current_pane = vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '')
+      local _, current_pane = logger.tmux_context()
       if current_pane ~= M._current_tmux_pane then
         -- We're in a different pane, don't re-render here
         return
@@ -358,9 +360,11 @@ function M.has_image_for_buffer(buf)
     return false
   end
   
-  -- If we're in tmux, also validate we're in the correct pane
+  -- If we're in tmux, also validate we're in the correct pane. Reuse the
+  -- logger's memoized pane id (nvim's pane is fixed for the process lifetime)
+  -- rather than spawning another `tmux display-message`.
   if vim.env.TMUX and M._current_tmux_pane then
-    local current_pane = vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '')
+    local _, current_pane = logger.tmux_context()
     local has_image = current_pane == M._current_tmux_pane
     logger.debug("IMAGE", "Tmux pane check: current=" .. current_pane .. ", stored=" .. M._current_tmux_pane .. ", has_image=" .. tostring(has_image))
     return has_image

@@ -5,6 +5,7 @@ local shortcuts = require('nexus.ui.shortcuts')
 local git_status = require('nexus.git.status')
 local folding = require('nexus.ui.folding')
 local logger = require('nexus.logger')
+local center = require('nexus.ui.center')
 
 -- Build all sections based on configuration
 function M.build_sections(config, is_git_repo, files, commits)
@@ -15,10 +16,9 @@ function M.build_sections(config, is_git_repo, files, commits)
   local logo = require('nexus.ui.logo')
   local project_name = logo._get_project_name()
   if project_name then
-    -- Center the project name with padding
-    local padding = math.floor((48 - #project_name) / 2)  -- 48 is roughly the width of the NEXUS logo
-    -- Optimized: Use table concatenation for padding
-    local centered_project_name = table.concat({string.rep(" ", padding), project_name})
+    -- Center the project name under the logo using the same centering SSOT the
+    -- logo itself uses (ui/center). 48 is roughly the width of the NEXUS logo.
+    local centered_project_name = center.center_lines_individually({project_name}, 48)[1]
     sections.project_name = {centered_project_name, ""}
   end
 
