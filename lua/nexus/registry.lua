@@ -91,12 +91,16 @@ function M.get_cached_modules()
   return vim.tbl_keys(module_cache)
 end
 
--- Initialize the registry
+-- Initialize the registry.
+--
+-- We intentionally do NOT eagerly precache here. Lua's `require` already
+-- memoizes modules in package.loaded, and M.get() caches on first access, so
+-- the modules load exactly once when render first needs them. Eagerly loading
+-- the full CACHEABLE_MODULES list right after VimEnter only front-loaded ~12
+-- module chunk-evaluations onto the startup path for no benefit (the cache has
+-- no eager consumers). Call M.precache_common_modules() explicitly if a warm
+-- cache is ever needed.
 function M.init()
-  -- Pre-cache common modules if they exist
-  vim.defer_fn(function()
-    M.precache_common_modules()
-  end, 0)
 end
 
 return M

@@ -10,15 +10,27 @@ local function get_timestamp()
   return os.date("%Y-%m-%d %H:%M:%S")
 end
 
--- Get current tmux context
+-- Get current tmux context.
+--
+-- The window/pane id of nvim's own tmux pane are fixed for the life of the
+-- process, so we resolve them once and memoize. Without this, every log call
+-- (400+ across the codebase, dozens on the startup path) spawned TWO
+-- synchronous `tmux display-message` subprocesses on the main thread — the
+-- single biggest avoidable blocking cost during dashboard startup.
+local _tmux_window = nil
+local _tmux_pane = nil
 local function get_tmux_context()
-  if not vim.env.TMUX then
-    return "NOT_IN_TMUX", "NOT_IN_TMUX"
+  if _tmux_window ~= nil then
+    return _tmux_window, _tmux_pane
   end
-  
-  local window = vim.fn.system("tmux display-message -p '#{window_id}'"):gsub('\n', '')
-  local pane = vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '')
-  return window, pane
+  if not vim.env.TMUX then
+    _tmux_window, _tmux_pane = "NOT_IN_TMUX", "NOT_IN_TMUX"
+    return _tmux_window, _tmux_pane
+  end
+
+  _tmux_window = vim.fn.system("tmux display-message -p '#{window_id}'"):gsub('\n', '')
+  _tmux_pane = vim.fn.system("tmux display-message -p '#{pane_id}'"):gsub('\n', '')
+  return _tmux_window, _tmux_pane
 end
 
 -- Core logging function

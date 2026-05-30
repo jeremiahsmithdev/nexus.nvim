@@ -31,6 +31,38 @@ function M.get()
   return _cached_root
 end
 
+---Cheap yes/no "are we inside a git repo?" check that spawns NO subprocess.
+---
+---Walks up from the current working directory looking for a `.git` entry
+---(directory in the normal case, a file for worktrees/submodules) using
+---vim.uv.fs_stat — sub-millisecond versus the ~10-30ms of a `git rev-parse`
+---process spawn. Used at the VimEnter gate, where we only need the boolean and
+---must answer synchronously before Vim paints its intro screen.
+---
+---This deliberately does NOT resolve the canonical root path. Use M.get() when
+---you need the path: it shells out to `git rev-parse --show-toplevel` so its
+---result matches the symlink-resolved cwd that Claude/cache keys compare against.
+---@return boolean
+function M.is_repo()
+  -- An explicit git environment means we're in a repo regardless of layout.
+  if vim.env.GIT_DIR and vim.env.GIT_DIR ~= '' then
+    return true
+  end
+  local uv = vim.uv or vim.loop
+  local dir = vim.fn.getcwd()
+  while dir and dir ~= '' do
+    if uv.fs_stat(dir .. '/.git') then
+      return true
+    end
+    local parent = vim.fn.fnamemodify(dir, ':h')
+    if parent == dir then
+      break -- reached filesystem root
+    end
+    dir = parent
+  end
+  return false
+end
+
 ---Invalidate the memoized root. Call this if the user changes into a new
 ---directory and you need to force re-detection on the next M.get() call.
 function M.invalidate()
