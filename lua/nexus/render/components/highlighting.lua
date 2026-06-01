@@ -3,19 +3,25 @@ local M = {}
 local git_status = require('nexus.git.status')
 local folding = require('nexus.ui.folding')
 
--- Recognised conventional-commit types. Membership gates the header
--- highlighting: a subject whose first word isn't one of these (e.g. "wip",
--- merge commits, plain messages) is left uncolored, so non-conventional
--- commits degrade gracefully to the default subject color.
-local CONVENTIONAL_TYPES = {
-  feat = true, fix = true, docs = true, style = true, refactor = true,
-  perf = true, test = true, build = true, ci = true, chore = true, revert = true,
-}
-
+-- Conventional-commit headers are recognised by their FORMAT, not by an
+-- allowlist of type words: the trailing-colon requirement below confirms the
+-- `<type>(<scope>)!:` shape, so arbitrary types (wip, hotfix, deps, ...) are
+-- coloured while plain subjects and merge commits degrade to default colour.
+--
 -- Every conventional-commit type label is coloured uniformly so the prefix
 -- reads as one consistent token regardless of category. Theme-adaptive
 -- built-in group rather than a custom color.
 local CONVENTIONAL_TYPE_HL = 'Keyword'
+
+-- Branch name colour, shared by BOTH the header line (`<project> on  <branch>`)
+-- and git-log decorations (`(HEAD -> dev)`) so the two always match. Explicit
+-- orange rather than a built-in group: orange has no reliable built-in
+-- (`Constant`/`Number`/`Function` resolve to purple/yellow in many themes).
+-- `default = true` lets a user override `NexusCommitBranch` with their own.
+local COMMIT_BRANCH_HL = 'NexusCommitBranch'
+local function ensure_branch_hl()
+  vim.api.nvim_set_hl(0, COMMIT_BRANCH_HL, { fg = '#fe8019', default = true })
+end
 
 -- Main highlighting function - applies all highlighting types
 function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
@@ -48,6 +54,7 @@ end
 
 -- Logo highlighting
 function M.apply_logo_highlighting(buf, lines, config, logo_section)
+  ensure_branch_hl()
   local logo_ns = vim.api.nvim_create_namespace('nexus_logo')
   local logo_color = config.logo_color or "String"
   if logo_section then
@@ -86,16 +93,16 @@ function M.apply_logo_highlighting(buf, lines, config, logo_section)
                 end_col = icon_end,
                 hl_group = "String",
               })
-              -- Highlight branch name (after icon) in Function color
+              -- Highlight branch name (after icon) to match commit decorations
               vim.api.nvim_buf_set_extmark(buf, logo_ns, i - 1, icon_end, {
                 end_col = #line_content,
-                hl_group = "Function",
+                hl_group = COMMIT_BRANCH_HL,
               })
             else
               -- No icon found, highlight rest as branch
               vim.api.nvim_buf_set_extmark(buf, logo_ns, i - 1, on_pattern_end, {
                 end_col = #line_content,
-                hl_group = "Function",
+                hl_group = COMMIT_BRANCH_HL,
               })
             end
           else
@@ -160,6 +167,7 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_r
   local first_line = range and range.start_line or 1
   local last_line  = range and range.end_line   or #lines
 
+  ensure_branch_hl()
   local commits_ns = vim.api.nvim_create_namespace('nexus_commits')
   for i = first_line, last_line do
     local line = lines[i]
@@ -229,6 +237,21 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_r
             end_col = paren_end,
             hl_group = 'Function',
           })
+        elseif open_paren and head_start then
+          -- HEAD decoration: `(HEAD -> dev, origin/dev)`. The local branch is
+          -- the ref following the arrow (ascii `->` or unicode `→`). Colour
+          -- just that branch name; HEAD itself is already coloured `Title`.
+          local arrow_e = select(2, line:find('%->', head_end))
+            or select(2, line:find('→', head_end, true))
+          if arrow_e then
+            local br_s, br_e = line:find('[%w%./_-]+', arrow_e + 1)
+            if br_s and br_e <= paren_end then
+              vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, br_s - 1, {
+                end_col = br_e,
+                hl_group = COMMIT_BRANCH_HL,
+              })
+            end
+          end
         end
       end
 
@@ -243,8 +266,8 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_r
       end
       local htype_start = line:find('%S', header_from)
       if htype_start then
-        local type_s, type_e, ctype = line:find('^(%l+)', htype_start)
-        local type_hl = type_s and CONVENTIONAL_TYPES[ctype] and CONVENTIONAL_TYPE_HL
+        local type_s, type_e = line:find('^%l+', htype_start)
+        local type_hl = type_s and CONVENTIONAL_TYPE_HL
         if type_hl then
           local cursor = type_e + 1
           local scope_s, scope_e = line:find('^%b()', cursor)
