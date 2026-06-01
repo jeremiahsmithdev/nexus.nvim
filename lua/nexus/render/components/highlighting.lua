@@ -3,24 +3,19 @@ local M = {}
 local git_status = require('nexus.git.status')
 local folding = require('nexus.ui.folding')
 
--- Conventional-commit type -> built-in highlight group. Chosen so each type is
--- distinguishable at a glance and theme-adaptive (we reuse semantic groups
--- rather than defining custom colors). Types not in this table (e.g. "wip",
--- merge commits, plain messages) are left uncolored, so non-conventional
+-- Recognised conventional-commit types. Membership gates the header
+-- highlighting: a subject whose first word isn't one of these (e.g. "wip",
+-- merge commits, plain messages) is left uncolored, so non-conventional
 -- commits degrade gracefully to the default subject color.
-local CONVENTIONAL_TYPE_HL = {
-  feat     = 'String',           -- green: new capability
-  fix      = 'DiagnosticError',  -- red: bug fix
-  docs     = 'DiagnosticInfo',   -- blue: documentation
-  style    = 'Comment',          -- dim: cosmetic only
-  refactor = 'Keyword',          -- purple: structural change
-  perf     = 'DiagnosticWarn',   -- orange: performance
-  test     = 'Type',             -- accent: tests
-  build    = 'Special',          -- build system
-  ci       = 'Special',          -- CI config
-  chore    = 'Comment',          -- dim: maintenance
-  revert   = 'DiagnosticError',  -- red: undoing a change
+local CONVENTIONAL_TYPES = {
+  feat = true, fix = true, docs = true, style = true, refactor = true,
+  perf = true, test = true, build = true, ci = true, chore = true, revert = true,
 }
+
+-- Every conventional-commit type label is coloured uniformly so the prefix
+-- reads as one consistent token regardless of category. Theme-adaptive
+-- built-in group rather than a custom color.
+local CONVENTIONAL_TYPE_HL = 'Keyword'
 
 -- Main highlighting function - applies all highlighting types
 function M.apply_highlighting(buf, lines, config, is_git_repo, files, logo_section, section_ranges)
@@ -249,7 +244,7 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_r
       local htype_start = line:find('%S', header_from)
       if htype_start then
         local type_s, type_e, ctype = line:find('^(%l+)', htype_start)
-        local type_hl = type_s and CONVENTIONAL_TYPE_HL[ctype]
+        local type_hl = type_s and CONVENTIONAL_TYPES[ctype] and CONVENTIONAL_TYPE_HL
         if type_hl then
           local cursor = type_e + 1
           local scope_s, scope_e = line:find('^%b()', cursor)
@@ -268,7 +263,7 @@ function M.apply_commits_highlighting(buf, lines, config, is_git_repo, section_r
             if scope_s then
               vim.api.nvim_buf_set_extmark(buf, commits_ns, i - 1, scope_s - 1, {
                 end_col = scope_e,
-                hl_group = 'Function',
+                hl_group = 'DiagnosticOk',
               })
             end
             if bang_s then
