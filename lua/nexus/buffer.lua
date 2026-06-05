@@ -72,7 +72,7 @@ function M.open_buffer(buf, is_manual_open)
   if is_manual_open then
     -- Look for existing Nexus buffer
     for _, existing_buf in ipairs(vim.api.nvim_list_bufs()) do
-      if vim.api.nvim_buf_is_valid(existing_buf) and vim.api.nvim_buf_get_name(existing_buf):match('Nexus$') then
+      if vim.api.nvim_buf_is_valid(existing_buf) and vim.bo[existing_buf].filetype == 'nexus' then
         -- Switch to existing Nexus buffer
         vim.api.nvim_win_set_buf(0, existing_buf)
         M.setup_window_options(existing_buf)

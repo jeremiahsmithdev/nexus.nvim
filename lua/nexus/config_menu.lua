@@ -486,8 +486,7 @@ local function save_and_close()
   local nexus = require('nexus')
   for _, buf in ipairs(api.nvim_list_bufs()) do
     if api.nvim_buf_is_valid(buf) then
-      local name = api.nvim_buf_get_name(buf)
-      if name:match('Nexus$') then
+      if vim.bo[buf].filetype == 'nexus' then
         nexus.refresh_buffer(buf)
         break
       end

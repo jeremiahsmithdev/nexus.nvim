@@ -40,8 +40,7 @@ function M.open(is_manual_open)
   logger.log_timing_event("BUFFER_EXISTENCE_CHECK_START")
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_is_loaded(buf) then
-      local name = vim.api.nvim_buf_get_name(buf)
-      if name:match('Nexus$') then
+      if vim.bo[buf].filetype == 'nexus' then
         -- Found existing loaded Nexus buffer, just switch to it
         logger.info('NEXUS', 'Switching to existing Nexus buffer')
         logger.log_timing_event("EXISTING_BUFFER_FOUND")
@@ -71,7 +70,7 @@ function M.open(is_manual_open)
 
   logger.log_timing_event("BUFFER_CREATION_START")
   local buf = buffer_mod.create_nexus_buffer(should_be_persistent)
-  vim.api.nvim_buf_set_name(buf, 'Nexus')
+  pcall(vim.api.nvim_buf_set_name, buf, 'Nexus')
   logger.log_timing_event("BUFFER_CREATION_COMPLETE")
 
   logger.log_timing_event("BUFFER_OPEN_START")
@@ -224,8 +223,7 @@ function M.refresh_buffer(buf, opts)
     return
   end
 
-  local buf_name = vim.api.nvim_buf_get_name(buf)
-  if not buf_name:match('Nexus$') then
+  if vim.bo[buf].filetype ~= 'nexus' then
     logger.log_timing_event("REFRESH_BUFFER_NOT_NEXUS")
     return
   end
